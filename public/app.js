@@ -310,18 +310,25 @@ function displayResults(dish, allergensInfo) {
 function setupActionButtons() {
   if (!currentDish) return;
 
-  // Solo configurar los botones que funcionan
-  beautifulLabelBtn.onclick = () => generateBeautifulLabel();
-  printBtn.onclick = () => printDirectly();
-  newDishBtn.onclick = () => clearForm();
+  // Verificar que los elementos existen antes de asignar eventos
+  const beautifulBtn = document.getElementById('beautifulLabelBtn');
+  const printButton = document.getElementById('printBtn');
+  const newButton = document.getElementById('newDishBtn');
   
-  // Update button states - solo los botones que mantienes
-  printBtn.disabled = false;
-}
+  if (beautifulBtn) {
+    beautifulBtn.onclick = () => generateBeautifulLabel();
+    beautifulBtn.disabled = false;
+  }
   
-  // Update button states
-  pdfSimpleBtn.disabled = false;
-  printBtn.disabled = false;
+  if (printButton) {
+    printButton.onclick = () => printDirectly();
+    printButton.disabled = false;
+  }
+  
+  if (newButton) {
+    newButton.onclick = () => clearForm();
+    newButton.disabled = false;
+  }
 }
 
 // Generate simple label
