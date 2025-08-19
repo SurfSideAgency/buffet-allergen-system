@@ -1894,6 +1894,36 @@ button:active {
 .guide-card {
   animation-delay: 0.4s;
 }
+/* Grid optimizado para 3 botones */
+.action-buttons-modern {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr !important; /* 3 columnas iguales */
+  gap: 1rem;
+  padding: 0 2rem 2rem;
+}
 
+/* Responsivo para móvil */
+@media (max-width: 768px) {
+  .action-buttons-modern {
+    grid-template-columns: 1fr !important; /* Stack vertical en móvil */
+    gap: 0.75rem;
+    padding: 0 1.5rem 1.5rem;
+  }
+}
+
+/* Tablet - 2 arriba, 1 abajo centrado */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .action-buttons-modern {
+    grid-template-columns: 1fr 1fr !important; /* 2 columnas */
+    gap: 1rem;
+  }
+  
+  /* El tercer botón ocupa toda la fila inferior y se centra */
+  .action-buttons-modern .action-btn:nth-child(3) {
+    grid-column: 1 / -1; /* Ocupa ambas columnas */
+    max-width: 300px;
+    justify-self: center;
+  }
+}
 /* ===== FIN CSS MODERNO ===== */
 /* ===== FIN DE ADICIONES ===== */
