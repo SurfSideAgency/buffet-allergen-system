@@ -358,27 +358,179 @@ async function printDirectly() {
   if (!currentDish) return;
 
   try {
-    const response = await fetch(`/api/print-directly/${currentDish.id}`, {
+    showSuccessMessage('🖨️ Preparando para imprimir...');
+
+    // Generar PDF bonito (no el simple)
+    const response = await fetch(`/api/generate-beautiful-single/${currentDish.id}`, {
       method: 'POST'
     });
 
-    const result = await response.json();
-
     if (!response.ok) {
-      throw new Error(result.error || 'Error imprimiendo');
+      throw new Error('Error generando etiqueta para impresión');
     }
 
-    if (result.success) {
-      showSuccessMessage(`🖨️ ${result.message}`);
-      stats.labels++;
-      updateStats();
-    } else {
-      throw new Error(result.message || 'Error imprimiendo');
-    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    
+    // NUEVO: Abrir PDF en ventana nueva optimizada para impresión
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    // Crear contenido HTML optimizado para impresión
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Imprimir Etiqueta - ${currentDish.name}</title>
+        <style>
+          body { 
+            margin: 0; 
+            padding: 20px; 
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+          }
+          .print-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+          }
+          .print-info {
+            margin-bottom: 20px;
+            color: #666;
+          }
+          .print-buttons {
+            margin: 20px 0;
+          }
+          .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0 10px;
+            font-size: 16px;
+          }
+          .btn:hover {
+            background: #1d4ed8;
+          }
+          .btn-secondary {
+            background: #6b7280;
+          }
+          .btn-secondary:hover {
+            background: #4b5563;
+          }
+          iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+          }
+          @media print {
+            body { background: white; margin: 0; padding: 0; }
+            .print-container { box-shadow: none; padding: 0; }
+            .print-info, .print-buttons { display: none; }
+            iframe { height: auto; border: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-container">
+          <div class="print-info">
+            <h2>🏷️ Etiqueta Lista para Imprimir</h2>
+            <p><strong>Plato:</strong> ${currentDish.name}</p>
+            <p><strong>Alérgenos:</strong> ${currentDish.allergens.length > 0 ? currentDish.allergens.length + ' detectados' : 'Ninguno'}</p>
+          </div>
+          
+          <div class="print-buttons">
+            <button class="btn" onclick="window.print()">🖨️ Imprimir Ahora</button>
+            <button class="btn btn-secondary" onclick="window.close()">❌ Cerrar</button>
+          </div>
+          
+          <iframe src="${url}" title="Etiqueta PDF"></iframe>
+        </div>
+        
+        <script>
+          // Auto-abrir diálogo de impresión después de cargar
+          window.onload = function() {
+            setTimeout(function() {
+              // Preguntar si quiere imprimir automáticamente
+              if (confirm('¿Imprimir etiqueta ahora?')) {
+                window.print();
+              }
+            }, 1500);
+          };
+        </script>
+      </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+
+    showSuccessMessage('✅ Ventana de impresión abierta');
+    stats.labels++;
+    updateStats();
+
   } catch (error) {
     console.error('Error printing:', error);
-    showError(`Error imprimiendo: ${error.message}`);
+    showError(`Error preparando impresión: ${error.message}`);
   }
+}
+
+// NUEVA FUNCIÓN: Impresión silenciosa (sin confirmación)
+async function printSilently() {
+  if (!currentDish) return;
+
+  try {
+    const response = await fetch(`/api/generate-beautiful-single/${currentDish.id}`, {
+      method: 'POST'
+    });
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    
+    // Crear iframe oculto para impresión
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = url;
+    
+    document.body.appendChild(iframe);
+    
+    iframe.onload = function() {
+      // Intentar imprimir directamente (puede requerir permisos del navegador)
+      try {
+        iframe.contentWindow.print();
+        showSuccessMessage('🖨️ Enviado a impresora');
+      } catch (e) {
+        // Si falla, abrir en ventana nueva
+        window.open(url, '_blank').print();
+        showSuccessMessage('🖨️ Abriendo ventana de impresión');
+      }
+      
+      // Limpiar después de 5 segundos
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+        window.URL.revokeObjectURL(url);
+      }, 5000);
+    };
+
+  } catch (error) {
+    console.error('Error in silent print:', error);
+    showError('Error en impresión silenciosa');
+  }
+}
+
+// OPCIONAL: Añadir botón de impresión rápida
+// Si quieres un botón adicional para impresión sin confirmación
+function addQuickPrintButton() {
+  // Este código se añadiría al HTML si quieres un botón extra
+  return `
+    <button id="quickPrintBtn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center">
+      <span class="mr-2">⚡</span>
+      Impresión Rápida
+    </button>
+  `;
 }
 
 // Update statistics
