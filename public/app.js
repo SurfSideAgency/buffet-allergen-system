@@ -312,6 +312,7 @@ function setupActionButtons() {
   pdfSimpleBtn.onclick = () => generateSimpleLabel();
   printBtn.onclick = () => printDirectly();
   newDishBtn.onclick = () => clearForm();
+  beautifulLabelBtn.onclick = () => generateBeautifulLabel();
   
   // Update button states
   pdfSimpleBtn.disabled = false;
@@ -557,4 +558,36 @@ function showSuccessMessage(message) {
       }
     }, 300);
   }, 3000);
+}
+// Generar etiqueta bonita individual
+async function generateBeautifulLabel() {
+  if (!currentDish) return;
+
+  try {
+    const response = await fetch(`/api/generate-beautiful-single/${currentDish.id}`, {
+      method: 'POST'
+    });
+
+    if (!response.ok) {
+      throw new Error('Error generando etiqueta bonita');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `etiqueta_bonita_${currentDish.name.replace(/\s+/g, '_')}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    showSuccessMessage('✨ Etiqueta bonita A4 descargada');
+    stats.labels++;
+    updateStats();
+
+  } catch (error) {
+    console.error('Error generating beautiful label:', error);
+    showError('Error generando etiqueta bonita');
+  }
 }
