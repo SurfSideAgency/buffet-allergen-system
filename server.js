@@ -293,7 +293,7 @@ function drawBeautifulSingleLabel(doc, dish, x, y, width, height) {
      .fillColor('#00000020')
      .fill();
 
-  // Marco principal con gradiente simulado
+  // Marco principal
   doc.roundedRect(x, y, width, height, 12)
      .fillColor('#ffffff')
      .fill()
@@ -307,11 +307,11 @@ function drawBeautifulSingleLabel(doc, dish, x, y, width, height) {
      .fillColor('#2563eb')
      .fill();
 
-  // Título principal
+  // Título principal (SIN EMOJI - causa problemas)
   doc.font('Helvetica-Bold')
      .fontSize(18)
      .fillColor('white')
-     .text('🍽️ BUFFET SELECTION', x + padding, y + 18, { 
+     .text('BUFFET SELECTION', x + padding, y + 18, { 
        width: width - (padding * 2), 
        align: 'center' 
      });
@@ -348,16 +348,16 @@ function drawBeautifulSingleLabel(doc, dish, x, y, width, height) {
        .lineWidth(1)
        .stroke();
 
-    // Título "CONTIENE ALÉRGENOS"
+    // Título "CONTIENE ALÉRGENOS" (SIN EMOJI)
     doc.font('Helvetica-Bold')
        .fontSize(14)
        .fillColor('#dc2626')
-       .text('⚠️ CONTIENE ALÉRGENOS', x + padding + 10, y + 135, {
+       .text('CONTIENE ALERGENOS:', x + padding + 10, y + 135, {
          width: width - (padding * 2) - 20,
          align: 'center'
        });
 
-    // Lista de alérgenos en dos columnas
+    // Lista de alérgenos SIN ICONOS (solo texto)
     let allergenY = y + 155;
     let column = 0;
     const columnWidth = (width - (padding * 2) - 40) / 2;
@@ -367,17 +367,11 @@ function drawBeautifulSingleLabel(doc, dish, x, y, width, height) {
       if (allergen) {
         const columnX = x + padding + 20 + (column * columnWidth);
 
-        // Icono del alérgeno (más grande)
-        doc.font('Helvetica')
-           .fontSize(16)
-           .fillColor('#dc2626')
-           .text(allergen.icon, columnX, allergenY);
-
-        // Nombre del alérgeno
+        // Solo nombre del alérgeno (SIN ICONOS)
         doc.font('Helvetica-Bold')
            .fontSize(12)
            .fillColor('#991b1b')
-           .text(allergen.name, columnX + 20, allergenY + 2);
+           .text(`• ${allergen.name}`, columnX, allergenY + 2);
 
         // Alternar columnas
         column = column === 0 ? 1 : 0;
@@ -399,7 +393,7 @@ function drawBeautifulSingleLabel(doc, dish, x, y, width, height) {
     doc.font('Helvetica-Bold')
        .fontSize(18)
        .fillColor('#15803d')
-       .text('✅ SIN ALÉRGENOS DETECTADOS', x + padding, y + 145, { 
+       .text('SIN ALERGENOS DETECTADOS', x + padding, y + 145, { 
          width: width - (padding * 2), 
          align: 'center' 
        });
@@ -413,14 +407,14 @@ function drawBeautifulSingleLabel(doc, dish, x, y, width, height) {
        });
   }
 
-  // Footer elegante
+  // Footer elegante (SIN EMOJIS)
   const footerY = y + height - 40;
 
   // Fecha y hora
   doc.font('Helvetica-Bold')
      .fontSize(12)
      .fillColor('#374151')
-     .text(`📅 ${dish.date}  🕐 ${new Date(dish.timestamp).toLocaleTimeString('es-ES', { 
+     .text(`${dish.date} - ${new Date(dish.timestamp).toLocaleTimeString('es-ES', { 
        hour: '2-digit', 
        minute: '2-digit' 
      })}`, x + padding, footerY, { 
@@ -432,7 +426,7 @@ function drawBeautifulSingleLabel(doc, dish, x, y, width, height) {
   doc.font('Helvetica')
      .fontSize(10)
      .fillColor('#6b7280')
-     .text(`👨‍🍳 Preparado por: ${dish.chef}  •  🎯 Confianza IA: ${Math.round(dish.confidence * 100)}%`, 
+     .text(`Preparado por: ${dish.chef} | Confianza IA: ${Math.round(dish.confidence * 100)}%`, 
            x + padding, footerY + 20, { 
        width: width - (padding * 2), 
        align: 'center' 
