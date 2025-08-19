@@ -354,26 +354,30 @@ async function generateSimpleLabel() {
 }
 
 // Print directly
-// REEMPLAZAR la función printDirectly en public/app.js
-
-// Función de impresión arreglada - genera HTML directo
 async function printDirectly() {
   if (!currentDish) return;
 
   try {
     showSuccessMessage('🖨️ Preparando etiqueta para impresión...');
 
-    // Crear ventana de impresión con HTML directo (no PDF)
+    // Crear ventana de impresión con HTML completamente limpio
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     
-    // HTML directo para impresión (replica la etiqueta bonita)
+    // HTML completamente independiente y limpio
     const printHTML = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Etiqueta Buffet - ${currentDish.name}</title>
+        <title>Etiqueta - ${currentDish.name}</title>
         <meta charset="UTF-8">
         <style>
+          /* CSS completamente independiente - NO hereda nada */
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
           @page {
             size: A4;
             margin: 2cm;
@@ -382,76 +386,85 @@ async function printDirectly() {
           body { 
             margin: 0; 
             padding: 20px; 
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             background: white;
             color: black;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 80vh;
+            line-height: 1.4;
           }
           
-          .etiqueta-container {
+          .etiqueta {
             width: 400px;
-            height: 250px;
-            border: 3px solid #2563eb;
-            border-radius: 16px;
+            height: 280px;
+            border: 4px solid #2563eb;
+            border-radius: 20px;
             background: white;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             position: relative;
             overflow: hidden;
+            font-family: Arial, Helvetica, sans-serif;
           }
           
           .header {
             background: #2563eb;
             color: white;
-            padding: 12px;
+            padding: 15px;
             text-align: center;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
-            border-radius: 12px 12px 0 0;
-            margin: 3px 3px 0 3px;
+            margin: 4px 4px 0 4px;
+            border-radius: 16px 16px 0 0;
           }
           
           .plato-nombre {
             text-align: center;
-            font-size: 24px;
+            font-size: 26px;
             font-weight: bold;
             color: #1f2937;
-            margin: 20px 15px;
-            padding: 10px 0;
-            border-bottom: 2px solid #e5e7eb;
+            margin: 25px 20px;
+            padding: 15px 0;
+            border-bottom: 3px solid #e5e7eb;
+            text-transform: uppercase;
           }
           
-          .alergenos-section {
-            margin: 15px;
-            ${currentDish.allergens.length > 0 ? `
-              background: #fef2f2;
-              border: 2px solid #fca5a5;
-              border-radius: 8px;
-              padding: 15px;
-            ` : `
-              background: #f0fdf4;
-              border: 2px solid #86efac;
-              border-radius: 8px;
-              padding: 15px;
-              text-align: center;
-            `}
+          .alergenos-container {
+            margin: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            min-height: 80px;
+          }
+          
+          .con-alergenos {
+            background: #fef2f2;
+            border: 3px solid #ef4444;
+          }
+          
+          .sin-alergenos {
+            background: #f0fdf4;
+            border: 3px solid #22c55e;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
           }
           
           .alergenos-titulo {
-            font-size: 14px;
+            font-size: 16px;
             font-weight: bold;
             color: #dc2626;
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
           }
           
           .alergenos-lista {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            font-size: 12px;
+            gap: 10px;
+            font-size: 14px;
             color: #991b1b;
             font-weight: bold;
           }
@@ -459,73 +472,98 @@ async function printDirectly() {
           .alergen-item {
             display: flex;
             align-items: center;
+            padding: 2px 0;
           }
           
-          .sin-alergenos {
-            font-size: 18px;
+          .sin-alergenos-texto {
+            font-size: 20px;
             font-weight: bold;
             color: #15803d;
+            margin-bottom: 8px;
+          }
+          
+          .sin-alergenos-desc {
+            font-size: 14px;
+            color: #16a34a;
           }
           
           .footer {
             position: absolute;
             bottom: 15px;
-            left: 15px;
-            right: 15px;
+            left: 20px;
+            right: 20px;
             text-align: center;
-            font-size: 10px;
+            font-size: 11px;
             color: #6b7280;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 8px;
+            border-top: 2px solid #e5e7eb;
+            padding-top: 10px;
           }
           
-          .footer-date {
+          .footer-fecha {
             font-weight: bold;
             color: #374151;
-            font-size: 12px;
-            margin-bottom: 4px;
+            font-size: 13px;
+            margin-bottom: 5px;
+          }
+          
+          .footer-chef {
+            font-size: 10px;
+            color: #9ca3af;
           }
           
           /* Estilos específicos para impresión */
           @media print {
             body { 
               background: white !important;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
+              padding: 0 !important;
+              margin: 0 !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
             
-            .etiqueta-container {
-              box-shadow: none;
-              border: 2px solid #2563eb;
+            .etiqueta {
+              box-shadow: none !important;
+              border: 3px solid #2563eb !important;
               page-break-inside: avoid;
+              margin: 0 auto;
             }
             
             .header {
               background: #2563eb !important;
               color: white !important;
-              -webkit-print-color-adjust: exact;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
             
-            .alergenos-section {
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
+            .con-alergenos {
+              background: #fef2f2 !important;
+              border-color: #ef4444 !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            
+            .sin-alergenos {
+              background: #f0fdf4 !important;
+              border-color: #22c55e !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
           }
         </style>
       </head>
       <body>
-        <div class="etiqueta-container">
+        <div class="etiqueta">
           <div class="header">
             BUFFET SELECTION
           </div>
           
           <div class="plato-nombre">
-            ${currentDish.name.toUpperCase()}
+            ${currentDish.name}
           </div>
           
-          <div class="alergenos-section">
+          <div class="alergenos-container ${currentDish.allergens.length > 0 ? 'con-alergenos' : 'sin-alergenos'}">
             ${currentDish.allergens.length > 0 ? `
-              <div class="alergenos-titulo">CONTIENE ALERGENOS:</div>
+              <div class="alergenos-titulo">CONTIENE ALERGENOS</div>
               <div class="alergenos-lista">
                 ${currentDish.allergens.map(allergenCode => {
                   const allergen = getAllergenInfo(allergenCode);
@@ -533,21 +571,21 @@ async function printDirectly() {
                 }).join('')}
               </div>
             ` : `
-              <div class="sin-alergenos">✓ SIN ALERGENOS DETECTADOS</div>
-              <div style="font-size: 12px; color: #16a34a; margin-top: 8px;">
+              <div class="sin-alergenos-texto">✓ SIN ALERGENOS DETECTADOS</div>
+              <div class="sin-alergenos-desc">
                 Este plato es seguro para personas con alergias alimentarias
               </div>
             `}
           </div>
           
           <div class="footer">
-            <div class="footer-date">
+            <div class="footer-fecha">
               ${currentDish.date} - ${new Date(currentDish.timestamp).toLocaleTimeString('es-ES', { 
                 hour: '2-digit', 
                 minute: '2-digit' 
               })}
             </div>
-            <div>
+            <div class="footer-chef">
               Preparado por: ${currentDish.chef} | Confianza IA: ${Math.round(currentDish.confidence * 100)}%
             </div>
           </div>
@@ -557,10 +595,9 @@ async function printDirectly() {
           // Auto-imprimir después de cargar
           window.onload = function() {
             setTimeout(function() {
-              if (confirm('¿Imprimir etiqueta ahora?')) {
-                window.print();
-              }
-            }, 1000);
+              // Auto-abrir diálogo de impresión sin confirmación
+              window.print();
+            }, 1500);
           };
           
           // Cerrar ventana después de imprimir
@@ -568,6 +605,11 @@ async function printDirectly() {
             setTimeout(function() {
               window.close();
             }, 1000);
+          };
+          
+          // Cerrar si se cancela la impresión
+          window.onbeforeunload = function() {
+            return null;
           };
         </script>
       </body>
@@ -577,7 +619,7 @@ async function printDirectly() {
     printWindow.document.write(printHTML);
     printWindow.document.close();
 
-    showSuccessMessage('✅ Ventana de impresión abierta - HTML directo');
+    showSuccessMessage('✅ Etiqueta enviada a impresora');
     stats.labels++;
     updateStats();
 
