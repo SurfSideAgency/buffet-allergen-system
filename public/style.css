@@ -48,6 +48,7 @@
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.5;
     transform: scale(1.2);
@@ -424,3 +425,436 @@ html {
   from { opacity: 1; }
   to { opacity: 0; }
 }
+/* ===== AÑADIR AL FINAL DEL CSS EXISTENTE ===== */
+/* CONSERVA TODO LO QUE YA TIENES ARRIBA */
+
+/* Variables CSS para colores premium */
+:root {
+  /* Colores gastronómicos profesionales */
+  --color-primary: #D4AF37;      /* Dorado elegante */
+  --color-primary-dark: #B8860B;  /* Dorado oscuro */
+  --color-secondary: #2D5016;     /* Verde natural */
+  --color-accent: #C44536;        /* Rojo cálido alérgenos */
+  --color-success: #16A34A;       /* Verde éxito */
+  --color-background: #FFFDF7;    /* Blanco cálido */
+  --color-card: #F8F6F0;          /* Beige muy suave */
+  --color-text: #1F2937;          /* Gris oscuro */
+  --color-text-light: #6B7280;    /* Gris medio */
+  
+  /* Espaciado consistente */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+  
+  /* Sombras profesionales */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.2);
+  
+  /* Bordes redondeados */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+}
+
+/* ===== MEJORAS DE LAYOUT PRINCIPAL ===== */
+
+/* Fondo mejorado */
+body {
+  background: linear-gradient(135deg, var(--color-background) 0%, #F5F3ED 100%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+}
+
+/* Container principal mejorado */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+/* Grid principal balanceado - OVERRIDE */
+.max-w-6xl.mx-auto.grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: var(--spacing-lg);
+  align-items: start;
+  max-width: 1400px;
+}
+
+/* ===== CARDS PREMIUM ===== */
+
+/* Cards principales mejoradas */
+.bg-white.rounded-xl.shadow-xl {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: var(--shadow-lg) !important;
+  transition: all 0.3s ease;
+}
+
+.bg-white.rounded-xl.shadow-xl:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl) !important;
+}
+
+/* Header con glassmorphism */
+.bg-gradient-to-r.from-blue-500.to-indigo-600 {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #E6C547 100%) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ===== BOTONES PREMIUM MEJORADOS ===== */
+
+/* Botón principal premium */
+.bg-gradient-to-r.from-purple-500.to-pink-500 {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%) !important;
+  box-shadow: 0 8px 32px rgba(212, 175, 55, 0.4) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-gradient-to-r.from-purple-500.to-pink-500:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.bg-gradient-to-r.from-purple-500.to-pink-500:hover:before {
+  left: 100%;
+}
+
+/* Botón PDF Simple */
+.bg-blue-500 {
+  background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%) !important;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Botón Etiqueta Bonita */
+.bg-pink-500 {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #E6C547 100%) !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4) !important;
+}
+
+/* Botón Imprimir */
+.bg-green-500 {
+  background: linear-gradient(135deg, var(--color-success) 0%, #22C55E 100%) !important;
+  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.4) !important;
+}
+
+/* Botón Nuevo Plato */
+.bg-purple-500 {
+  background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%) !important;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4) !important;
+}
+
+/* ===== BOTÓN GRABACIÓN MEJORADO ===== */
+
+/* Override del botón de grabación */
+.record-btn {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%) !important;
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.4) !important;
+  min-width: 250px;
+  min-height: 60px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 50px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== ALÉRGENOS MEJORADOS ===== */
+
+/* Badges de alérgenos premium */
+.bg-red-50.border.border-red-200 {
+  background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%) !important;
+  border: 2px solid var(--color-accent) !important;
+  border-radius: var(--radius-md) !important;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.bg-red-50.border.border-red-200:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary) !important;
+}
+
+/* Sin alérgenos mejorado */
+.bg-green-50.border.border-green-200 {
+  background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%) !important;
+  border: 2px solid var(--color-success) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* ===== ESTADÍSTICAS MEJORADAS ===== */
+
+/* Stats cards premium */
+.bg-white.rounded-xl.shadow-xl.p-6 {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Números de estadísticas */
+.text-2xl.font-bold.text-blue-600 {
+  color: var(--color-primary) !important;
+  font-size: 2.5rem !important;
+  font-weight: 800 !important;
+}
+
+.text-2xl.font-bold.text-teal-600 {
+  color: var(--color-success) !important;
+  font-size: 2.5rem !important;
+  font-weight: 800 !important;
+}
+
+.text-2xl.font-bold.text-red-600 {
+  color: var(--color-accent) !important;
+  font-size: 2.5rem !important;
+  font-weight: 800 !important;
+}
+
+/* ===== RESPONSIVE DESIGN COMPLETO ===== */
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+  .max-w-6xl.mx-auto.grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--spacing-md) !important;
+  }
+  
+  .container {
+    padding: var(--spacing-sm) !important;
+  }
+}
+
+/* Móvil grande (481px - 768px) */
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-xs) !important;
+  }
+  
+  /* Header móvil */
+  .text-4xl {
+    font-size: 1.75rem !important;
+  }
+  
+  .text-2xl {
+    font-size: 1.5rem !important;
+  }
+  
+  /* Cards móvil con padding reducido */
+  .p-8 {
+    padding: var(--spacing-md) !important;
+  }
+  
+  .p-6 {
+    padding: var(--spacing-md) !important;
+  }
+  
+  /* Botón grabación móvil optimizado */
+  .record-btn {
+    width: 100% !important;
+    max-width: 280px !important;
+    min-height: 70px !important;
+    font-size: 18px !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Botones de acción móvil */
+  .flex.flex-wrap.gap-3.justify-center {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: var(--spacing-sm) !important;
+    margin-top: var(--spacing-md) !important;
+  }
+  
+  .flex.flex-wrap.gap-3.justify-center button {
+    min-height: 56px !important;
+    font-size: 14px !important;
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+  }
+  
+  /* Input móvil */
+  .px-4.py-3 {
+    min-height: 48px !important;
+    font-size: 16px !important; /* Evita zoom en iOS */
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+  }
+  
+  /* Textarea móvil */
+  .h-24 {
+    min-height: 80px !important;
+    font-size: 16px !important;
+  }
+  
+  /* Grid de alérgenos móvil */
+  .grid.grid-cols-2.md\\:grid-cols-3 {
+    grid-template-columns: 1fr 1fr !important;
+    gap: var(--spacing-xs) !important;
+  }
+  
+  /* Estadísticas móvil */
+  .space-y-4 > div {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: var(--spacing-xs) !important;
+  }
+  
+  /* Texto de estadísticas móvil */
+  .text-2xl.font-bold {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* Móvil pequeño (máx 480px) */
+@media (max-width: 480px) {
+  .container {
+    padding: 0.25rem !important;
+  }
+  
+  /* Header ultra compacto */
+  .text-4xl {
+    font-size: 1.5rem !important;
+  }
+  
+  .text-2xl {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Padding cards ultra compacto */
+  .p-8 {
+    padding: var(--spacing-sm) !important;
+  }
+  
+  .p-6 {
+    padding: var(--spacing-sm) !important;
+  }
+  
+  /* Botones acción stack vertical */
+  .flex.flex-wrap.gap-3.justify-center {
+    grid-template-columns: 1fr !important;
+    gap: var(--spacing-xs) !important;
+  }
+  
+  .flex.flex-wrap.gap-3.justify-center button {
+    min-height: 52px !important;
+    font-size: 15px !important;
+  }
+  
+  /* Record button móvil pequeño */
+  .record-btn {
+    min-height: 65px !important;
+    font-size: 16px !important;
+    min-width: 220px !important;
+  }
+  
+  /* Alérgenos ultra compactos */
+  .grid.grid-cols-2.md\\:grid-cols-3 {
+    gap: 0.25rem !important;
+  }
+  
+  .bg-red-50.border.border-red-200 {
+    padding: var(--spacing-xs) !important;
+  }
+  
+  .text-xs {
+    font-size: 10px !important;
+  }
+}
+
+/* ===== MEJORAS ADICIONALES ===== */
+
+/* Loading mejorado */
+.animate-spin {
+  border-color: rgba(212, 175, 55, 0.2) !important;
+  border-top-color: var(--color-primary) !important;
+}
+
+/* Focus mejorado */
+button:focus,
+input:focus,
+textarea:focus {
+  outline: 2px solid var(--color-primary) !important;
+  outline-offset: 2px !important;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-card);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-dark);
+}
+
+/* ===== UTILIDADES RESPONSIVE ===== */
+
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: block;
+  }
+  
+  .desktop-only {
+    display: none;
+  }
+  
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  .mobile-full-width {
+    width: 100% !important;
+  }
+  
+  .mobile-text-center {
+    text-align: center !important;
+  }
+}
+
+/* ===== EFECTOS HOVER MEJORADOS ===== */
+
+button:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  transition: all 0.3s ease !important;
+}
+
+button:active {
+  transform: translateY(0) scale(0.98) !important;
+}
+
+/* Cards hover effect */
+.bg-white.rounded-xl.shadow-xl:hover {
+  transform: translateY(-3px) !important;
+}
+
+/* ===== FIN DE ADICIONES ===== */
