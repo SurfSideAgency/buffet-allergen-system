@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Alérgenos - Sistema de Buffet</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="flex items-center justify-center mb-4">
+                <div class="bg-blue-600 text-white rounded-full p-3 mr-4">
+                    <span class="text-2xl">🍽️</span>
+                </div>
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-800 mb-2">Gestión de Alérgenos</h1>
+                    <p class="text-gray-600">Sistema de Buffet</p>
+                </div>
+                <div class="ml-auto text-right">
+                    <div class="flex items-center space-x-2 text-sm text-green-600">
+                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Sistema Activo</span>
+                    </div>
+                    <div class="text-xs text-gray-500" id="currentDate"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left Column: Input Section -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-xl overflow-hidden">
+                    <!-- Input Section -->
+                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-8">
+                        <div class="flex items-center mb-6">
+                            <span class="text-2xl mr-3">🎤</span>
+                            <h2 class="text-2xl font-bold">Registrar Nuevo Plato</h2>
+                        </div>
+                        
+                        <!-- Voice Recording -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-3">Grabación de Voz</label>
+                            <div class="flex items-center justify-center">
+                                <button id="recordBtn" class="record-btn bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg">
+                                    <span id="recordIcon">🎤</span>
+                                    <span id="recordText" class="ml-2">Mantener para Grabar</span>
+                                </button>
+                            </div>
+                            <div id="recordingStatus" class="text-center mt-4 hidden">
+                                <div class="inline-flex items-center space-x-2">
+                                    <div class="recording-pulse"></div>
+                                    <span>Grabando... Suelta para procesar</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Text Input -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-3">Descripción del Plato</label>
+                            <textarea 
+                                id="dishInput" 
+                                placeholder="Ej: He preparado paella con gambas, mejillones, pollo y verduras..."
+                                class="w-full px-4 py-3 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-300 h-24 resize-none"
+                            ></textarea>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex space-x-4">
+                            <button id="analyzeBtn" class="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
+                                <span class="mr-2">🧠</span>
+                                Analizar con IA
+                            </button>
+                            <button id="clearBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300">
+                                🧹 Limpiar
+                            </button>
+                        </div>
+
+                        <!-- Chef Name -->
+                        <div class="flex items-center justify-center mt-6">
+                            <label class="text-sm mr-3">Chef:</label>
+                            <input 
+                                type="text" 
+                                id="chefName" 
+                                value="Chef Principal"
+                                class="px-3 py-1 rounded text-gray-800 text-sm"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div class="p-8">
+                        <!-- Loading -->
+                        <div id="loading" class="hidden text-center py-8">
+                            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                            <p class="mt-4 text-gray-600">🧠 Analizando plato con IA...</p>
+                        </div>
+
+                        <!-- Results -->
+                        <div id="results" class="hidden">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                                    <span class="mr-2">🔍</span>
+                                    Resultados del Análisis
+                                </h3>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span class="text-sm text-green-600 font-medium">Análisis Completado</span>
+                                </div>
+                            </div>
+
+                            <!-- Dish Info -->
+                            <div class="mb-6">
+                                <h4 class="font-bold text-gray-700 mb-3">Plato Identificado</h4>
+                                <div id="dishResult" class="bg-blue-50 rounded-lg p-4">
+                                    <!-- Content populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Allergens -->
+                            <div class="mb-6">
+                                <h4 class="font-bold text-gray-700 mb-3">Alérgenos Detectados</h4>
+                                <div id="allergensList" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    <!-- Content populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex flex-wrap gap-3 justify-center">
+                                <button id="pdfSimpleBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center">
+                                    <span class="mr-2">📋</span>
+                                    PDF Simple
+                                </button>
+                                <button id="printBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center">
+                                    <span class="mr-2">🖨️</span>
+                                    Imprimir
+                                </button>
+                                <button id="newDishBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center">
+                                    <span class="mr-2">➕</span>
+                                    Nuevo Plato
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Error Message -->
+                        <div id="errorMessage" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                            <div class="flex items-center">
+                                <span class="mr-2">⚠️</span>
+                                <div>
+                                    <strong>Error:</strong> 
+                                    <span id="errorText"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's Dishes -->
+                <div class="mt-8 bg-white rounded-xl shadow-xl p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                            <span class="mr-2">📋</span>
+                            Platos de Hoy
+                        </h3>
+                        <div class="text-sm text-gray-500" id="dishCount">0 platos</div>
+                    </div>
+                    <div id="todayDishes" class="space-y-4">
+                        <p class="text-gray-500 text-center py-8">No hay platos registrados hoy</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Stats and Config -->
+            <div class="space-y-8">
+                <!-- Stats -->
+                <div class="bg-white rounded-xl shadow-xl p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <span class="mr-2">📊</span>
+                        Estadísticas del Día
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Platos Analizados</span>
+                            <span id="statsAnalyzed" class="text-2xl font-bold text-blue-600">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Etiquetas Generadas</span>
+                            <span id="statsLabels" class="text-2xl font-bold text-teal-600">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Alérgenos Detectados</span>
+                            <span id="statsAllergens" class="text-2xl font-bold text-red-600">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Chef -->
+                <div class="bg-white rounded-xl shadow-xl p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">👨‍🍳</span>
+                        Chef Activo
+                    </h3>
+                    <div class="flex items-center">
+                        <div class="bg-yellow-100 p-2 rounded-full mr-3">
+                            <span class="text-xl">👨‍🍳</span>
+                        </div>
+                        <div>
+                            <div class="font-bold" id="activeChef">Chef Principal</div>
+                            <div class="text-sm text-gray-500">Chef Principal</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Printer Config -->
+                <div class="bg-white rounded-xl shadow-xl p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <span class="mr-2">⚙️</span>
+                        Configuración de Impresora
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Impresora</label>
+                            <input type="text" id="printerName" value="default" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tamaño del Papel</label>
+                            <select id="paperSize" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="A4">A4 (Estándar)</option>
+                                <option value="58mm">58mm (Térmica)</option>
+                                <option value="80mm">80mm (Térmica)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Densidad de Impresión</label>
+                            <select id="printDensity" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="Alta">Alta</option>
+                                <option value="Media">Media</option>
+                                <option value="Baja">Baja</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="autoPrint" class="mr-2">
+                            <label for="autoPrint" class="text-sm text-gray-700">Impresión Automática</label>
+                        </div>
+                        <button id="savePrinterConfig" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-all duration-300">
+                            💾 Guardar Configuración
+                        </button>
+                        <div class="text-xs text-gray-500 text-center" id="printerStatus">
+                            Estado: Impresora configurada - default
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Allergen Guide -->
+                <div class="bg-white rounded-xl shadow-xl p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">📚</span>
+                        Guía de Alérgenos UE
+                    </h3>
+                    <div class="grid grid-cols-1 gap-2 text-sm" id="allergenGuide">
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <span>🌾</span>
+                            <span>Cereales con gluten</span>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <span>🦐</span>
+                            <span>Crustáceos</span>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <span>🥚</span>
+                            <span>Huevos</span>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <span>🐟</span>
+                            <span>Pescado</span>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <span>🥜</span>
+                            <span>Cacahuetes</span>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <span>🥛</span>
+                            <span>Lácteos</span>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <span class="text-xs text-gray-500">Y 8 alérgenos más según normativa UE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
