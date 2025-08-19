@@ -248,7 +248,7 @@ async function processDish(description) {
 
 // Display results
 function displayResults(dish, allergensInfo) {
-  // Dish info
+  // Dish info - SIN BOTONES PDF/PRINT PROBLEMÁTICOS
   dishResult.innerHTML = `
     <div class="flex items-start justify-between">
       <div class="flex-1">
@@ -282,7 +282,7 @@ function displayResults(dish, allergensInfo) {
     ` : ''}
   `;
 
-  // Allergens
+  // Allergens (sin cambios)
   if (allergensInfo && allergensInfo.length > 0) {
     allergensList.innerHTML = allergensInfo.map(allergen => `
       <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center hover:bg-red-100 transition-colors">
