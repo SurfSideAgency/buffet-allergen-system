@@ -27,7 +27,8 @@ const todayDishes = document.getElementById('todayDishes');
 const dishCount = document.getElementById('dishCount');
 
 // Action buttons
-const pdfSimpleBtn = document.getElementById('pdfSimpleBtn');
+const pdfSimpleBtn = document.getElementById('pdfSimpleBtn'); // Ya no se usa
+const beautifulLabelBtn = document.getElementById('beautifulLabelBtn'); // IMPORTANTE
 const printBtn = document.getElementById('printBtn');
 const newDishBtn = document.getElementById('newDishBtn');
 
