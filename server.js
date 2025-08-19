@@ -262,3 +262,203 @@ app.listen(port, () => {
   console.log(`🔑 OpenAI configurado: ${process.env.OPENAI_API_KEY ? 'SÍ' : 'NO'}`);
   console.log(`🖨️ Impresora: ${PRINTER_CONFIG.printer_name}`);
 });
+// AÑADIR AL FINAL DE server.js - DESPUÉS de los endpoints existentes
+
+// Función para generar UNA etiqueta bonita centrada en A4
+function generateSingleBeautifulLabel(dish) {
+  const doc = new PDFDocument({ 
+    size: 'A4', 
+    margins: { top: 50, bottom: 50, left: 50, right: 50 }
+  });
+
+  // Centrar la etiqueta en la página A4
+  const pageWidth = 595; // A4 width in points
+  const pageHeight = 842; // A4 height in points
+  const labelWidth = 400; // Etiqueta más grande
+  const labelHeight = 250; // Etiqueta más alta
+  const labelX = (pageWidth - labelWidth) / 2;
+  const labelY = (pageHeight - labelHeight) / 2;
+
+  drawBeautifulSingleLabel(doc, dish, labelX, labelY, labelWidth, labelHeight);
+
+  return doc;
+}
+
+// Función para dibujar una etiqueta bonita individual
+function drawBeautifulSingleLabel(doc, dish, x, y, width, height) {
+  const padding = 25;
+
+  // Sombra sutil
+  doc.roundedRect(x + 3, y + 3, width, height, 12)
+     .fillColor('#00000020')
+     .fill();
+
+  // Marco principal con gradiente simulado
+  doc.roundedRect(x, y, width, height, 12)
+     .fillColor('#ffffff')
+     .fill()
+     .roundedRect(x, y, width, height, 12)
+     .strokeColor('#2563eb')
+     .lineWidth(2)
+     .stroke();
+
+  // Header azul elegante
+  doc.roundedRect(x + 3, y + 3, width - 6, 45, 10)
+     .fillColor('#2563eb')
+     .fill();
+
+  // Título principal
+  doc.font('Helvetica-Bold')
+     .fontSize(18)
+     .fillColor('white')
+     .text('🍽️ BUFFET SELECTION', x + padding, y + 18, { 
+       width: width - (padding * 2), 
+       align: 'center' 
+     });
+
+  // Línea decorativa
+  doc.moveTo(x + padding, y + 60)
+     .lineTo(x + width - padding, y + 60)
+     .strokeColor('#e5e7eb')
+     .lineWidth(1)
+     .stroke();
+
+  // Nombre del plato (muy destacado)
+  doc.font('Helvetica-Bold')
+     .fontSize(24)
+     .fillColor('#1f2937')
+     .text(dish.name.toUpperCase(), x + padding, y + 75, { 
+       width: width - (padding * 2), 
+       align: 'center' 
+     });
+
+  // Línea bajo el nombre
+  doc.moveTo(x + padding + 50, y + 110)
+     .lineTo(x + width - padding - 50, y + 110)
+     .strokeColor('#d1d5db')
+     .lineWidth(1)
+     .stroke();
+
+  if (dish.allergens.length > 0) {
+    // Sección de alérgenos con fondo
+    doc.roundedRect(x + padding, y + 125, width - (padding * 2), 80, 8)
+       .fillColor('#fef2f2')
+       .fill()
+       .strokeColor('#fca5a5')
+       .lineWidth(1)
+       .stroke();
+
+    // Título "CONTIENE ALÉRGENOS"
+    doc.font('Helvetica-Bold')
+       .fontSize(14)
+       .fillColor('#dc2626')
+       .text('⚠️ CONTIENE ALÉRGENOS', x + padding + 10, y + 135, {
+         width: width - (padding * 2) - 20,
+         align: 'center'
+       });
+
+    // Lista de alérgenos en dos columnas
+    let allergenY = y + 155;
+    let column = 0;
+    const columnWidth = (width - (padding * 2) - 40) / 2;
+
+    dish.allergens.forEach((allergenCode, index) => {
+      const allergen = ALLERGENS[allergenCode];
+      if (allergen) {
+        const columnX = x + padding + 20 + (column * columnWidth);
+
+        // Icono del alérgeno (más grande)
+        doc.font('Helvetica')
+           .fontSize(16)
+           .fillColor('#dc2626')
+           .text(allergen.icon, columnX, allergenY);
+
+        // Nombre del alérgeno
+        doc.font('Helvetica-Bold')
+           .fontSize(12)
+           .fillColor('#991b1b')
+           .text(allergen.name, columnX + 20, allergenY + 2);
+
+        // Alternar columnas
+        column = column === 0 ? 1 : 0;
+        if (column === 0) {
+          allergenY += 20;
+        }
+      }
+    });
+
+  } else {
+    // Sin alérgenos - mensaje positivo destacado
+    doc.roundedRect(x + padding, y + 125, width - (padding * 2), 60, 8)
+       .fillColor('#f0fdf4')
+       .fill()
+       .strokeColor('#86efac')
+       .lineWidth(2)
+       .stroke();
+    
+    doc.font('Helvetica-Bold')
+       .fontSize(18)
+       .fillColor('#15803d')
+       .text('✅ SIN ALÉRGENOS DETECTADOS', x + padding, y + 145, { 
+         width: width - (padding * 2), 
+         align: 'center' 
+       });
+
+    doc.font('Helvetica')
+       .fontSize(12)
+       .fillColor('#16a34a')
+       .text('Este plato es seguro para personas con alergias alimentarias', x + padding, y + 165, { 
+         width: width - (padding * 2), 
+         align: 'center' 
+       });
+  }
+
+  // Footer elegante
+  const footerY = y + height - 40;
+
+  // Fecha y hora
+  doc.font('Helvetica-Bold')
+     .fontSize(12)
+     .fillColor('#374151')
+     .text(`📅 ${dish.date}  🕐 ${new Date(dish.timestamp).toLocaleTimeString('es-ES', { 
+       hour: '2-digit', 
+       minute: '2-digit' 
+     })}`, x + padding, footerY, { 
+       width: width - (padding * 2), 
+       align: 'center' 
+     });
+
+  // Chef y confianza
+  doc.font('Helvetica')
+     .fontSize(10)
+     .fillColor('#6b7280')
+     .text(`👨‍🍳 Preparado por: ${dish.chef}  •  🎯 Confianza IA: ${Math.round(dish.confidence * 100)}%`, 
+           x + padding, footerY + 20, { 
+       width: width - (padding * 2), 
+       align: 'center' 
+     });
+}
+
+// NUEVO ENDPOINT para etiquetas bonitas individuales
+app.post('/api/generate-beautiful-single/:dishId', (req, res) => {
+  try {
+    const dishId = parseInt(req.params.dishId);
+    const dish = dishes.find(d => d.id === dishId);
+    
+    if (!dish) {
+      return res.status(404).json({ error: 'Plato no encontrado' });
+    }
+
+    const doc = generateSingleBeautifulLabel(dish);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="etiqueta_bonita_${dish.name.replace(/\s+/g, '_')}.pdf"`);
+    
+    doc.pipe(res);
+    doc.end();
+
+  } catch (error) {
+    console.error('Error generating beautiful single label:', error);
+    res.status(500).json({ error: 'Error generando etiqueta bonita' });
+  }
+});
