@@ -309,10 +309,14 @@ function displayResults(dish, allergensInfo) {
 function setupActionButtons() {
   if (!currentDish) return;
 
-  pdfSimpleBtn.onclick = () => generateSimpleLabel();
+  // Solo configurar los botones que funcionan
+  beautifulLabelBtn.onclick = () => generateBeautifulLabel();
   printBtn.onclick = () => printDirectly();
   newDishBtn.onclick = () => clearForm();
-  beautifulLabelBtn.onclick = () => generateBeautifulLabel();
+  
+  // Update button states - solo los botones que mantienes
+  printBtn.disabled = false;
+}
   
   // Update button states
   pdfSimpleBtn.disabled = false;
@@ -974,6 +978,8 @@ async function generateBeautifulLabel() {
   if (!currentDish) return;
 
   try {
+    showSuccessMessage('✨ Generando etiqueta bonita...');
+
     const response = await fetch(`/api/generate-beautiful-single/${currentDish.id}`, {
       method: 'POST'
     });
@@ -992,7 +998,7 @@ async function generateBeautifulLabel() {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 
-    showSuccessMessage('✨ Etiqueta bonita A4 descargada');
+    showSuccessMessage('✨ Etiqueta bonita descargada correctamente');
     stats.labels++;
     updateStats();
 
