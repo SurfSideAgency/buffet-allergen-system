@@ -354,127 +354,343 @@ async function generateSimpleLabel() {
 }
 
 // Print directly
+// REEMPLAZAR la función printDirectly en public/app.js
+
+// Función de impresión arreglada - genera HTML directo
 async function printDirectly() {
   if (!currentDish) return;
 
   try {
-    showSuccessMessage('🖨️ Preparando para imprimir...');
+    showSuccessMessage('🖨️ Preparando etiqueta para impresión...');
 
-    // Generar PDF bonito (no el simple)
-    const response = await fetch(`/api/generate-beautiful-single/${currentDish.id}`, {
-      method: 'POST'
-    });
-
-    if (!response.ok) {
-      throw new Error('Error generando etiqueta para impresión');
-    }
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    
-    // NUEVO: Abrir PDF en ventana nueva optimizada para impresión
+    // Crear ventana de impresión con HTML directo (no PDF)
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     
-    // Crear contenido HTML optimizado para impresión
-    printWindow.document.write(`
+    // HTML directo para impresión (replica la etiqueta bonita)
+    const printHTML = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Imprimir Etiqueta - ${currentDish.name}</title>
+        <title>Etiqueta Buffet - ${currentDish.name}</title>
+        <meta charset="UTF-8">
         <style>
+          @page {
+            size: A4;
+            margin: 2cm;
+          }
+          
           body { 
             margin: 0; 
             padding: 20px; 
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-          }
-          .print-container {
+            font-family: 'Arial', sans-serif;
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
+            color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
           }
-          .print-info {
-            margin-bottom: 20px;
-            color: #666;
+          
+          .etiqueta-container {
+            width: 400px;
+            height: 250px;
+            border: 3px solid #2563eb;
+            border-radius: 16px;
+            background: white;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
           }
-          .print-buttons {
-            margin: 20px 0;
-          }
-          .btn {
+          
+          .header {
             background: #2563eb;
             color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-            margin: 0 10px;
-            font-size: 16px;
+            padding: 12px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 12px 12px 0 0;
+            margin: 3px 3px 0 3px;
           }
-          .btn:hover {
-            background: #1d4ed8;
+          
+          .plato-nombre {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+            margin: 20px 15px;
+            padding: 10px 0;
+            border-bottom: 2px solid #e5e7eb;
           }
-          .btn-secondary {
-            background: #6b7280;
+          
+          .alergenos-section {
+            margin: 15px;
+            ${currentDish.allergens.length > 0 ? `
+              background: #fef2f2;
+              border: 2px solid #fca5a5;
+              border-radius: 8px;
+              padding: 15px;
+            ` : `
+              background: #f0fdf4;
+              border: 2px solid #86efac;
+              border-radius: 8px;
+              padding: 15px;
+              text-align: center;
+            `}
           }
-          .btn-secondary:hover {
-            background: #4b5563;
+          
+          .alergenos-titulo {
+            font-size: 14px;
+            font-weight: bold;
+            color: #dc2626;
+            text-align: center;
+            margin-bottom: 10px;
           }
-          iframe {
-            width: 100%;
-            height: 600px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+          
+          .alergenos-lista {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 12px;
+            color: #991b1b;
+            font-weight: bold;
           }
+          
+          .alergen-item {
+            display: flex;
+            align-items: center;
+          }
+          
+          .sin-alergenos {
+            font-size: 18px;
+            font-weight: bold;
+            color: #15803d;
+          }
+          
+          .footer {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            text-align: center;
+            font-size: 10px;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 8px;
+          }
+          
+          .footer-date {
+            font-weight: bold;
+            color: #374151;
+            font-size: 12px;
+            margin-bottom: 4px;
+          }
+          
+          /* Estilos específicos para impresión */
           @media print {
-            body { background: white; margin: 0; padding: 0; }
-            .print-container { box-shadow: none; padding: 0; }
-            .print-info, .print-buttons { display: none; }
-            iframe { height: auto; border: none; }
+            body { 
+              background: white !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            
+            .etiqueta-container {
+              box-shadow: none;
+              border: 2px solid #2563eb;
+              page-break-inside: avoid;
+            }
+            
+            .header {
+              background: #2563eb !important;
+              color: white !important;
+              -webkit-print-color-adjust: exact;
+            }
+            
+            .alergenos-section {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
           }
         </style>
       </head>
       <body>
-        <div class="print-container">
-          <div class="print-info">
-            <h2>🏷️ Etiqueta Lista para Imprimir</h2>
-            <p><strong>Plato:</strong> ${currentDish.name}</p>
-            <p><strong>Alérgenos:</strong> ${currentDish.allergens.length > 0 ? currentDish.allergens.length + ' detectados' : 'Ninguno'}</p>
+        <div class="etiqueta-container">
+          <div class="header">
+            BUFFET SELECTION
           </div>
           
-          <div class="print-buttons">
-            <button class="btn" onclick="window.print()">🖨️ Imprimir Ahora</button>
-            <button class="btn btn-secondary" onclick="window.close()">❌ Cerrar</button>
+          <div class="plato-nombre">
+            ${currentDish.name.toUpperCase()}
           </div>
           
-          <iframe src="${url}" title="Etiqueta PDF"></iframe>
+          <div class="alergenos-section">
+            ${currentDish.allergens.length > 0 ? `
+              <div class="alergenos-titulo">CONTIENE ALERGENOS:</div>
+              <div class="alergenos-lista">
+                ${currentDish.allergens.map(allergenCode => {
+                  const allergen = getAllergenInfo(allergenCode);
+                  return `<div class="alergen-item">• ${allergen.name}</div>`;
+                }).join('')}
+              </div>
+            ` : `
+              <div class="sin-alergenos">✓ SIN ALERGENOS DETECTADOS</div>
+              <div style="font-size: 12px; color: #16a34a; margin-top: 8px;">
+                Este plato es seguro para personas con alergias alimentarias
+              </div>
+            `}
+          </div>
+          
+          <div class="footer">
+            <div class="footer-date">
+              ${currentDish.date} - ${new Date(currentDish.timestamp).toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+            </div>
+            <div>
+              Preparado por: ${currentDish.chef} | Confianza IA: ${Math.round(currentDish.confidence * 100)}%
+            </div>
+          </div>
         </div>
         
         <script>
-          // Auto-abrir diálogo de impresión después de cargar
+          // Auto-imprimir después de cargar
           window.onload = function() {
             setTimeout(function() {
-              // Preguntar si quiere imprimir automáticamente
               if (confirm('¿Imprimir etiqueta ahora?')) {
                 window.print();
               }
-            }, 1500);
+            }, 1000);
+          };
+          
+          // Cerrar ventana después de imprimir
+          window.onafterprint = function() {
+            setTimeout(function() {
+              window.close();
+            }, 1000);
           };
         </script>
       </body>
       </html>
-    `);
+    `;
     
+    printWindow.document.write(printHTML);
     printWindow.document.close();
 
-    showSuccessMessage('✅ Ventana de impresión abierta');
+    showSuccessMessage('✅ Ventana de impresión abierta - HTML directo');
     stats.labels++;
     updateStats();
 
   } catch (error) {
     console.error('Error printing:', error);
     showError(`Error preparando impresión: ${error.message}`);
+  }
+}
+
+// NUEVA función alternativa: Impresión inmediata sin confirmación
+async function printSilently() {
+  if (!currentDish) return;
+
+  try {
+    // Crear elemento temporal para impresión
+    const printDiv = document.createElement('div');
+    printDiv.innerHTML = `
+      <div style="
+        width: 400px;
+        height: 250px;
+        border: 3px solid #2563eb;
+        border-radius: 16px;
+        background: white;
+        margin: 20px auto;
+        font-family: Arial, sans-serif;
+        position: relative;
+      ">
+        <div style="
+          background: #2563eb;
+          color: white;
+          padding: 12px;
+          text-align: center;
+          font-size: 18px;
+          font-weight: bold;
+          border-radius: 12px 12px 0 0;
+          margin: 3px 3px 0 3px;
+        ">
+          BUFFET SELECTION
+        </div>
+        
+        <div style="
+          text-align: center;
+          font-size: 24px;
+          font-weight: bold;
+          color: #1f2937;
+          margin: 20px 15px;
+          padding: 10px 0;
+          border-bottom: 2px solid #e5e7eb;
+        ">
+          ${currentDish.name.toUpperCase()}
+        </div>
+        
+        <div style="
+          margin: 15px;
+          ${currentDish.allergens.length > 0 ? 
+            'background: #fef2f2; border: 2px solid #fca5a5;' : 
+            'background: #f0fdf4; border: 2px solid #86efac; text-align: center;'
+          }
+          border-radius: 8px;
+          padding: 15px;
+        ">
+          ${currentDish.allergens.length > 0 ? `
+            <div style="font-size: 14px; font-weight: bold; color: #dc2626; text-align: center; margin-bottom: 10px;">
+              CONTIENE ALERGENOS:
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: #991b1b; font-weight: bold;">
+              ${currentDish.allergens.map(allergenCode => {
+                const allergen = getAllergenInfo(allergenCode);
+                return `<div>• ${allergen.name}</div>`;
+              }).join('')}
+            </div>
+          ` : `
+            <div style="font-size: 18px; font-weight: bold; color: #15803d;">
+              ✓ SIN ALERGENOS DETECTADOS
+            </div>
+          `}
+        </div>
+        
+        <div style="
+          position: absolute;
+          bottom: 15px;
+          left: 15px;
+          right: 15px;
+          text-align: center;
+          font-size: 10px;
+          color: #6b7280;
+          border-top: 1px solid #e5e7eb;
+          padding-top: 8px;
+        ">
+          <div style="font-weight: bold; color: #374151; font-size: 12px; margin-bottom: 4px;">
+            ${currentDish.date} - ${new Date(currentDish.timestamp).toLocaleTimeString('es-ES', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
+          </div>
+          <div>
+            Preparado por: ${currentDish.chef} | Confianza IA: ${Math.round(currentDish.confidence * 100)}%
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Crear ventana temporal y imprimir
+    const tempWindow = window.open('', '_blank');
+    tempWindow.document.body.appendChild(printDiv);
+    tempWindow.print();
+    tempWindow.close();
+
+    showSuccessMessage('🖨️ Enviado a impresora directamente');
+
+  } catch (error) {
+    console.error('Error in silent print:', error);
+    showError('Error en impresión directa');
   }
 }
 
