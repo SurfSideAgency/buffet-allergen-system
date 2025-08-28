@@ -1,458 +1,230 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const OpenAI = require('openai');
-const PDFDocument = require('pdfkit');
-const fs = require('fs');
+// Añadir al server.js - REEMPLAZAR la sección de base de datos
 
-const app = express();
-const port = process.env.PORT || 3000;
+// Base de datos expandida para ingredientes
+let ingredients = [
+  // PROTEÍNAS ANIMALES
+  { id: 1, code: 'pollo', name: 'Pollo', allergens: [], category: 'proteina', common: true },
+  { id: 2, code: 'ternera', name: 'Ternera', allergens: [], category: 'proteina', common: true },
+  { id: 3, code: 'cerdo', name: 'Cerdo', allergens: [], category: 'proteina', common: true },
+  { id: 4, code: 'cordero', name: 'Cordero', allergens: [], category: 'proteina', common: false },
+  
+  // PESCADOS Y MARISCOS
+  { id: 5, code: 'merluza', name: 'Merluza', allergens: ['pescado'], category: 'pescado', common: true },
+  { id: 6, code: 'salmon', name: 'Salmón', allergens: ['pescado'], category: 'pescado', common: true },
+  { id: 7, code: 'bacalao', name: 'Bacalao', allergens: ['pescado'], category: 'pescado', common: true },
+  { id: 8, code: 'gambas', name: 'Gambas', allergens: ['crustaceos'], category: 'marisco', common: true },
+  { id: 9, code: 'langostinos', name: 'Langostinos', allergens: ['crustaceos'], category: 'marisco', common: true },
+  { id: 10, code: 'mejillones', name: 'Mejillones', allergens: ['moluscos'], category: 'marisco', common: true },
+  { id: 11, code: 'almejas', name: 'Almejas', allergens: ['moluscos'], category: 'marisco', common: false },
+  { id: 12, code: 'calamares', name: 'Calamares', allergens: ['moluscos'], category: 'marisco', common: true },
+  
+  // LÁCTEOS Y HUEVOS
+  { id: 13, code: 'leche', name: 'Leche', allergens: ['lacteos'], category: 'lacteo', common: true },
+  { id: 14, code: 'mantequilla', name: 'Mantequilla', allergens: ['lacteos'], category: 'lacteo', common: true },
+  { id: 15, code: 'nata', name: 'Nata', allergens: ['lacteos'], category: 'lacteo', common: true },
+  { id: 16, code: 'queso_manchego', name: 'Queso Manchego', allergens: ['lacteos'], category: 'lacteo', common: true },
+  { id: 17, code: 'queso_mozzarella', name: 'Queso Mozzarella', allergens: ['lacteos'], category: 'lacteo', common: true },
+  { id: 18, code: 'yogur', name: 'Yogur', allergens: ['lacteos'], category: 'lacteo', common: false },
+  { id: 19, code: 'huevos', name: 'Huevos', allergens: ['huevos'], category: 'huevo', common: true },
+  
+  // CEREALES Y HARINAS
+  { id: 20, code: 'harina_trigo', name: 'Harina de Trigo', allergens: ['gluten'], category: 'cereal', common: true },
+  { id: 21, code: 'pan_blanco', name: 'Pan Blanco', allergens: ['gluten'], category: 'cereal', common: true },
+  { id: 22, code: 'pan_integral', name: 'Pan Integral', allergens: ['gluten'], category: 'cereal', common: false },
+  { id: 23, code: 'pasta', name: 'Pasta', allergens: ['gluten'], category: 'cereal', common: true },
+  { id: 24, code: 'arroz', name: 'Arroz', allergens: [], category: 'cereal', common: true },
+  { id: 25, code: 'cebada', name: 'Cebada', allergens: ['gluten'], category: 'cereal', common: false },
+  { id: 26, code: 'avena', name: 'Avena', allergens: ['gluten'], category: 'cereal', common: false },
+  
+  // VERDURAS Y HORTALIZAS
+  { id: 27, code: 'tomate', name: 'Tomate', allergens: [], category: 'verdura', common: true },
+  { id: 28, code: 'cebolla', name: 'Cebolla', allergens: [], category: 'verdura', common: true },
+  { id: 29, code: 'ajo', name: 'Ajo', allergens: [], category: 'verdura', common: true },
+  { id: 30, code: 'pimiento_rojo', name: 'Pimiento Rojo', allergens: [], category: 'verdura', common: true },
+  { id: 31, code: 'pimiento_verde', name: 'Pimiento Verde', allergens: [], category: 'verdura', common: true },
+  { id: 32, code: 'calabacin', name: 'Calabacín', allergens: [], category: 'verdura', common: true },
+  { id: 33, code: 'berenjena', name: 'Berenjena', allergens: [], category: 'verdura', common: true },
+  { id: 34, code: 'apio_vegetal', name: 'Apio', allergens: ['apio'], category: 'verdura', common: false },
+  { id: 35, code: 'zanahoria', name: 'Zanahoria', allergens: [], category: 'verdura', common: true },
+  { id: 36, code: 'patata', name: 'Patata', allergens: [], category: 'verdura', common: true },
+  
+  // LEGUMBRES
+  { id: 37, code: 'garbanzos', name: 'Garbanzos', allergens: [], category: 'legumbre', common: true },
+  { id: 38, code: 'lentejas', name: 'Lentejas', allergens: [], category: 'legumbre', common: true },
+  { id: 39, code: 'judias_blancas', name: 'Judías Blancas', allergens: [], category: 'legumbre', common: true },
+  { id: 40, code: 'judias_verdes', name: 'Judías Verdes', allergens: [], category: 'verdura', common: true },
+  { id: 41, code: 'soja_grano', name: 'Soja en Grano', allergens: ['soja'], category: 'legumbre', common: false },
+  
+  // FRUTOS SECOS Y SEMILLAS
+  { id: 42, code: 'almendras', name: 'Almendras', allergens: ['frutos_secos'], category: 'fruto_seco', common: true },
+  { id: 43, code: 'nueces', name: 'Nueces', allergens: ['frutos_secos'], category: 'fruto_seco', common: true },
+  { id: 44, code: 'avellanas', name: 'Avellanas', allergens: ['frutos_secos'], category: 'fruto_seco', common: false },
+  { id: 45, code: 'cacahuetes', name: 'Cacahuetes', allergens: ['cacahuetes'], category: 'fruto_seco', common: true },
+  { id: 46, code: 'sesamo', name: 'Semillas de Sésamo', allergens: ['sesamo'], category: 'semilla', common: false },
+  { id: 47, code: 'pipas_girasol', name: 'Pipas de Girasol', allergens: [], category: 'semilla', common: false },
+  
+  // CONDIMENTOS Y ESPECIAS
+  { id: 48, code: 'sal', name: 'Sal', allergens: [], category: 'condimento', common: true },
+  { id: 49, code: 'pimienta_negra', name: 'Pimienta Negra', allergens: [], category: 'condimento', common: true },
+  { id: 50, code: 'pimenton', name: 'Pimentón', allergens: [], category: 'condimento', common: true },
+  { id: 51, code: 'azafran', name: 'Azafrán', allergens: [], category: 'condimento', common: true },
+  { id: 52, code: 'perejil', name: 'Perejil', allergens: [], category: 'hierba', common: true },
+  { id: 53, code: 'mostaza_salsa', name: 'Mostaza', allergens: ['mostaza'], category: 'condimento', common: true },
+  { id: 54, code: 'vinagre', name: 'Vinagre', allergens: [], category: 'condimento', common: true },
+  
+  // ACEITES Y GRASAS
+  { id: 55, code: 'aceite_oliva', name: 'Aceite de Oliva', allergens: [], category: 'grasa', common: true },
+  { id: 56, code: 'aceite_girasol', name: 'Aceite de Girasol', allergens: [], category: 'grasa', common: true },
+  { id: 57, code: 'aceite_sesamo', name: 'Aceite de Sésamo', allergens: ['sesamo'], category: 'grasa', common: false },
+  
+  // SALSAS Y CONDIMENTOS ELABORADOS
+  { id: 58, code: 'salsa_tomate', name: 'Salsa de Tomate', allergens: [], category: 'salsa', common: true },
+  { id: 59, code: 'salsa_soja', name: 'Salsa de Soja', allergens: ['soja', 'gluten'], category: 'salsa', common: false },
+  { id: 60, code: 'mayonesa', name: 'Mayonesa', allergens: ['huevos'], category: 'salsa', common: true },
+  
+  // VINO Y ALCOHOL (para cocinar)
+  { id: 61, code: 'vino_blanco', name: 'Vino Blanco', allergens: ['sulfitos'], category: 'alcohol', common: true },
+  { id: 62, code: 'vino_tinto', name: 'Vino Tinto', allergens: ['sulfitos'], category: 'alcohol', common: true },
+  { id: 63, code: 'jerez', name: 'Jerez', allergens: ['sulfitos'], category: 'alcohol', common: false },
+  
+  // OTROS
+  { id: 64, code: 'altramuces', name: 'Altramuces', allergens: ['altramuces'], category: 'legumbre', common: false },
+  { id: 65, code: 'agua', name: 'Agua', allergens: [], category: 'liquido', common: true }
+];
 
-// Configuración OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+let ingredientId = 66; // Contador para nuevos ingredientes
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Base de datos en memoria para el MVP
-let dishes = [];
-let dishId = 1;
-
-// Alérgenos oficiales UE actualizados
-const ALLERGENS = {
-  'gluten': { name: 'GLUTEN', icon: '🌾', color: '#D2B48C', symbol: '⚠️' },
-  'crustaceos': { name: 'CRUSTÁCEOS', icon: '🦐', color: '#CD5C5C', symbol: '🦞' },
-  'huevos': { name: 'HUEVOS', icon: '🥚', color: '#FFD700', symbol: '🥚' },
-  'pescado': { name: 'PESCADO', icon: '🐟', color: '#4682B4', symbol: '🐟' },
-  'cacahuetes': { name: 'CACAHUETES', icon: '🥜', color: '#DEB887', symbol: '🥜' },
-  'soja': { name: 'SOJA', icon: '🫘', color: '#90EE90', symbol: '🌱' },
-  'lacteos': { name: 'LÁCTEOS', icon: '🥛', color: '#87CEEB', symbol: '🥛' },
-  'frutos_secos': { name: 'FRUTOS CON CÁSCARA', icon: '🌰', color: '#8B4513', symbol: '🥥' },
-  'apio': { name: 'APIO', icon: '🥬', color: '#ADFF2F', symbol: '🌿' },
-  'mostaza': { name: 'MOSTAZA', icon: '🟡', color: '#FFD700', symbol: '🟨' },
-  'sesamo': { name: 'SÉSAMO', icon: '🫘', color: '#F5DEB3', symbol: '⚪' },
-  'sulfitos': { name: 'SULFITOS', icon: '🍷', color: '#483D8B', symbol: '💨' },
-  'altramuces': { name: 'ALTRAMUCES', icon: '🫘', color: '#F4A460', symbol: '🟤' },
-  'moluscos': { name: 'MOLUSCOS', icon: '🦪', color: '#FFB6C1', symbol: '🐚' }
+// CATEGORÍAS con colores y iconos
+const INGREDIENT_CATEGORIES = {
+  'proteina': { name: 'Proteínas', icon: '🥩', color: '#ef4444' },
+  'pescado': { name: 'Pescados', icon: '🐟', color: '#3b82f6' },
+  'marisco': { name: 'Mariscos', icon: '🦐', color: '#06b6d4' },
+  'lacteo': { name: 'Lácteos', icon: '🥛', color: '#8b5cf6' },
+  'huevo': { name: 'Huevos', icon: '🥚', color: '#f59e0b' },
+  'cereal': { name: 'Cereales', icon: '🌾', color: '#d97706' },
+  'verdura': { name: 'Verduras', icon: '🥬', color: '#10b981' },
+  'legumbre': { name: 'Legumbres', icon: '🫘', color: '#84cc16' },
+  'fruto_seco': { name: 'Frutos Secos', icon: '🌰', color: '#92400e' },
+  'semilla': { name: 'Semillas', icon: '🫘', color: '#78716c' },
+  'condimento': { name: 'Condimentos', icon: '🧂', color: '#6b7280' },
+  'hierba': { name: 'Hierbas', icon: '🌿', color: '#22c55e' },
+  'grasa': { name: 'Aceites', icon: '🫒', color: '#fbbf24' },
+  'salsa': { name: 'Salsas', icon: '🥫', color: '#f97316' },
+  'alcohol': { name: 'Vinos', icon: '🍷', color: '#7c3aed' },
+  'liquido': { name: 'Líquidos', icon: '💧', color: '#0ea5e9' }
 };
 
-// Prompt para análisis de ingredientes
-const ANALYSIS_PROMPT = `
-Eres un experto en seguridad alimentaria. Analiza este plato de buffet y detecta TODOS los posibles alérgenos según la normativa europea.
+// NUEVOS ENDPOINTS para gestión de ingredientes
 
-Plato descrito: "{dishDescription}"
-
-Debes identificar alérgenos en:
-- Ingredientes principales mencionados
-- Ingredientes ocultos típicos (salsas, condimentos, etc.)
-- Preparaciones culinarias que suelen contener alérgenos
-
-Responde SOLO con un JSON válido en este formato:
-{
-  "dish_name": "nombre_del_plato",
-  "detected_allergens": ["alergen1", "alergen2"],
-  "confidence": 0.95,
-  "ingredients_analysis": "breve explicación de por qué detectaste estos alérgenos"
-}
-
-Usa estos códigos de alérgenos: gluten, crustaceos, huevos, pescado, cacahuetes, soja, lacteos, frutos_secos, apio, mostaza, sesamo, sulfitos, altramuces, moluscos
-`;
-
-// Configuración de impresora
-const PRINTER_CONFIG = {
-  printer_name: process.env.PRINTER_NAME || 'default',
-  paper_size: process.env.PAPER_SIZE || 'A4',
-  auto_print: process.env.AUTO_PRINT === 'true' || false
-};
-
-// Función para generar etiqueta con Formato B
-function generateLabelFormatB(dish) {
-  const doc = new PDFDocument({ size: [200, 120], margins: { top: 10, bottom: 10, left: 10, right: 10 }});
-
-  // Título del plato (Formato B)
-  doc.fontSize(14).font('Helvetica-Bold')
-     .fillColor('black')
-     .text(dish.name.toUpperCase(), 15, 15, { align: 'center' });
-
-  // Línea separadora
-  doc.moveTo(15, 35).lineTo(185, 35).stroke();
-
-  // Alérgenos
-  if (dish.allergens.length > 0) {
-    dish.allergens.forEach((allergenCode, index) => {
-      const allergen = ALLERGENS[allergenCode];
-      if (allergen) {
-        const yPos = 45 + (index * 18);
-        doc.fontSize(12).font('Helvetica')
-           .fillColor('black')
-           .text(`${allergen.icon} ${allergen.name.charAt(0) + allergen.name.slice(1).toLowerCase()}`, 15, yPos);
-      }
-    });
-  } else {
-    doc.fontSize(12).font('Helvetica')
-       .fillColor('green')
-       .text('✅ Sin alérgenos detectados', 15, 50, { align: 'center' });
+// Obtener todos los ingredientes
+app.get('/api/ingredients', (req, res) => {
+  const { category, search, common } = req.query;
+  
+  let filteredIngredients = ingredients;
+  
+  // Filtrar por categoría
+  if (category && category !== 'all') {
+    filteredIngredients = filteredIngredients.filter(ing => ing.category === category);
   }
-
-  return doc;
-}
-
-// Endpoint principal
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  
+  // Filtrar por búsqueda
+  if (search) {
+    const searchLower = search.toLowerCase();
+    filteredIngredients = filteredIngredients.filter(ing => 
+      ing.name.toLowerCase().includes(searchLower) ||
+      ing.code.toLowerCase().includes(searchLower)
+    );
+  }
+  
+  // Filtrar por comunes
+  if (common === 'true') {
+    filteredIngredients = filteredIngredients.filter(ing => ing.common);
+  }
+  
+  res.json({
+    success: true,
+    ingredients: filteredIngredients,
+    categories: INGREDIENT_CATEGORIES,
+    total: filteredIngredients.length
+  });
 });
 
-// Endpoint para procesar plato
-app.post('/api/analyze-dish', async (req, res) => {
+// Obtener categorías
+app.get('/api/ingredients/categories', (req, res) => {
+  res.json({
+    success: true,
+    categories: INGREDIENT_CATEGORIES
+  });
+});
+
+// Añadir nuevo ingrediente
+app.post('/api/ingredients', (req, res) => {
   try {
-    const { description, chef_name = 'Chef Principal' } = req.body;
+    const { name, code, allergens = [], category, common = false } = req.body;
     
-    if (!description) {
-      return res.status(400).json({ error: 'Descripción del plato requerida' });
+    if (!name || !code || !category) {
+      return res.status(400).json({ 
+        error: 'Nombre, código y categoría son requeridos' 
+      });
     }
-
-    console.log('Analizando plato:', description);
-
-    // Llamada a OpenAI para análisis
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{
-        role: "user",
-        content: ANALYSIS_PROMPT.replace('{dishDescription}', description)
-      }],
-      temperature: 0.1,
-      max_tokens: 500
-    });
-
-    let analysis;
-    try {
-      const content = completion.choices[0].message.content;
-      console.log('Respuesta OpenAI:', content);
-      analysis = JSON.parse(content);
-    } catch (parseError) {
-      console.error('Error parsing OpenAI response:', parseError);
-      analysis = {
-        dish_name: description.split(' ').slice(0, 3).join(' '),
-        detected_allergens: [],
-        confidence: 0.5,
-        ingredients_analysis: "Error en el análisis automático"
-      };
+    
+    // Verificar si el código ya existe
+    if (ingredients.find(ing => ing.code === code)) {
+      return res.status(400).json({ 
+        error: 'Ya existe un ingrediente con ese código' 
+      });
     }
-
-    // Crear registro del plato
-    const dish = {
-      id: dishId++,
-      description: description,
-      name: analysis.dish_name,
-      allergens: analysis.detected_allergens,
-      confidence: analysis.confidence,
-      analysis: analysis.ingredients_analysis,
-      chef: chef_name,
-      timestamp: new Date().toISOString(),
-      date: new Date().toLocaleDateString('es-ES')
+    
+    const newIngredient = {
+      id: ingredientId++,
+      name,
+      code,
+      allergens: allergens.filter(a => ALLERGENS[a]), // Solo alérgenos válidos
+      category,
+      common
     };
-
-    dishes.push(dish);
-
+    
+    ingredients.push(newIngredient);
+    
     res.json({
       success: true,
-      dish: dish,
-      allergens_info: analysis.detected_allergens.map(code => ({
-        code,
-        ...ALLERGENS[code]
-      }))
+      ingredient: newIngredient,
+      message: 'Ingrediente añadido correctamente'
     });
-
+    
   } catch (error) {
-    console.error('Error processing dish:', error);
-    res.status(500).json({ 
-      error: 'Error procesando el plato',
-      details: error.message 
-    });
+    console.error('Error adding ingredient:', error);
+    res.status(500).json({ error: 'Error añadiendo ingrediente' });
   }
 });
 
-// Endpoint para generar etiqueta PDF simple
-app.post('/api/generate-label-simple/:dishId', (req, res) => {
+// Actualizar ingrediente
+app.put('/api/ingredients/:id', (req, res) => {
   try {
-    const dishId = parseInt(req.params.dishId);
-    const dish = dishes.find(d => d.id === dishId);
+    const ingredientId = parseInt(req.params.id);
+    const { name, allergens, category, common } = req.body;
     
-    if (!dish) {
-      return res.status(404).json({ error: 'Plato no encontrado' });
+    const ingredientIndex = ingredients.findIndex(ing => ing.id === ingredientId);
+    
+    if (ingredientIndex === -1) {
+      return res.status(404).json({ error: 'Ingrediente no encontrado' });
     }
-
-    const doc = generateLabelFormatB(dish);
     
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="etiqueta_${dish.name.replace(/\s+/g, '_')}.pdf"`);
+    // Actualizar ingrediente
+    ingredients[ingredientIndex] = {
+      ...ingredients[ingredientIndex],
+      name: name || ingredients[ingredientIndex].name,
+      allergens: allergens !== undefined ? allergens.filter(a => ALLERGENS[a]) : ingredients[ingredientIndex].allergens,
+      category: category || ingredients[ingredientIndex].category,
+      common: common !== undefined ? common : ingredients[ingredientIndex].common
+    };
     
-    doc.pipe(res);
-    doc.end();
-
-  } catch (error) {
-    console.error('Error generating simple label:', error);
-    res.status(500).json({ error: 'Error generando etiqueta simple' });
-  }
-});
-
-// Endpoint para imprimir directamente
-app.post('/api/print-directly/:dishId', (req, res) => {
-  try {
-    const dishId = parseInt(req.params.dishId);
-    const dish = dishes.find(d => d.id === dishId);
-    
-    if (!dish) {
-      return res.status(404).json({ error: 'Plato no encontrado' });
-    }
-
-    // Simular impresión
-    console.log(`🖨️ Enviando a impresora: ${PRINTER_CONFIG.printer_name}`);
-    console.log(`📄 Plato: ${dish.name}`);
-    console.log(`🚨 Alérgenos: ${dish.allergens.join(', ') || 'Ninguno'}`);
-
-    res.json({ 
-      success: true, 
-      message: `Etiqueta enviada a ${PRINTER_CONFIG.printer_name}`,
-      dish_name: dish.name,
-      allergens_count: dish.allergens.length
+    res.json({
+      success: true,
+      ingredient: ingredients[ingredientIndex],
+      message: 'Ingrediente actualizado correctamente'
     });
-
+    
   } catch (error) {
-    console.error('Error printing label:', error);
-    res.status(500).json({ error: 'Error imprimiendo etiqueta' });
-  }
-});
-
-// Endpoint para configurar impresora
-app.post('/api/configure-printer', (req, res) => {
-  const { printer_name, paper_size, auto_print } = req.body;
-  
-  PRINTER_CONFIG.printer_name = printer_name || 'default';
-  PRINTER_CONFIG.paper_size = paper_size || 'A4';
-  PRINTER_CONFIG.auto_print = auto_print || false;
-  
-  res.json({ 
-    success: true, 
-    message: 'Configuración de impresora actualizada',
-    config: PRINTER_CONFIG
-  });
-});
-
-// Endpoint para obtener platos del día
-app.get('/api/dishes/today', (req, res) => {
-  const today = new Date().toLocaleDateString('es-ES');
-  const todayDishes = dishes.filter(d => d.date === today);
-  res.json(todayDishes);
-});
-
-// Endpoint para obtener lista de alérgenos
-app.get('/api/allergens', (req, res) => {
-  res.json(ALLERGENS);
-});
-
-// Iniciar servidor
-app.listen(port, () => {
-  console.log(`🚀 Servidor ejecutándose en puerto ${port}`);
-  console.log(`📱 Abre: http://localhost:${port}`);
-  console.log(`🔑 OpenAI configurado: ${process.env.OPENAI_API_KEY ? 'SÍ' : 'NO'}`);
-  console.log(`🖨️ Impresora: ${PRINTER_CONFIG.printer_name}`);
-});
-// AÑADIR AL FINAL DE server.js - DESPUÉS de los endpoints existentes
-
-// Función para generar UNA etiqueta bonita centrada en A4
-function generateSingleBeautifulLabel(dish) {
-  const doc = new PDFDocument({ 
-    size: 'A4', 
-    margins: { top: 50, bottom: 50, left: 50, right: 50 }
-  });
-
-  // Centrar la etiqueta en la página A4
-  const pageWidth = 595; // A4 width in points
-  const pageHeight = 842; // A4 height in points
-  const labelWidth = 400; // Etiqueta más grande
-  const labelHeight = 250; // Etiqueta más alta
-  const labelX = (pageWidth - labelWidth) / 2;
-  const labelY = (pageHeight - labelHeight) / 2;
-
-  drawBeautifulSingleLabel(doc, dish, labelX, labelY, labelWidth, labelHeight);
-
-  return doc;
-}
-
-// Función para dibujar una etiqueta bonita individual
-function drawBeautifulSingleLabel(doc, dish, x, y, width, height) {
-  const padding = 25;
-
-  // Sombra sutil
-  doc.roundedRect(x + 3, y + 3, width, height, 12)
-     .fillColor('#00000020')
-     .fill();
-
-  // Marco principal
-  doc.roundedRect(x, y, width, height, 12)
-     .fillColor('#ffffff')
-     .fill()
-     .roundedRect(x, y, width, height, 12)
-     .strokeColor('#2563eb')
-     .lineWidth(2)
-     .stroke();
-
-  // Header azul elegante
-  doc.roundedRect(x + 3, y + 3, width - 6, 45, 10)
-     .fillColor('#2563eb')
-     .fill();
-
-  // Título principal (SIN EMOJI - causa problemas)
-  doc.font('Helvetica-Bold')
-     .fontSize(18)
-     .fillColor('white')
-     .text('BUFFET SELECTION', x + padding, y + 18, { 
-       width: width - (padding * 2), 
-       align: 'center' 
-     });
-
-  // Línea decorativa
-  doc.moveTo(x + padding, y + 60)
-     .lineTo(x + width - padding, y + 60)
-     .strokeColor('#e5e7eb')
-     .lineWidth(1)
-     .stroke();
-
-  // Nombre del plato (muy destacado)
-  doc.font('Helvetica-Bold')
-     .fontSize(24)
-     .fillColor('#1f2937')
-     .text(dish.name.toUpperCase(), x + padding, y + 75, { 
-       width: width - (padding * 2), 
-       align: 'center' 
-     });
-
-  // Línea bajo el nombre
-  doc.moveTo(x + padding + 50, y + 110)
-     .lineTo(x + width - padding - 50, y + 110)
-     .strokeColor('#d1d5db')
-     .lineWidth(1)
-     .stroke();
-
-  if (dish.allergens.length > 0) {
-    // Sección de alérgenos con fondo
-    doc.roundedRect(x + padding, y + 125, width - (padding * 2), 80, 8)
-       .fillColor('#fef2f2')
-       .fill()
-       .strokeColor('#fca5a5')
-       .lineWidth(1)
-       .stroke();
-
-    // Título "CONTIENE ALÉRGENOS" (SIN EMOJI)
-    doc.font('Helvetica-Bold')
-       .fontSize(14)
-       .fillColor('#dc2626')
-       .text('CONTIENE ALERGENOS:', x + padding + 10, y + 135, {
-         width: width - (padding * 2) - 20,
-         align: 'center'
-       });
-
-    // Lista de alérgenos SIN ICONOS (solo texto)
-    let allergenY = y + 155;
-    let column = 0;
-    const columnWidth = (width - (padding * 2) - 40) / 2;
-
-    dish.allergens.forEach((allergenCode, index) => {
-      const allergen = ALLERGENS[allergenCode];
-      if (allergen) {
-        const columnX = x + padding + 20 + (column * columnWidth);
-
-        // Solo nombre del alérgeno (SIN ICONOS)
-        doc.font('Helvetica-Bold')
-           .fontSize(12)
-           .fillColor('#991b1b')
-           .text(`• ${allergen.name}`, columnX, allergenY + 2);
-
-        // Alternar columnas
-        column = column === 0 ? 1 : 0;
-        if (column === 0) {
-          allergenY += 20;
-        }
-      }
-    });
-
-  } else {
-    // Sin alérgenos - mensaje positivo destacado
-    doc.roundedRect(x + padding, y + 125, width - (padding * 2), 60, 8)
-       .fillColor('#f0fdf4')
-       .fill()
-       .strokeColor('#86efac')
-       .lineWidth(2)
-       .stroke();
-    
-    doc.font('Helvetica-Bold')
-       .fontSize(18)
-       .fillColor('#15803d')
-       .text('SIN ALERGENOS DETECTADOS', x + padding, y + 145, { 
-         width: width - (padding * 2), 
-         align: 'center' 
-       });
-
-    doc.font('Helvetica')
-       .fontSize(12)
-       .fillColor('#16a34a')
-       .text('Este plato es seguro para personas con alergias alimentarias', x + padding, y + 165, { 
-         width: width - (padding * 2), 
-         align: 'center' 
-       });
-  }
-
-  // Footer elegante (SIN EMOJIS)
-  const footerY = y + height - 40;
-
-  // Fecha y hora
-  doc.font('Helvetica-Bold')
-     .fontSize(12)
-     .fillColor('#374151')
-     .text(`${dish.date} - ${new Date(dish.timestamp).toLocaleTimeString('es-ES', { 
-       hour: '2-digit', 
-       minute: '2-digit' 
-     })}`, x + padding, footerY, { 
-       width: width - (padding * 2), 
-       align: 'center' 
-     });
-
-  // Chef y confianza
-  doc.font('Helvetica')
-     .fontSize(10)
-     .fillColor('#6b7280')
-     .text(`Preparado por: ${dish.chef} | Confianza IA: ${Math.round(dish.confidence * 100)}%`, 
-           x + padding, footerY + 20, { 
-       width: width - (padding * 2), 
-       align: 'center' 
-     });
-}
-
-// NUEVO ENDPOINT para etiquetas bonitas individuales
-app.post('/api/generate-beautiful-single/:dishId', (req, res) => {
-  try {
-    const dishId = parseInt(req.params.dishId);
-    const dish = dishes.find(d => d.id === dishId);
-    
-    if (!dish) {
-      return res.status(404).json({ error: 'Plato no encontrado' });
-    }
-
-    const doc = generateSingleBeautifulLabel(dish);
-    
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="etiqueta_bonita_${dish.name.replace(/\s+/g, '_')}.pdf"`);
-    
-    doc.pipe(res);
-    doc.end();
-
-  } catch (error) {
-    console.error('Error generating beautiful single label:', error);
-    res.status(500).json({ error: 'Error generando etiqueta bonita' });
-  }
-});
+    console.error('Error updating ingredient:', error);
+    res.status(500).json({ error: 'Error actualiz
