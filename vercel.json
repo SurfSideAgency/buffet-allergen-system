@@ -1,8 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "name": "buffet-allergen-system-hybrid",
-  "description": "Sistema Híbrido de Alérgenos para Buffets - IA + Manual",
   "builds": [
     {
       "src": "server.js",
@@ -10,66 +8,6 @@
     }
   ],
   "routes": [
-    {
-      "src": "/api/analyze-dish-hybrid",
-      "dest": "server.js",
-      "methods": ["POST"]
-    },
-    {
-      "src": "/api/save-manual-allergens",
-      "dest": "server.js",
-      "methods": ["POST"]
-    },
-    {
-      "src": "/api/allergen-statistics",
-      "dest": "server.js",
-      "methods": ["GET"]
-    },
-    {
-      "src": "/api/analyze-dish",
-      "dest": "server.js",
-      "methods": ["POST"]
-    },
-    {
-      "src": "/api/dishes/today",
-      "dest": "server.js",
-      "methods": ["GET"]
-    },
-    {
-      "src": "/api/ingredients",
-      "dest": "server.js",
-      "methods": ["GET", "POST"]
-    },
-    {
-      "src": "/api/ingredients/(.*)",
-      "dest": "server.js",
-      "methods": ["GET", "PUT", "DELETE"]
-    },
-    {
-      "src": "/api/generate-beautiful-single/(.*)",
-      "dest": "server.js",
-      "methods": ["POST"]
-    },
-    {
-      "src": "/api/print-directly/(.*)",
-      "dest": "server.js",
-      "methods": ["POST"]
-    },
-    {
-      "src": "/api/sanitary-record",
-      "dest": "server.js",
-      "methods": ["GET"]
-    },
-    {
-      "src": "/api/sanitary-record/export",
-      "dest": "server.js",
-      "methods": ["POST"]
-    },
-    {
-      "src": "/api/configure-printer",
-      "dest": "server.js",
-      "methods": ["POST"]
-    },
     {
       "src": "/api/(.*)",
       "dest": "server.js"
@@ -82,73 +20,10 @@
   "functions": {
     "server.js": {
       "memory": 1024,
-      "maxDuration": 45
+      "maxDuration": 30
     }
   },
   "env": {
-    "OPENAI_API_KEY": "@openai_api_key_hybrid",
-    "NODE_ENV": "production",
-    "SYSTEM_VERSION": "2.0-hybrid"
-  },
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
-        },
-        {
-          "key": "X-System-Version",
-          "value": "2.0-Hybrid"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/hybrid",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/manual",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/ai-only",
-      "destination": "/index.html"
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/old-system",
-      "destination": "/",
-      "permanent": false
-    }
-  ]
+    "OPENAI_API_KEY": "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"
+  }
 }
