@@ -3,874 +3,931 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Alérgenos - Sistema de Buffet</title>
+    <title>Gestión de Alérgenos - Sistema Híbrido</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <link href="style.css" rel="stylesheet">
     <style>
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .tab-btn.active { 
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+        :root {
+            --color-primary: #D4AF37;
+            --color-primary-dark: #B8860B;
+            --color-accent: #C44536;
+            --color-success: #16A34A;
+        }
+
+        .mode-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            background: #f8fafc;
+            padding: 0.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .mode-btn {
+            padding: 0.75rem 1rem;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .mode-btn.active {
+            background: var(--color-primary);
             color: white;
             box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
         }
-        .ingredient-item {
-            transition: all 0.3s ease;
-            cursor: pointer;
-            user-select: none;
+
+        .allergen-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
         }
-        .ingredient-item:hover {
-            transform: scale(1.02);
+
+        .allergen-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .allergen-card:hover {
+            border-color: var(--color-primary);
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        .ingredient-item.selected {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-            color: white;
-            box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4);
-        }
-        .category-filter.active {
-            background: var(--color-primary);
-            color: white;
-        }
-    </style>
-</head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-    
-    <!-- Header Premium -->
-    <div class="header-premium">
-        <div class="header-content">
-            <div class="logo-section">
-                <div class="logo-circle">
-                    <span class="logo-icon">🍽️</span>
-                </div>
-                <div class="logo-text">
-                    <h1 class="system-title">Gestión de Alérgenos</h1>
-                    <p class="system-subtitle">Sistema Profesional de Buffet</p>
-                </div>
-            </div>
-            <div class="status-section">
-                <div class="status-indicator">
-                    <div class="status-dot"></div>
-                    <span class="status-text">Sistema Activo</span>
-                </div>
-                <div class="date-time" id="currentDateTime"></div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Navegación por Pestañas -->
-    <div class="main-container-modern">
-        <div class="tab-navigation bg-white rounded-2xl shadow-lg p-2 mb-6">
-            <div class="flex space-x-2">
-                <button class="tab-btn active" data-tab="dishes">
-                    <span class="tab-icon">📋</span>
-                    <span class="tab-text">Registro de Platos</span>
-                </button>
-                <button class="tab-btn" data-tab="ingredients">
-                    <span class="tab-icon">🥄</span>
-                    <span class="tab-text">Gestión Ingredientes</span>
-                </button>
-                <button class="tab-btn" data-tab="sanitary">
-                    <span class="tab-icon">📊</span>
-                    <span class="tab-text">Registro Sanidad</span>
-                </button>
-                <button class="tab-btn" data-tab="config">
-                    <span class="tab-icon">⚙️</span>
-                    <span class="tab-text">Configuración</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- PESTAÑA 1: REGISTRO DE PLATOS -->
-        <div id="tab-dishes" class="tab-content active">
-            <div class="dashboard-grid">
-                
-                <!-- Panel de Entrada Mejorado -->
-                <div class="input-panel">
-                    <div class="panel-card">
-                        <div class="config-content">
-                            <div class="config-group">
-                                <label class="config-label">Idioma del Sistema</label>
-                                <select id="systemLanguage" class="config-select">
-                                    <option value="es">Español</option>
-                                    <option value="en">English</option>
-                                    <option value="fr">Français</option>
-                                </select>
-                            </div>
-                            <div class="config-group">
-                                <label class="config-label">Tema de Colores</label>
-                                <select id="colorTheme" class="config-select">
-                                    <option value="gold">Dorado Elegante</option>
-                                    <option value="blue">Azul Profesional</option>
-                                    <option value="green">Verde Natural</option>
-                                </select>
-                            </div>
-                            <div class="config-checkbox">
-                                <input type="checkbox" id="showIngredientIcons" checked>
-                                <label for="showIngredientIcons">Mostrar iconos de ingredientes</label>
-                            </div>
-                            <div class="config-checkbox">
-                                <input type="checkbox" id="enableSoundNotifications">
-                                <label for="enableSoundNotifications">Notificaciones sonoras</label>
-                            </div>
-                            <button id="saveGeneralConfig" class="config-save-btn">
-                                <span>💾</span>
-                                <span>Guardar Configuración</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Base de Datos -->
-                    <div class="config-card">
-                        <div class="config-header">
-                            <h3 class="config-title">
-                                <span class="config-icon">🗄️</span>
-                                Base de Datos
-                            </h3>
-                        </div>
-                        <div class="config-content">
-                            <div class="config-stats">
-                                <div class="stat-row">
-                                    <span>Ingredientes registrados:</span>
-                                    <span id="dbIngredientsCount" class="font-bold">0</span>
-                                </div>
-                                <div class="stat-row">
-                                    <span>Platos registrados:</span>
-                                    <span id="dbDishesCount" class="font-bold">0</span>
-                                </div>
-                                <div class="stat-row">
-                                    <span>Tamaño de la BD:</span>
-                                    <span class="font-bold">~2.5 MB</span>
-                                </div>
-                            </div>
-                            <div class="config-actions">
-                                <button id="exportDataBtn" class="config-action-btn bg-blue-500">
-                                    <span>📤</span>
-                                    <span>Exportar Datos</span>
-                                </button>
-                                <button id="importDataBtn" class="config-action-btn bg-green-500">
-                                    <span>📥</span>
-                                    <span>Importar Datos</span>
-                                </button>
-                                <button id="resetDataBtn" class="config-action-btn bg-red-500">
-                                    <span>🗑️</span>
-                                    <span>Resetear Sistema</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Información del Sistema -->
-                    <div class="config-card">
-                        <div class="config-header">
-                            <h3 class="config-title">
-                                <span class="config-icon">ℹ️</span>
-                                Información del Sistema
-                            </h3>
-                        </div>
-                        <div class="config-content">
-                            <div class="system-info">
-                                <div class="info-row">
-                                    <span>Versión:</span>
-                                    <span class="font-bold">v1.2.0</span>
-                                </div>
-                                <div class="info-row">
-                                    <span>Última actualización:</span>
-                                    <span class="font-bold">28/08/2025</span>
-                                </div>
-                                <div class="info-row">
-                                    <span>Estado del servidor:</span>
-                                    <span class="font-bold text-green-600">✅ Activo</span>
-                                </div>
-                                <div class="info-row">
-                                    <span>IA Habilitada:</span>
-                                    <span class="font-bold text-green-600">✅ OpenAI GPT-4</span>
-                                </div>
-                                <div class="info-row">
-                                    <span>Normativa:</span>
-                                    <span class="font-bold">UE 1169/2011</span>
-                                </div>
-                            </div>
-                            
-                            <div class="support-section mt-4 p-4 bg-gray-50 rounded-lg">
-                                <h4 class="font-bold text-gray-700 mb-2">Soporte Técnico</h4>
-                                <p class="text-sm text-gray-600 mb-2">
-                                    Para soporte técnico o nuevas funcionalidades:
-                                </p>
-                                <div class="flex space-x-2">
-                                    <button class="support-btn bg-blue-500">
-                                        <span>📧</span>
-                                        <span>Email</span>
-                                    </button>
-                                    <button class="support-btn bg-green-500">
-                                        <span>📞</span>
-                                        <span>Teléfono</span>
-                                    </button>
-                                    <button class="support-btn bg-purple-500">
-                                        <span>💬</span>
-                                        <span>Chat</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modals -->
-    
-    <!-- Modal Añadir/Editar Ingrediente -->
-    <div id="ingredientModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle" class="text-xl font-bold">Añadir Ingrediente</h3>
-                <button id="closeModal" class="modal-close">✕</button>
-            </div>
-            <div class="modal-body">
-                <form id="ingredientForm">
-                    <div class="form-group">
-                        <label class="form-label">Nombre del Ingrediente</label>
-                        <input type="text" id="modalIngredientName" required class="form-input" placeholder="Ej: Pollo, Merluza, Almendras...">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Código Identificador</label>
-                        <input type="text" id="modalIngredientCode" required class="form-input" placeholder="Ej: pollo, merluza, almendras">
-                        <small class="form-help">Sin espacios, solo letras minúsculas y guiones bajos</small>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Categoría</label>
-                        <select id="modalIngredientCategory" required class="form-select">
-                            <!-- Se carga dinámicamente -->
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Alérgenos que Contiene</label>
-                        <div class="allergens-checkboxes" id="modalAllergensCheckboxes">
-                            <!-- Se carga dinámicamente -->
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <div class="form-checkbox">
-                            <input type="checkbox" id="modalIngredientCommon">
-                            <label for="modalIngredientCommon">Ingrediente común (mostrar primero)</label>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" id="cancelModalBtn" class="btn-secondary">Cancelar</button>
-                <button type="submit" form="ingredientForm" id="saveIngredientBtn" class="btn-primary">Guardar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scripts -->
-    <script src="app-enhanced.js"></script>
-    
-    <style>
-        /* Estilos para pestañas */
-        .tab-navigation {
-            overflow-x: auto;
-            white-space: nowrap;
+        .allergen-card.selected {
+            border-color: var(--color-accent);
+            background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
         }
-        
-        .tab-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 1rem 1.5rem;
-            border: none;
-            background: #f8f9fa;
-            color: #6b7280;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-            min-width: 180px;
-            justify-content: center;
+
+        .allergen-card.ai-detected {
+            border-color: #3B82F6;
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
         }
-        
-        .tab-btn:hover {
-            background: #e5e7eb;
-            transform: translateY(-1px);
-        }
-        
-        .tab-icon {
-            font-size: 1.25rem;
-        }
-        
-        /* Estilos para ingredientes */
-        .ingredients-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 0.75rem;
-        }
-        
-        .ingredient-item {
+
+        .allergen-header {
             display: flex;
+            justify-content: between;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            background: white;
-        }
-        
-        .ingredient-icon {
-            font-size: 1.25rem;
-            flex-shrink: 0;
-        }
-        
-        .ingredient-info {
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .ingredient-name {
-            font-weight: 600;
-            font-size: 0.875rem;
-            color: #1f2937;
-        }
-        
-        .ingredient-category {
-            font-size: 0.75rem;
-            color: #6b7280;
-        }
-        
-        .selected-ingredient {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 0.75rem;
-            background: var(--color-primary);
-            color: white;
-            border-radius: 50px;
-            margin: 0.25rem;
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-        
-        .remove-ingredient {
-            cursor: pointer;
-            font-weight: bold;
-            padding: 0 0.25rem;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.2);
-        }
-        
-        .category-filter {
-            padding: 0.5rem 1rem;
-            border: 1px solid #d1d5db;
-            background: white;
-            border-radius: 50px;
-            cursor: pointer;
-            font-size: 0.875rem;
-            transition: all 0.3s ease;
-        }
-        
-        /* Modal styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            backdrop-filter: blur(4px);
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 90vh;
-            overflow: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #6b7280;
-            padding: 0.5rem;
-            border-radius: 50%;
-            transition: all 0.3s ease;
-        }
-        
-        .modal-close:hover {
-            background: #f3f4f6;
-            color: #374151;
-        }
-        
-        .modal-body {
-            padding: 2rem;
-        }
-        
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-            padding: 1.5rem 2rem;
-            border-top: 1px solid #e5e7eb;
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        .form-label {
-            display: block;
-            font-weight: 600;
-            color: #374151;
             margin-bottom: 0.5rem;
         }
-        
-        .form-input, .form-select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
+
+        .allergen-icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
         }
-        
-        .form-input:focus, .form-select:focus {
-            outline: none;
-            border-color: var(--color-primary);
-            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+
+        .allergen-name {
+            font-weight: bold;
+            color: #1f2937;
         }
-        
-        .form-help {
-            display: block;
-            font-size: 0.75rem;
-            color: #6b7280;
-            margin-top: 0.25rem;
+
+        .allergen-status {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid white;
         }
-        
-        .form-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+
+        .status-manual {
+            background: var(--color-accent);
         }
-        
-        .allergens-checkboxes {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 0.75rem;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e5e7eb;
+
+        .status-ai {
+            background: #3B82F6;
+        }
+
+        .status-hybrid {
+            background: linear-gradient(135deg, #3B82F6 0%, var(--color-accent) 100%);
+        }
+
+        .hybrid-panel {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .ai-suggestion {
+            background: #EFF6FF;
+            border: 1px solid #DBEAFE;
             border-radius: 8px;
             padding: 1rem;
+            margin-bottom: 1rem;
         }
-        
-        .allergen-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-        }
-        
-        .allergen-checkbox:hover {
-            background: #f9fafb;
-        }
-        
-        .btn-primary, .btn-secondary {
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: white;
+            border: none;
             padding: 0.75rem 1.5rem;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            border: none;
         }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-            color: white;
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
         }
-        
-        .btn-secondary {
-            background: #f3f4f6;
-            color: #374151;
-            border: 1px solid #d1d5db;
-        }
-        
-        /* Config styles */
-        .config-actions {
+
+        .analysis-mode-toggle {
             display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            margin-top: 1rem;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #f1f5f9;
+            border-radius: 12px;
         }
-        
-        .config-action-btn {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            border: none;
+
+        .toggle-option {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
             border-radius: 8px;
-            color: white;
-            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            background: white;
         }
-        
-        .config-stats, .system-info {
-            space-y: 0.75rem;
-        }
-        
-        .stat-row, .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #f3f4f6;
-        }
-        
-        .support-btn {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 6px;
+
+        .toggle-option.active {
+            border-color: var(--color-primary);
+            background: var(--color-primary);
             color: white;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
         }
-        
-        /* Responsive */
+
+        .confidence-bar {
+            width: 100%;
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+            transition: width 0.3s ease;
+        }
+
         @media (max-width: 768px) {
-            .dashboard-grid {
+            .mode-selector {
                 grid-template-columns: 1fr;
             }
             
-            .tab-btn {
-                min-width: 140px;
-                padding: 0.75rem 1rem;
+            .allergen-grid {
+                grid-template-columns: 1fr 1fr;
             }
             
-            .tab-text {
-                display: none;
-            }
-            
-            .ingredients-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .modal-content {
-                width: 95%;
-                margin: 1rem;
+            .analysis-mode-toggle {
+                flex-direction: column;
             }
         }
     </style>
-</body>
-</html>="panel-header">
-                            <div class="panel-icon">🍽️</div>
-                            <h2 class="panel-title">Registrar Nuevo Plato</h2>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    
+    <!-- Header -->
+    <div class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="bg-gradient-to-br from-yellow-400 to-yellow-600 text-white rounded-full p-3 mr-4">
+                        <span class="text-2xl">🍽️</span>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">Sistema de Alérgenos</h1>
+                        <p class="text-gray-600">Análisis Híbrido: IA + Manual</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <div class="flex items-center space-x-2 text-green-600">
+                            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <span class="text-sm font-medium">Sistema Activo</span>
                         </div>
-                        
-                        <div class="input-section">
-                            <!-- Descripción del Plato -->
-                            <div class="text-section">
-                                <label class="input-label">Nombre del Plato</label>
-                                <input 
-                                    type="text" 
-                                    id="dishNameInput" 
-                                    placeholder="Ej: Paella Valenciana, Pollo al Ajillo..."
-                                    class="text-input-modern"
-                                    style="min-height: 50px;"
-                                >
-                            </div>
+                        <div class="text-xs text-gray-500" id="currentDateTime"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                            <!-- Selector de Ingredientes -->
-                            <div class="ingredients-section">
-                                <label class="input-label">Ingredientes Utilizados</label>
-                                
-                                <!-- Búsqueda de ingredientes -->
-                                <div class="ingredient-search-box mb-4">
-                                    <input 
-                                        type="text" 
-                                        id="ingredientSearch" 
-                                        placeholder="🔍 Buscar ingredientes..."
-                                        class="w-full p-3 border border-gray-300 rounded-lg text-sm"
-                                    >
-                                </div>
-                                
-                                <!-- Filtros por categoría -->
-                                <div class="category-filters mb-4">
-                                    <div class="flex flex-wrap gap-2" id="categoryFilters">
-                                        <button class="category-filter active" data-category="all">Todos</button>
-                                        <button class="category-filter" data-category="common">Comunes</button>
-                                        <!-- Las categorías se cargan dinámicamente -->
-                                    </div>
-                                </div>
-                                
-                                <!-- Grid de ingredientes disponibles -->
-                                <div class="ingredients-available">
-                                    <h4 class="text-sm font-bold text-gray-700 mb-2">Ingredientes Disponibles:</h4>
-                                    <div class="ingredients-grid max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3" id="ingredientsGrid">
-                                        <!-- Se carga dinámicamente -->
-                                    </div>
-                                </div>
-                                
-                                <!-- Ingredientes seleccionados -->
-                                <div class="ingredients-selected mt-4">
-                                    <h4 class="text-sm font-bold text-gray-700 mb-2">Ingredientes Seleccionados:</h4>
-                                    <div class="selected-ingredients-container border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-24" id="selectedIngredients">
-                                        <p class="text-gray-500 text-sm text-center" id="emptySelectedMessage">
-                                            Selecciona ingredientes de la lista superior
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Panel de Entrada -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-2xl shadow-xl p-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                        <span class="mr-3">🎯</span>
+                        Registrar Nuevo Plato
+                    </h2>
 
-                            <!-- Chef y Acciones -->
-                            <div class="chef-section">
-                                <label class="input-label-small">Chef:</label>
+                    <!-- Selector de Modo de Análisis -->
+                    <div class="analysis-mode-toggle">
+                        <div class="toggle-option active" data-mode="hybrid" onclick="setAnalysisMode('hybrid')">
+                            <div class="text-lg mb-1">🤖➕👨‍🍳</div>
+                            <div class="font-bold">Híbrido</div>
+                            <div class="text-xs opacity-75">IA + Chef</div>
+                        </div>
+                        <div class="toggle-option" data-mode="ai" onclick="setAnalysisMode('ai')">
+                            <div class="text-lg mb-1">🤖</div>
+                            <div class="font-bold">Solo IA</div>
+                            <div class="text-xs opacity-75">Automático</div>
+                        </div>
+                        <div class="toggle-option" data-mode="manual" onclick="setAnalysisMode('manual')">
+                            <div class="text-lg mb-1">👨‍🍳</div>
+                            <div class="font-bold">Manual</div>
+                            <div class="text-xs opacity-75">Solo Chef</div>
+                        </div>
+                    </div>
+
+                    <!-- Entrada de Datos -->
+                    <div class="space-y-6">
+                        <!-- Descripción del Plato -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                📝 Descripción del Plato
+                            </label>
+                            <textarea 
+                                id="dishDescription" 
+                                class="w-full h-24 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 transition-all duration-300" 
+                                placeholder="Ej: Paella valenciana con gambas, mejillones, pollo, arroz bomba, azafrán..."
+                            ></textarea>
+                        </div>
+
+                        <!-- Chef -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">
+                                    👨‍🍳 Chef Responsable
+                                </label>
                                 <input 
                                     type="text" 
                                     id="chefName" 
                                     value="Chef Principal"
-                                    class="chef-input"
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 transition-all duration-300"
                                 >
                             </div>
-                            
-                            <div class="action-section">
-                                <button id="analyzeBtn" class="btn-primary-modern">
-                                    <span class="btn-icon">🧠</span>
-                                    <span>Crear Plato</span>
-                                </button>
-                                <button id="clearBtn" class="btn-secondary-modern">
-                                    <span class="btn-icon">🧹</span>
-                                    <span>Limpiar</span>
+                            <div class="flex items-end">
+                                <button id="analyzeBtn" class="btn-primary w-full flex items-center justify-center">
+                                    <span class="mr-2">🔍</span>
+                                    <span>Analizar Plato</span>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Panel de Resultados (igual que antes) -->
-                    <div class="results-panel">
-                        <!-- Loading -->
-                        <div id="loading" class="loading-section hidden">
-                            <div class="loading-spinner-modern"></div>
-                            <p class="loading-text">🧠 Procesando plato...</p>
+                    <!-- Panel de Resultados -->
+                    <div id="resultsPanel" class="hidden mt-8">
+                        <!-- Información del Plato -->
+                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-6">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                                <span class="mr-2">🍽️</span>
+                                Plato Identificado
+                            </h3>
+                            <div id="dishInfo" class="space-y-2">
+                                <!-- Se llena dinámicamente -->
+                            </div>
                         </div>
 
-                        <!-- Results -->
-                        <div id="results" class="results-content hidden">
-                            <!-- Contenido igual que en la versión original -->
-                            <div class="results-header">
-                                <h3 class="results-title">
-                                    <span class="results-icon">🔍</span>
-                                    Plato Registrado
+                        <!-- Panel Híbrido de Alérgenos -->
+                        <div class="hybrid-panel">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-bold text-gray-800 flex items-center">
+                                    <span class="mr-2">⚠️</span>
+                                    Gestión de Alérgenos
                                 </h3>
+                                <div class="text-sm text-gray-600">
+                                    <span id="selectedCount">0</span> de 14 alérgenos seleccionados
+                                </div>
                             </div>
 
-                            <div class="dish-info-section">
-                                <h4 class="section-subtitle">Información del Plato</h4>
-                                <div id="dishResult" class="dish-result-card"></div>
+                            <!-- Sugerencias de IA (en modo híbrido) -->
+                            <div id="aiSuggestions" class="ai-suggestion hidden">
+                                <h4 class="font-bold text-blue-800 mb-2 flex items-center">
+                                    <span class="mr-2">🤖</span>
+                                    Sugerencias de IA
+                                </h4>
+                                <p class="text-sm text-blue-700 mb-3">
+                                    La IA ha detectado los siguientes alérgenos. Puedes confirmar, añadir o quitar según tu criterio:
+                                </p>
+                                <div id="aiDetectedList" class="flex flex-wrap gap-2">
+                                    <!-- Se llena dinámicamente -->
+                                </div>
+                                <div class="mt-3 text-xs text-blue-600">
+                                    Confianza del análisis: <span id="aiConfidence" class="font-bold">95%</span>
+                                </div>
                             </div>
 
-                            <div class="allergens-section">
-                                <h4 class="section-subtitle">Alérgenos Detectados</h4>
-                                <div id="allergensList" class="allergens-grid"></div>
+                            <!-- Grid de Alérgenos -->
+                            <div class="allergen-grid" id="allergenGrid">
+                                <!-- Se llena dinámicamente -->
                             </div>
 
-                            <div class="action-buttons-modern">
-                                <button id="beautifulLabelBtn" class="action-btn action-btn-gold">
-                                    <span class="action-icon">✨</span>
-                                    <span class="action-text">Etiqueta Bonita</span>
-                                </button>
-                                
-                                <button id="printBtn" class="action-btn action-btn-green">
-                                    <span class="action-icon">🖨️</span>
-                                    <span class="action-text">Imprimir</span>
-                                </button>
-                                
-                                <button id="newDishBtn" class="action-btn action-btn-purple">
-                                    <span class="action-icon">➕</span>
-                                    <span class="action-text">Nuevo Plato</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Error Message -->
-                        <div id="errorMessage" class="error-message hidden">
-                            <div class="error-content">
-                                <span class="error-icon">⚠️</span>
-                                <div class="error-text">
-                                    <strong>Error:</strong> 
-                                    <span id="errorText"></span>
+                            <!-- Resumen -->
+                            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-2">📋 Resumen Final</h4>
+                                <div id="finalSummary" class="text-sm text-gray-700">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <strong>Alérgenos Confirmados:</strong>
+                                            <div id="confirmedAllergens" class="mt-1">Ninguno</div>
+                                        </div>
+                                        <div>
+                                            <strong>Estado de Seguridad:</strong>
+                                            <div id="safetyStatus" class="mt-1 font-bold text-green-600">✅ Seguro para consumo general</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Panel de Actividad -->
-                <div class="activity-panel">
-                    <div class="activity-card">
-                        <div class="activity-header">
-                            <h3 class="activity-title">
-                                <span class="activity-icon">📋</span>
-                                Platos de Hoy
-                            </h3>
-                            <div class="dish-counter" id="dishCount">0 platos</div>
-                        </div>
-                        <div id="todayDishes" class="dishes-list">
-                            <div class="empty-state">
-                                <div class="empty-icon">🍽️</div>
-                                <p class="empty-text">No hay platos registrados hoy</p>
-                            </div>
+                        <!-- Botones de Acción -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                            <button id="generateLabelBtn" class="btn-primary flex items-center justify-center">
+                                <span class="mr-2">✨</span>
+                                Generar Etiqueta
+                            </button>
+                            <button id="printBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
+                                <span class="mr-2">🖨️</span>
+                                Imprimir
+                            </button>
+                            <button id="saveBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
+                                <span class="mr-2">💾</span>
+                                Guardar
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Panel Lateral -->
-                <div class="sidebar-panel">
-                    <!-- Stats (igual que antes) -->
-                    <div class="stats-card">
-                        <div class="stats-header">
-                            <h3 class="stats-title">
-                                <span class="stats-icon">📊</span>
-                                Estadísticas del Día
-                            </h3>
-                        </div>
-                        <div class="stats-grid">
-                            <div class="stat-item stat-primary">
-                                <div class="stat-number" id="statsAnalyzed">0</div>
-                                <div class="stat-label">Platos Registrados</div>
-                            </div>
-                            <div class="stat-item stat-success">
-                                <div class="stat-number" id="statsLabels">0</div>
-                                <div class="stat-label">Etiquetas Generadas</div>
-                            </div>
-                            <div class="stat-item stat-warning">
-                                <div class="stat-number" id="statsAllergens">0</div>
-                                <div class="stat-label">Alérgenos Detectados</div>
-                            </div>
+            <!-- Panel Lateral -->
+            <div class="space-y-8">
+                
+                <!-- Platos de Hoy -->
+                <div class="bg-white rounded-2xl shadow-xl p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center justify-between">
+                        <span class="flex items-center">
+                            <span class="mr-2">📋</span>
+                            Platos de Hoy
+                        </span>
+                        <span id="todayCount" class="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full">0</span>
+                    </h3>
+                    <div id="todayDishes" class="space-y-3 max-h-80 overflow-y-auto">
+                        <div class="text-center py-8 text-gray-500">
+                            <div class="text-4xl mb-2">🍽️</div>
+                            <p>No hay platos registrados hoy</p>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Chef activo (igual que antes) -->
-                    <div class="chef-card">
-                        <div class="chef-header">
-                            <h3 class="chef-title">
-                                <span class="chef-icon">👨‍🍳</span>
-                                Chef Activo
-                            </h3>
+                <!-- Estadísticas -->
+                <div class="bg-white rounded-2xl shadow-xl p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">📊</span>
+                        Estadísticas
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Análisis IA</span>
+                            <span id="statsAI" class="text-2xl font-bold text-blue-600">0</span>
                         </div>
-                        <div class="chef-info">
-                            <div class="chef-avatar">
-                                <span class="avatar-icon">👨‍🍳</span>
-                            </div>
-                            <div class="chef-details">
-                                <div class="chef-name" id="activeChef">Chef Principal</div>
-                                <div class="chef-role">Chef Principal</div>
-                            </div>
-                            <div class="chef-status">
-                                <div class="status-dot-small"></div>
-                            </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Revisiones Chef</span>
+                            <span id="statsManual" class="text-2xl font-bold text-yellow-600">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Alérgenos Detectados</span>
+                            <span id="statsAllergens" class="text-2xl font-bold text-red-600">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Guía de Alérgenos -->
+                <div class="bg-white rounded-2xl shadow-xl p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">📚</span>
+                        Guía UE 1169/2011
+                    </h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <span>🌾</span><span>Cereales con gluten</span>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <span>🦐</span><span>Crustáceos</span>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <span>🥚</span><span>Huevos</span>
+                        </div>
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <span>🐟</span><span>Pescado</span>
+                        </div>
+                        <div class="text-center text-xs text-gray-500 mt-2">
+                            + 10 alérgenos más según normativa
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- PESTAÑA 2: GESTIÓN DE INGREDIENTES -->
-        <div id="tab-ingredients" class="tab-content">
-            <div class="ingredients-management-container">
-                
-                <!-- Header de Gestión -->
-                <div class="management-header bg-white rounded-xl shadow-lg p-6 mb-6">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                                <span class="mr-3">🥄</span>
-                                Gestión de Ingredientes
-                            </h2>
-                            <p class="text-gray-600 mt-1">Administra la base de datos de ingredientes y sus alérgenos</p>
-                        </div>
-                        <button id="addIngredientBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center">
-                            <span class="mr-2">➕</span>
-                            Añadir Ingrediente
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Filtros y Búsqueda -->
-                <div class="filters-section bg-white rounded-xl shadow-lg p-6 mb-6">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Buscar ingrediente</label>
-                            <input type="text" id="searchIngredients" placeholder="Buscar por nombre..."
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Filtrar por categoría</label>
-                            <select id="filterCategory" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="all">Todas las categorías</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Mostrar</label>
-                            <select id="filterCommon" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="all">Todos</option>
-                                <option value="common">Solo comunes</option>
-                                <option value="uncommon">Solo especiales</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Lista de Ingredientes -->
-                <div class="ingredients-list bg-white rounded-xl shadow-lg p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-800">Lista de Ingredientes</h3>
-                        <div class="text-sm text-gray-500">
-                            <span id="ingredientsCount">0</span> ingredientes
-                        </div>
-                    </div>
-                    
-                    <div class="ingredients-table-container">
-                        <div id="ingredientsTable" class="space-y-3">
-                            <!-- Se carga dinámicamente -->
-                        </div>
-                    </div>
-                </div>
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-8 max-w-sm w-full mx-4">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Analizando...</h3>
+                <p id="loadingText" class="text-gray-600">La IA está procesando el plato</p>
             </div>
         </div>
+    </div>
 
-        <!-- PESTAÑA 3: REGISTRO SANIDAD -->
-        <div id="tab-sanitary" class="tab-content">
-            <div class="sanitary-container">
+    <script>
+        // Variables globales
+        let currentMode = 'hybrid';
+        let currentDish = null;
+        let selectedAllergens = new Set();
+        let aiSuggestedAllergens = new Set();
+        let stats = { ai: 0, manual: 0, allergens: 0 };
+
+        // Lista completa de alérgenos UE
+        const ALLERGENS = {
+            'gluten': { name: 'Cereales con Gluten', icon: '🌾', description: 'Trigo, centeno, cebada, avena' },
+            'crustaceos': { name: 'Crustáceos', icon: '🦐', description: 'Gambas, langostinos, cangrejos' },
+            'huevos': { name: 'Huevos', icon: '🥚', description: 'Huevos y productos derivados' },
+            'pescado': { name: 'Pescado', icon: '🐟', description: 'Pescado y productos derivados' },
+            'cacahuetes': { name: 'Cacahuetes', icon: '🥜', description: 'Cacahuetes y productos derivados' },
+            'soja': { name: 'Soja', icon: '🌱', description: 'Soja y productos derivados' },
+            'lacteos': { name: 'Leche y Lácteos', icon: '🥛', description: 'Leche y productos lácteos' },
+            'frutos_secos': { name: 'Frutos de Cáscara', icon: '🌰', description: 'Almendras, nueces, avellanas...' },
+            'apio': { name: 'Apio', icon: '🥬', description: 'Apio y productos derivados' },
+            'mostaza': { name: 'Mostaza', icon: '🟡', description: 'Mostaza y productos derivados' },
+            'sesamo': { name: 'Granos de Sésamo', icon: '🫘', description: 'Sésamo y productos derivados' },
+            'sulfitos': { name: 'Sulfitos', icon: '🍷', description: 'Vino, conservas, frutos secos' },
+            'altramuces': { name: 'Altramuces', icon: '🫘', description: 'Altramuces y productos derivados' },
+            'moluscos': { name: 'Moluscos', icon: '🐚', description: 'Mejillones, almejas, caracoles...' }
+        };
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+        });
+
+        function initializeApp() {
+            setupEventListeners();
+            renderAllergenGrid();
+            loadTodaysDishes();
+            updateStats();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('analyzeBtn').addEventListener('click', analyzeDish);
+            document.getElementById('generateLabelBtn').addEventListener('click', generateLabel);
+            document.getElementById('printBtn').addEventListener('click', printLabel);
+            document.getElementById('saveBtn').addEventListener('click', saveDish);
+        }
+
+        function setAnalysisMode(mode) {
+            currentMode = mode;
+            
+            // Actualizar UI del selector
+            document.querySelectorAll('.toggle-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+
+            // Actualizar el grid de alérgenos si ya está mostrado
+            if (!document.getElementById('resultsPanel').classList.contains('hidden')) {
+                renderAllergenGrid();
+            }
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-ES');
+            const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('currentDateTime').textContent = `${dateStr} - ${timeStr}`;
+        }
+
+        async function analyzeDish() {
+            const description = document.getElementById('dishDescription').value.trim();
+            const chef = document.getElementById('chefName').value.trim();
+
+            if (!description) {
+                alert('Por favor, describe el plato');
+                return;
+            }
+
+            showLoading('Analizando plato...');
+
+            try {
+                // Simular llamada a la API
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Datos simulados (en la implementación real, estos vendrían de tu API)
+                const mockResponse = {
+                    dish: {
+                        name: 'Paella Valenciana',
+                        description: description,
+                        chef: chef,
+                        confidence: 0.95,
+                        timestamp: new Date().toISOString()
+                    },
+                    allergens: currentMode !== 'manual' ? ['crustaceos', 'moluscos'] : []
+                };
+
+                currentDish = mockResponse.dish;
                 
-                <!-- Header -->
-                <div class="sanitary-header bg-white rounded-xl shadow-lg p-6 mb-6">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                                <span class="mr-3">📊</span>
-                                Registro para Sanidad
-                            </h2>
+                if (currentMode !== 'manual') {
+                    aiSuggestedAllergens = new Set(mockResponse.allergens);
+                    selectedAllergens = new Set(mockResponse.allergens);
+                } else {
+                    aiSuggestedAllergens = new Set();
+                    selectedAllergens = new Set();
+                }
+
+                displayResults();
+                stats.ai++;
+                updateStats();
+
+            } catch (error) {
+                alert('Error analizando el plato: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayResults() {
+            // Mostrar panel de resultados
+            document.getElementById('resultsPanel').classList.remove('hidden');
+
+            // Información del plato
+            document.getElementById('dishInfo').innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-bold text-lg">${currentDish.name}</h4>
+                        <p class="text-gray-600">${currentDish.description}</p>
+                        <div class="flex items-center space-x-4 text-sm text-gray-500 mt-2">
+                            <span>👨‍🍳 ${currentDish.chef}</span>
+                            <span>🎯 Confianza: ${Math.round(currentDish.confidence * 100)}%</span>
+                            <span>🕒 ${new Date(currentDish.timestamp).toLocaleTimeString('es-ES')}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Mostrar sugerencias de IA si aplica
+            if (currentMode === 'hybrid' && aiSuggestedAllergens.size > 0) {
+                document.getElementById('aiSuggestions').classList.remove('hidden');
+                document.getElementById('aiConfidence').textContent = Math.round(currentDish.confidence * 100) + '%';
+                
+                const aiList = document.getElementById('aiDetectedList');
+                aiList.innerHTML = Array.from(aiSuggestedAllergens).map(code => `
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 border border-blue-200">
+                        ${ALLERGENS[code].icon} ${ALLERGENS[code].name}
+                    </span>
+                `).join('');
+            } else {
+                document.getElementById('aiSuggestions').classList.add('hidden');
+            }
+
+            renderAllergenGrid();
+            updateSummary();
+        }
+
+        function renderAllergenGrid() {
+            const grid = document.getElementById('allergenGrid');
+            grid.innerHTML = Object.entries(ALLERGENS).map(([code, allergen]) => {
+                const isSelected = selectedAllergens.has(code);
+                const isAISuggested = aiSuggestedAllergens.has(code);
+                
+                let cardClass = 'allergen-card';
+                let statusClass = '';
+                
+                if (isSelected && isAISuggested) {
+                    cardClass += ' ai-detected selected';
+                    statusClass = 'status-hybrid';
+                } else if (isSelected) {
+                    cardClass += ' selected';
+                    statusClass = 'status-manual';
+                } else if (isAISuggested) {
+                    cardClass += ' ai-detected';
+                    statusClass = 'status-ai';
+                }
+
+                return `
+                    <div class="${cardClass}" onclick="toggleAllergen('${code}')">
+                        <div class="allergen-header">
+                            <div class="flex items-center">
+                                <span class="allergen-icon">${allergen.icon}</span>
+                                <div>
+                                    <div class="allergen-name">${allergen.name}</div>
+                                    <div class="text-xs text-gray-500">${allergen.description}</div>
+                                </div>
+                            </div>
+                        </div>
+                        ${statusClass ? `<div class="allergen-status ${statusClass}"></div>` : ''}
+                        ${isSelected ? '<div class="absolute bottom-2 right-2 text-red-600 font-bold">✓</div>' : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleAllergen(code) {
+            if (selectedAllergens.has(code)) {
+                selectedAllergens.delete(code);
+            } else {
+                selectedAllergens.add(code);
+            }
+            
+            renderAllergenGrid();
+            updateSummary();
+            stats.manual++;
+            updateStats();
+        }
+
+        function updateSummary() {
+            const count = selectedAllergens.size;
+            document.getElementById('selectedCount').textContent = count;
+
+            const confirmedList = document.getElementById('confirmedAllergens');
+            const safetyStatus = document.getElementById('safetyStatus');
+
+            if (count === 0) {
+                confirmedList.innerHTML = '<span class="text-green-600 font-semibold">✅ Ninguno detectado</span>';
+                safetyStatus.innerHTML = '<span class="text-green-600">✅ Seguro para consumo general</span>';
+            } else {
+                const allergenNames = Array.from(selectedAllergens)
+                    .map(code => `${ALLERGENS[code].icon} ${ALLERGENS[code].name}`)
+                    .join(', ');
+                confirmedList.innerHTML = `<span class="text-red-600 font-semibold">${allergenNames}</span>`;
+                safetyStatus.innerHTML = `<span class="text-red-600">⚠️ Contiene ${count} alérgeno${count > 1 ? 's' : ''}</span>`;
+            }
+
+            stats.allergens = count;
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('statsAI').textContent = stats.ai;
+            document.getElementById('statsManual').textContent = stats.manual;
+            document.getElementById('statsAllergens').textContent = stats.allergens;
+        }
+
+        function showLoading(message) {
+            document.getElementById('loadingText').textContent = message;
+            document.getElementById('loadingModal').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingModal').classList.add('hidden');
+        }
+
+        async function generateLabel() {
+            if (!currentDish) return;
+
+            showLoading('Generando etiqueta...');
+            
+            try {
+                // Simular generación de etiqueta
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // En la implementación real, aquí harías la llamada a tu API
+                // const response = await fetch('/api/generate-label', { ... });
+                
+                // Simular descarga
+                const filename = `etiqueta_${currentDish.name.replace(/\s+/g, '_')}.pdf`;
+                showSuccessMessage(`✅ Etiqueta "${filename}" generada correctamente`);
+                
+            } catch (error) {
+                alert('Error generando etiqueta: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function printLabel() {
+            if (!currentDish) return;
+
+            showLoading('Preparando impresión...');
+            
+            try {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                showSuccessMessage('🖨️ Etiqueta enviada a impresora');
+            } catch (error) {
+                alert('Error imprimiendo: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function saveDish() {
+            if (!currentDish) return;
+
+            showLoading('Guardando plato...');
+            
+            try {
+                const dishData = {
+                    ...currentDish,
+                    allergens: Array.from(selectedAllergens),
+                    analysisMode: currentMode,
+                    aiSuggestions: Array.from(aiSuggestedAllergens)
+                };
+
+                // En la implementación real, aquí harías la llamada a tu API
+                // const response = await fetch('/api/save-dish', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify(dishData)
+                // });
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                showSuccessMessage('💾 Plato guardado correctamente');
+                loadTodaysDishes();
+                clearForm();
+                
+            } catch (error) {
+                alert('Error guardando plato: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('dishDescription').value = '';
+            document.getElementById('resultsPanel').classList.add('hidden');
+            currentDish = null;
+            selectedAllergens.clear();
+            aiSuggestedAllergens.clear();
+        }
+
+        function loadTodaysDishes() {
+            // Simulación de platos del día
+            const mockDishes = [
+                {
+                    id: 1,
+                    name: 'Paella Valenciana',
+                    chef: 'Chef Antonio',
+                    time: '12:30',
+                    allergens: ['crustaceos', 'moluscos'],
+                    mode: 'hybrid'
+                },
+                {
+                    id: 2,
+                    name: 'Ensalada César',
+                    chef: 'Chef María',
+                    time: '13:15',
+                    allergens: ['huevos', 'lacteos'],
+                    mode: 'ai'
+                }
+            ];
+
+            const container = document.getElementById('todayDishes');
+            document.getElementById('todayCount').textContent = mockDishes.length;
+
+            if (mockDishes.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <div class="text-4xl mb-2">🍽️</div>
+                        <p>No hay platos registrados hoy</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = mockDishes.map(dish => `
+                <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-semibold text-gray-800">${dish.name}</h4>
+                        <span class="text-xs px-2 py-1 rounded-full ${
+                            dish.mode === 'hybrid' ? 'bg-purple-100 text-purple-800' :
+                            dish.mode === 'ai' ? 'bg-blue-100 text-blue-800' :
+                            'bg-yellow-100 text-yellow-800'
+                        }">
+                            ${dish.mode === 'hybrid' ? '🤖👨‍🍳' : dish.mode === 'ai' ? '🤖' : '👨‍🍳'}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm text-gray-600">
+                        <span>👨‍🍳 ${dish.chef}</span>
+                        <span>🕒 ${dish.time}</span>
+                    </div>
+                    ${dish.allergens.length > 0 ? `
+                        <div class="mt-2 flex flex-wrap gap-1">
+                            ${dish.allergens.map(code => `
+                                <span class="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full">
+                                    ${ALLERGENS[code].icon} ${ALLERGENS[code].name}
+                                </span>
+                            `).join('')}
+                        </div>
+                    ` : `
+                        <div class="mt-2 text-xs text-green-600 font-medium">✅ Sin alérgenos</div>
+                    `}
+                </div>
+            `).join('');
+        }
+
+        function showSuccessMessage(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Funcionalidades adicionales para integrar con tu API existente
+        
+        async function callExistingAPI(endpoint, data) {
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+
+        // Función para integrar con el análisis de IA existente
+        async function analyzeWithExistingIA(description, chef) {
+            return await callExistingAPI('/api/analyze-dish', {
+                description: description,
+                chef_name: chef,
+                analysis_mode: currentMode
+            });
+        }
+
+        // Función para generar etiquetas con el sistema existente
+        async function generateWithExistingSystem(dishId) {
+            return await callExistingAPI(`/api/generate-beautiful-single/${dishId}`, {});
+        }
+
+        // Instrucciones de integración
+        function showIntegrationHelp() {
+            console.log(`
+🔧 INSTRUCCIONES DE INTEGRACIÓN:
+
+1. REEMPLAZAR FUNCIONES SIMULADAS:
+   - Cambiar analyzeDish() para usar analyzeWithExistingIA()
+   - Conectar generateLabel() con tu API /api/generate-beautiful-single
+   - Conectar saveDish() con tu endpoint de guardado
+
+2. MODIFICAR TU SERVER.JS:
+   - Añadir campo 'analysis_mode' a los platos guardados
+   - Modificar /api/analyze-dish para aceptar modo híbrido
+   - Añadir endpoint /api/manual-allergen-override
+
+3. NUEVOS ENDPOINTS SUGERIDOS:
+   POST /api/analyze-dish-hybrid
+   POST /api/save-manual-allergens
+   GET /api/allergen-statistics
+
+4. CAMPOS DE BASE DE DATOS:
+   - analysis_mode (ai/manual/hybrid)
+   - ai_suggested_allergens (array)
+   - chef_confirmed_allergens (array)
+   - manual_overrides (boolean)
+            `);
+        }
+    </script>
+</body>
+</html>
