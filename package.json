@@ -1,15 +1,37 @@
 {
   "name": "buffet-allergen-system",
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "description": "Sistema híbrido de gestión de alérgenos para buffet de hotel - IA + Manual",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "echo 'No build needed'",
+    "test": "echo 'No tests specified'"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "openai": "^4.20.1"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "buffet", 
+    "allergens", 
+    "hotel", 
+    "food-safety", 
+    "ai", 
+    "hybrid", 
+    "openai",
+    "restaurant",
+    "nutrition"
+  ],
+  "author": "Hotel Management System",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/buffet-allergen-system.git"
   }
 }
