@@ -1,4 +1,4 @@
-// app.js - Sistema de Alérgenos FUNCIONAL COMPLETO
+// app.js - Sistema de Alérgenos CORREGIDO PARA VERCEL
 
 // ====== VARIABLES GLOBALES ======
 let currentMode = 'hybrid';
@@ -28,7 +28,7 @@ const ALLERGENS = {
 
 // ====== INICIALIZACIÓN ======
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Inicializando Sistema de Alérgenos v2.0');
+    console.log('🚀 Inicializando Sistema de Alérgenos v2.0.1');
     initializeApp();
     updateDateTime();
     setInterval(updateDateTime, 1000);
@@ -453,7 +453,7 @@ function updateStats() {
     if (elements.allergens) elements.allergens.textContent = stats.allergens;
 }
 
-// ====== ACCIONES DE GUARDADO ======
+// ====== ACCIONES DE GUARDADO - CORREGIDAS PARA VERCEL ======
 
 async function generateLabel() {
     if (!currentDish) {
@@ -465,11 +465,21 @@ async function generateLabel() {
     showLoading('Generando etiqueta...');
 
     try {
-        // Actualizar alérgenos finales del plato antes de generar
-        currentDish.final_allergens = Array.from(selectedAllergens);
-        
-        const response = await fetch(`/api/generate-beautiful-single/${currentDish.id}`, {
-            method: 'POST'
+        // NUEVO: Usar endpoint que incluye datos del plato
+        const dishWithAllergens = {
+            ...currentDish,
+            final_allergens: Array.from(selectedAllergens)
+        };
+
+        const response = await fetch('/api/generate-label-with-data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                dish: dishWithAllergens,
+                allergens: Array.from(selectedAllergens)
+            })
         });
 
         if (!response.ok) {
@@ -549,14 +559,21 @@ async function saveDish() {
     showLoading('Guardando plato en el sistema...');
 
     try {
-        // Preparar datos para guardar
+        // NUEVO: Incluir datos del plato en el request
         const dishData = {
             dish_id: currentDish.id,
             manual_allergens: Array.from(selectedAllergens),
             chef_notes: `Análisis en modo ${currentMode}. Alérgenos confirmados por chef.`,
             final_analysis_mode: currentMode,
             ai_suggestions: Array.from(originalAIAllergens),
-            manual_overrides: !setsEqual(selectedAllergens, originalAIAllergens)
+            manual_overrides: !setsEqual(selectedAllergens, originalAIAllergens),
+            // NUEVO: Incluir datos del plato por si no se encuentra en memoria
+            dish_data: {
+                name: currentDish.name,
+                description: currentDish.description,
+                chef: currentDish.chef,
+                analysis_mode: currentDish.analysis_mode
+            }
         };
 
         const response = await fetch('/api/save-manual-allergens', {
@@ -723,7 +740,7 @@ async function loadTodaysDishes() {
                     `}
                     
                     <div class="mt-3 flex gap-2">
-                        <button onclick="downloadDishLabel(${dish.id})" 
+                        <button onclick="downloadDishLabel(${dish.id}, '${dish.name.replace(/'/g, "\\'")}', '${dish.description.replace(/'/g, "\\'")}', '${dish.chef.replace(/'/g, "\\'")}', '${dish.date}', '${allergens.join(',')}')" 
                                 class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors">
                             📄 Etiqueta
                         </button>
@@ -744,14 +761,33 @@ async function loadTodaysDishes() {
     }
 }
 
-// ====== FUNCIONES GLOBALES PARA BOTONES ======
+// ====== FUNCIONES GLOBALES PARA BOTONES - CORREGIDAS ======
 
-async function downloadDishLabel(dishId) {
+async function downloadDishLabel(dishId, name, description, chef, date, allergensStr) {
     try {
         showLoading('Generando etiqueta...');
         
-        const response = await fetch(`/api/generate-beautiful-single/${dishId}`, {
-            method: 'POST'
+        // Crear objeto del plato con datos completos
+        const dish = {
+            id: dishId,
+            name: name,
+            description: description,
+            chef: chef,
+            date: date,
+            timestamp: new Date().toISOString()
+        };
+        
+        const allergens = allergensStr ? allergensStr.split(',').filter(a => a.trim()) : [];
+        
+        const response = await fetch('/api/generate-label-with-data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                dish: dish,
+                allergens: allergens
+            })
         });
 
         if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
@@ -768,7 +804,7 @@ async function downloadDishLabel(dishId) {
             // Fallback: descargar
             const a = document.createElement('a');
             a.href = url;
-            a.download = `etiqueta_${dishId}.html`;
+            a.download = `etiqueta_${name.replace(/\s+/g, '_')}.html`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -877,7 +913,7 @@ function showToast(message, type = 'info') {
 
 // Función de debug para testing
 window.debugSystem = function() {
-    console.log('🐛 DEBUG SISTEMA DE ALÉRGENOS');
+    console.log('🐛 DEBUG SISTEMA DE ALÉRGENOS v2.0.1');
     console.log('================================');
     console.log('currentMode:', currentMode);
     console.log('currentDish:', currentDish);
@@ -908,7 +944,7 @@ window.testAnalysis = function(description = 'Paella con gambas y mejillones') {
 
 // ====== INICIALIZACIÓN FINAL ======
 
-console.log('🎉 Sistema de Alérgenos v2.0 cargado correctamente');
+console.log('🎉 Sistema de Alérgenos v2.0.1 cargado correctamente');
 console.log('📋 Funciones disponibles:');
 console.log('  - debugSystem() - Debug completo del sistema');
 console.log('  - testAnalysis() - Test rápido de análisis');
