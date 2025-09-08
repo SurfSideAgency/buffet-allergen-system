@@ -1,4 +1,178 @@
-<!DOCTYPE html>
+<!-- REEMPLAZAR LA SECCIÓN DE BOTONES DE ACCIÓN EN index.html -->
+<!-- Buscar "Botones de Acción" y reemplazar con esto: -->
+
+<!-- Botones de Acción -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+    <button 
+        id="generateLabelBtn" 
+        type="button"
+        class="btn-primary flex items-center justify-center min-h-[50px] disabled:opacity-50 disabled:cursor-not-allowed">
+        <span class="mr-2">✨</span>
+        <span>Generar Etiqueta</span>
+    </button>
+    
+    <button 
+        id="printBtn" 
+        type="button"
+        class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center min-h-[50px] disabled:opacity-50 disabled:cursor-not-allowed">
+        <span class="mr-2">🖨️</span>
+        <span>Imprimir</span>
+    </button>
+    
+    <button 
+        id="saveBtn" 
+        type="button"
+        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center min-h-[50px] disabled:opacity-50 disabled:cursor-not-allowed">
+        <span class="mr-2">💾</span>
+        <span>Guardar</span>
+    </button>
+</div>
+
+<!-- SCRIPT PARA VERIFICAR Y CORREGIR LA CONEXIÓN -->
+<script>
+// Verificar que las funciones estén disponibles cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Verificando botones de acción...');
+    
+    // Verificar elementos
+    const buttons = {
+        generateLabel: document.getElementById('generateLabelBtn'),
+        print: document.getElementById('printBtn'),
+        save: document.getElementById('saveBtn'),
+        analyze: document.getElementById('analyzeBtn')
+    };
+    
+    // Verificar y reportar estado
+    Object.entries(buttons).forEach(([name, button]) => {
+        if (button) {
+            console.log(`✅ Botón ${name}: Encontrado`);
+            
+            // Añadir event listeners directamente si no existen
+            if (!button.onclick && !button.hasAttribute('data-listener-added')) {
+                switch(name) {
+                    case 'generateLabel':
+                        button.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            console.log('🖱️ Click en Generar Etiqueta');
+                            if (typeof generateLabel === 'function') {
+                                generateLabel();
+                            } else {
+                                console.error('❌ Función generateLabel no encontrada');
+                                alert('Error: Función de generar etiqueta no disponible');
+                            }
+                        });
+                        break;
+                        
+                    case 'print':
+                        button.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            console.log('🖱️ Click en Imprimir');
+                            if (typeof printLabel === 'function') {
+                                printLabel();
+                            } else {
+                                console.error('❌ Función printLabel no encontrada');
+                                alert('Error: Función de imprimir no disponible');
+                            }
+                        });
+                        break;
+                        
+                    case 'save':
+                        button.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            console.log('🖱️ Click en Guardar');
+                            if (typeof saveDish === 'function') {
+                                saveDish();
+                            } else {
+                                console.error('❌ Función saveDish no encontrada');
+                                alert('Error: Función de guardar no disponible');
+                            }
+                        });
+                        break;
+                        
+                    case 'analyze':
+                        button.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            console.log('🖱️ Click en Analizar');
+                            if (typeof analyzeDish === 'function') {
+                                analyzeDish();
+                            } else {
+                                console.error('❌ Función analyzeDish no encontrada');
+                                alert('Error: Función de analizar no disponible');
+                            }
+                        });
+                        break;
+                }
+                button.setAttribute('data-listener-added', 'true');
+                console.log(`✅ Event listener añadido a ${name}`);
+            }
+        } else {
+            console.error(`❌ Botón ${name}: NO ENCONTRADO`);
+        }
+    });
+    
+    // Función de test para verificar conectividad
+    window.testButtons = function() {
+        console.log('🧪 TESTING BOTONES:');
+        console.log('==================');
+        
+        // Test cada función
+        const tests = [
+            { name: 'analyzeDish', func: analyzeDish },
+            { name: 'generateLabel', func: generateLabel },
+            { name: 'printLabel', func: printLabel },
+            { name: 'saveDish', func: saveDish }
+        ];
+        
+        tests.forEach(test => {
+            console.log(`${typeof test.func === 'function' ? '✅' : '❌'} ${test.name}: ${typeof test.func}`);
+        });
+        
+        // Test elementos DOM
+        console.log('\n🔍 DOM Elements:');
+        Object.entries(buttons).forEach(([name, button]) => {
+            console.log(`${button ? '✅' : '❌'} ${name}Button: ${button ? 'Existe' : 'No existe'}`);
+        });
+        
+        // Test variables globales
+        console.log('\n📊 Variables:');
+        console.log(`- currentDish: ${window.currentDish ? 'Definido' : 'NULL'}`);
+        console.log(`- currentMode: ${window.currentMode || 'No definido'}`);
+    };
+    
+    console.log('✅ Verificación de botones completada. Ejecuta testButtons() para hacer pruebas.');
+});
+
+// Función para habilitar/deshabilitar botones según el estado
+function updateButtonStates() {
+    const buttons = {
+        generateLabel: document.getElementById('generateLabelBtn'),
+        print: document.getElementById('printBtn'),
+        save: document.getElementById('saveBtn')
+    };
+    
+    const hasCurrentDish = window.currentDish !== null && window.currentDish !== undefined;
+    
+    Object.values(buttons).forEach(button => {
+        if (button) {
+            button.disabled = !hasCurrentDish;
+            if (hasCurrentDish) {
+                button.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                button.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+    });
+}
+
+// Actualizar estados de botones cuando cambie currentDish
+let lastCurrentDish = null;
+setInterval(() => {
+    if (window.currentDish !== lastCurrentDish) {
+        lastCurrentDish = window.currentDish;
+        updateButtonStates();
+    }
+}, 500);
+</script><!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -362,24 +536,181 @@
                             </div>
                         </div>
 
-                        <!-- Botones de Acción -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                            <button id="generateLabelBtn" class="btn-primary flex items-center justify-center">
-                                <span class="mr-2">✨</span>
-                                Generar Etiqueta
-                            </button>
-                            <button id="printBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
-                                <span class="mr-2">🖨️</span>
-                                Imprimir
-                            </button>
-                            <button id="saveBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
-                                <span class="mr-2">💾</span>
-                                Guardar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                       <!-- REEMPLAZAR LA SECCIÓN DE BOTONES DE ACCIÓN EN index.html -->
+<!-- Buscar "Botones de Acción" y reemplazar con esto: -->
+
+<!-- Botones de Acción -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+    <button 
+        id="generateLabelBtn" 
+        type="button"
+        class="btn-primary flex items-center justify-center min-h-[50px] disabled:opacity-50 disabled:cursor-not-allowed">
+        <span class="mr-2">✨</span>
+        <span>Generar Etiqueta</span>
+    </button>
+    
+    <button 
+        id="printBtn" 
+        type="button"
+        class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center min-h-[50px] disabled:opacity-50 disabled:cursor-not-allowed">
+        <span class="mr-2">🖨️</span>
+        <span>Imprimir</span>
+    </button>
+    
+    <button 
+        id="saveBtn" 
+        type="button"
+        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center min-h-[50px] disabled:opacity-50 disabled:cursor-not-allowed">
+        <span class="mr-2">💾</span>
+        <span>Guardar</span>
+    </button>
+</div>
+
+<!-- SCRIPT PARA VERIFICAR Y CORREGIR LA CONEXIÓN -->
+<script>
+// Verificar que las funciones estén disponibles cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Verificando botones de acción...');
+    
+    // Verificar elementos
+    const buttons = {
+        generateLabel: document.getElementById('generateLabelBtn'),
+        print: document.getElementById('printBtn'),
+        save: document.getElementById('saveBtn'),
+        analyze: document.getElementById('analyzeBtn')
+    };
+    
+    // Verificar y reportar estado
+    Object.entries(buttons).forEach(([name, button]) => {
+        if (button) {
+            console.log(`✅ Botón ${name}: Encontrado`);
+            
+            // Añadir event listeners directamente si no existen
+            if (!button.onclick && !button.hasAttribute('data-listener-added')) {
+                switch(name) {
+                    case 'generateLabel':
+                        button.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            console.log('🖱️ Click en Generar Etiqueta');
+                            if (typeof generateLabel === 'function') {
+                                generateLabel();
+                            } else {
+                                console.error('❌ Función generateLabel no encontrada');
+                                alert('Error: Función de generar etiqueta no disponible');
+                            }
+                        });
+                        break;
+                        
+                    case 'print':
+                        button.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            console.log('🖱️ Click en Imprimir');
+                            if (typeof printLabel === 'function') {
+                                printLabel();
+                            } else {
+                                console.error('❌ Función printLabel no encontrada');
+                                alert('Error: Función de imprimir no disponible');
+                            }
+                        });
+                        break;
+                        
+                    case 'save':
+                        button.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            console.log('🖱️ Click en Guardar');
+                            if (typeof saveDish === 'function') {
+                                saveDish();
+                            } else {
+                                console.error('❌ Función saveDish no encontrada');
+                                alert('Error: Función de guardar no disponible');
+                            }
+                        });
+                        break;
+                        
+                    case 'analyze':
+                        button.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            console.log('🖱️ Click en Analizar');
+                            if (typeof analyzeDish === 'function') {
+                                analyzeDish();
+                            } else {
+                                console.error('❌ Función analyzeDish no encontrada');
+                                alert('Error: Función de analizar no disponible');
+                            }
+                        });
+                        break;
+                }
+                button.setAttribute('data-listener-added', 'true');
+                console.log(`✅ Event listener añadido a ${name}`);
+            }
+        } else {
+            console.error(`❌ Botón ${name}: NO ENCONTRADO`);
+        }
+    });
+    
+    // Función de test para verificar conectividad
+    window.testButtons = function() {
+        console.log('🧪 TESTING BOTONES:');
+        console.log('==================');
+        
+        // Test cada función
+        const tests = [
+            { name: 'analyzeDish', func: analyzeDish },
+            { name: 'generateLabel', func: generateLabel },
+            { name: 'printLabel', func: printLabel },
+            { name: 'saveDish', func: saveDish }
+        ];
+        
+        tests.forEach(test => {
+            console.log(`${typeof test.func === 'function' ? '✅' : '❌'} ${test.name}: ${typeof test.func}`);
+        });
+        
+        // Test elementos DOM
+        console.log('\n🔍 DOM Elements:');
+        Object.entries(buttons).forEach(([name, button]) => {
+            console.log(`${button ? '✅' : '❌'} ${name}Button: ${button ? 'Existe' : 'No existe'}`);
+        });
+        
+        // Test variables globales
+        console.log('\n📊 Variables:');
+        console.log(`- currentDish: ${window.currentDish ? 'Definido' : 'NULL'}`);
+        console.log(`- currentMode: ${window.currentMode || 'No definido'}`);
+    };
+    
+    console.log('✅ Verificación de botones completada. Ejecuta testButtons() para hacer pruebas.');
+});
+
+// Función para habilitar/deshabilitar botones según el estado
+function updateButtonStates() {
+    const buttons = {
+        generateLabel: document.getElementById('generateLabelBtn'),
+        print: document.getElementById('printBtn'),
+        save: document.getElementById('saveBtn')
+    };
+    
+    const hasCurrentDish = window.currentDish !== null && window.currentDish !== undefined;
+    
+    Object.values(buttons).forEach(button => {
+        if (button) {
+            button.disabled = !hasCurrentDish;
+            if (hasCurrentDish) {
+                button.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                button.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+    });
+}
+
+// Actualizar estados de botones cuando cambie currentDish
+let lastCurrentDish = null;
+setInterval(() => {
+    if (window.currentDish !== lastCurrentDish) {
+        lastCurrentDish = window.currentDish;
+        updateButtonStates();
+    }
+}, 500);
+</script>
 
             <!-- Panel Lateral -->
             <div class="space-y-8">
