@@ -1,5 +1,4 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "builds": [
     {
@@ -22,8 +21,5 @@
       "memory": 1024,
       "maxDuration": 30
     }
-  },
-  "env": {
-    "OPENAI_API_KEY": "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"
   }
 }
