@@ -919,3 +919,361 @@ console.log(`
 3. Revisar integración con sistema de ingredientes
 4. Personalizar colores y estilos según marca del hotel
 `);
+// ==== CORRECCIONES PARA EL SISTEMA DE IMPRESIÓN ====
+
+// 1. AÑADIR AL FINAL DE public/app.js (reemplazar las funciones existentes)
+
+// ====== FUNCIONES DE IMPRESIÓN CORREGIDAS ======
+
+async function generateLabel() {
+    if (!currentDish) {
+        showError('No hay plato para generar etiqueta');
+        return;
+    }
+
+    console.log('✨ Generando etiqueta para:', currentDish.name);
+    showLoading('Generando etiqueta PDF...');
+
+    try {
+        // Usar el ID del plato actual
+        const dishId = currentDish.id;
+        
+        const response = await fetch(`/api/generate-beautiful-single/${dishId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Error HTTP: ${response.status}`);
+        }
+
+        // Verificar si la respuesta es un PDF
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/pdf')) {
+            throw new Error('La respuesta no es un archivo PDF válido');
+        }
+
+        // Descargar PDF
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `etiqueta_${currentDish.name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        showSuccessMessage('✨ Etiqueta PDF descargada correctamente');
+        
+        // Actualizar estadísticas
+        stats.ai++;
+        updateStats();
+
+    } catch (error) {
+        console.error('❌ Error generando etiqueta:', error);
+        showError('Error generando etiqueta: ' + error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+async function printLabel() {
+    if (!currentDish) {
+        showError('No hay plato para imprimir');
+        return;
+    }
+
+    console.log('🖨️ Enviando a impresora:', currentDish.name);
+    showLoading('Enviando a impresora...');
+
+    try {
+        const dishId = currentDish.id;
+        
+        const response = await fetch(`/api/print-directly/${dishId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Error en la impresión');
+        }
+
+        showSuccessMessage('🖨️ ' + data.message);
+
+    } catch (error) {
+        console.error('❌ Error imprimiendo:', error);
+        showError('Error imprimiendo: ' + error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+// Funciones para los botones de la lista de platos del día
+async function downloadDishLabel(dishId) {
+    console.log('📄 Descargando etiqueta para plato ID:', dishId);
+    
+    try {
+        showLoading('Generando PDF...');
+        
+        const response = await fetch(`/api/generate-beautiful-single/${dishId}`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Error HTTP: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `etiqueta_plato_${dishId}_${Date.now()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        showSuccessMessage('📄 Etiqueta descargada correctamente');
+
+    } catch (error) {
+        console.error('❌ Error descargando etiqueta:', error);
+        showError('Error descargando etiqueta: ' + error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+async function printDishLabel(dishId) {
+    console.log('🖨️ Imprimiendo etiqueta para plato ID:', dishId);
+    
+    try {
+        showLoading('Enviando a impresora...');
+        
+        const response = await fetch(`/api/print-directly/${dishId}`, {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Error de impresión');
+        }
+
+        showSuccessMessage('🖨️ ' + result.message);
+        
+    } catch (error) {
+        console.error('❌ Error imprimiendo etiqueta:', error);
+        showError('Error imprimiendo: ' + error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+// ====== CORRECCIÓN DEL ANÁLISIS DE PLATOS ======
+
+async function analyzeDish() {
+    const description = document.getElementById('dishDescription').value.trim();
+    const chef = document.getElementById('chefName').value.trim() || 'Chef Principal';
+
+    if (!description) {
+        showError('Por favor, describe el plato antes de analizar');
+        return;
+    }
+
+    console.log(`🔍 Iniciando análisis en modo: ${currentMode}`);
+    showLoading('Analizando plato...');
+
+    try {
+        const response = await fetch('/api/analyze-dish-hybrid', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                description: description,
+                chef_name: chef,
+                analysis_mode: currentMode
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || `Error del servidor: ${response.status}`);
+        }
+
+        if (!data.success) {
+            throw new Error(data.error || 'Error en el análisis');
+        }
+
+        console.log('✅ Análisis completado:', data);
+        
+        // IMPORTANTE: Asegurar que el plato tiene un ID válido
+        currentDish = {
+            ...data.dish,
+            id: data.dish.id || Date.now() // Fallback si no hay ID
+        };
+        
+        // Configurar alérgenos según el modo
+        if (currentMode === 'manual') {
+            aiSuggestedAllergens.clear();
+            selectedAllergens.clear();
+        } else {
+            const detectedAllergens = data.analysis.allergens || [];
+            aiSuggestedAllergens = new Set(detectedAllergens);
+            originalAIAllergens = new Set(detectedAllergens);
+            
+            if (currentMode === 'ai') {
+                selectedAllergens = new Set(detectedAllergens);
+            } else {
+                selectedAllergens = new Set(detectedAllergens);
+            }
+        }
+
+        displayResults(data);
+        updateStats();
+
+    } catch (error) {
+        console.error('❌ Error en análisis:', error);
+        showError(`Error analizando el plato: ${error.message}`);
+    } finally {
+        hideLoading();
+    }
+}
+
+// ====== VERIFICACIÓN DE ELEMENTOS DOM ======
+
+function verifyButtonConnections() {
+    const buttons = {
+        analyze: document.getElementById('analyzeBtn'),
+        generateLabel: document.getElementById('generateLabelBtn'),
+        print: document.getElementById('printBtn'),
+        save: document.getElementById('saveBtn')
+    };
+    
+    console.log('🔍 Verificando conexiones de botones:');
+    
+    Object.entries(buttons).forEach(([name, button]) => {
+        if (button) {
+            console.log(`✅ ${name}: Conectado`);
+        } else {
+            console.error(`❌ ${name}: NO ENCONTRADO`);
+        }
+    });
+    
+    return buttons;
+}
+
+// ====== SETUP MEJORADO DE EVENT LISTENERS ======
+
+function setupEventListeners() {
+    console.log('👂 Configurando event listeners...');
+    
+    // Verificar que los elementos existen
+    const buttons = verifyButtonConnections();
+    
+    // Event listeners principales con verificación
+    if (buttons.analyze) {
+        buttons.analyze.addEventListener('click', analyzeDish);
+        console.log('✅ Botón analizar conectado');
+    }
+    
+    if (buttons.generateLabel) {
+        buttons.generateLabel.addEventListener('click', generateLabel);
+        console.log('✅ Botón generar etiqueta conectado');
+    }
+    
+    if (buttons.print) {
+        buttons.print.addEventListener('click', printLabel);
+        console.log('✅ Botón imprimir conectado');
+    }
+    
+    if (buttons.save) {
+        buttons.save.addEventListener('click', saveDish);
+        console.log('✅ Botón guardar conectado');
+    }
+    
+    // Enter key para analizar
+    const dishInput = document.getElementById('dishDescription');
+    if (dishInput) {
+        dishInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                analyzeDish();
+            }
+        });
+        console.log('✅ Atajo de teclado Ctrl+Enter conectado');
+    }
+    
+    console.log('👂 Event listeners configurados correctamente');
+}
+
+// ====== DIAGNÓSTICO Y DEBUG ======
+
+function runDiagnostics() {
+    console.log('🔧 DIAGNÓSTICO DEL SISTEMA DE IMPRESIÓN');
+    console.log('=====================================');
+    
+    // Verificar elementos DOM
+    const elements = {
+        'Panel de Resultados': document.getElementById('resultsPanel'),
+        'Botón Analizar': document.getElementById('analyzeBtn'),
+        'Botón Generar Etiqueta': document.getElementById('generateLabelBtn'),
+        'Botón Imprimir': document.getElementById('printBtn'),
+        'Botón Guardar': document.getElementById('saveBtn'),
+        'Modal de Carga': document.getElementById('loadingModal'),
+        'Descripción del Plato': document.getElementById('dishDescription')
+    };
+    
+    Object.entries(elements).forEach(([name, element]) => {
+        console.log(`${element ? '✅' : '❌'} ${name}: ${element ? 'Encontrado' : 'NO ENCONTRADO'}`);
+    });
+    
+    // Verificar variables globales
+    console.log('\n📊 Variables Globales:');
+    console.log(`- currentMode: ${currentMode}`);
+    console.log(`- currentDish: ${currentDish ? 'Definido' : 'NULL'}`);
+    console.log(`- selectedAllergens: ${selectedAllergens.size} elementos`);
+    console.log(`- ALLERGENS definido: ${typeof ALLERGENS === 'object'}`);
+    
+    // Verificar funciones
+    console.log('\n🔧 Funciones:');
+    const functions = ['analyzeDish', 'generateLabel', 'printLabel', 'saveDish'];
+    functions.forEach(fn => {
+        console.log(`${typeof window[fn] === 'function' ? '✅' : '❌'} ${fn}`);
+    });
+    
+    console.log('\n🌐 Estado del servidor:');
+    console.log('Verificando conexión con backend...');
+    
+    // Test de conectividad
+    fetch('/api/allergen-statistics')
+        .then(response => {
+            console.log(`✅ Servidor respondiendo: ${response.status}`);
+        })
+        .catch(error => {
+            console.log(`❌ Error de conexión: ${error.message}`);
+        });
+}
+
+// Ejecutar diagnóstico automáticamente
+if (typeof window !== 'undefined') {
+    window.addEventListener('load', () => {
+        setTimeout(runDiagnostics, 1000);
+    });
+}
+
+// Exponer funciones globalmente para debugging
+window.runDiagnostics = runDiagnostics;
+window.verifyButtonConnections = verifyButtonConnections;
+
+console.log('🔧 Correcciones de impresión cargadas. Ejecuta runDiagnostics() para verificar.');
