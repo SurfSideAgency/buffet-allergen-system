@@ -1,4 +1,4 @@
-// server.js - Sistema de Alérgenos COMPLETAMENTE FUNCIONAL
+// server.js - Sistema de Alérgenos FINAL CORREGIDO
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -6,12 +6,12 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware esencial
+// ====== MIDDLEWARE BÁSICO ======
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// CRÍTICO: Servir archivos estáticos ANTES que las rutas
+// ====== ARCHIVOS ESTÁTICOS PRIMERO ======
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ====== CONFIGURACIÓN OPENAI ======
@@ -327,7 +327,7 @@ async function analyzeAllergensByDescription(description, mode = 'hybrid') {
     }
 }
 
-// ====== ENDPOINTS PRINCIPALES ======
+// ====== ENDPOINTS API ======
 
 // Endpoint principal de análisis híbrido
 app.post('/api/analyze-dish-hybrid', async (req, res) => {
@@ -526,15 +526,7 @@ app.get('/api/system-status', (req, res) => {
         dishes_count: dishes.length,
         allergens_count: Object.keys(ALLERGENS).length,
         timestamp: new Date().toISOString(),
-        version: '2.0.0',
-        endpoints: [
-            'POST /api/analyze-dish-hybrid',
-            'POST /api/generate-beautiful-single/:id',
-            'POST /api/print-directly/:id',
-            'POST /api/save-manual-allergens',
-            'GET /api/dishes/today',
-            'GET /api/system-status'
-        ]
+        version: '2.0.0'
     });
 });
 
@@ -603,10 +595,6 @@ function generateLabelHTML(dish, allergens) {
             font-weight: bold;
             margin-bottom: 10px;
         }
-        .header p {
-            opacity: 0.9;
-            font-size: 0.9rem;
-        }
         .dish-info {
             padding: 30px 20px;
             border-bottom: 2px solid #f0f0f0;
@@ -617,32 +605,8 @@ function generateLabelHTML(dish, allergens) {
             color: #2c3e50;
             margin-bottom: 15px;
         }
-        .dish-description {
-            color: #666;
-            font-size: 1.1rem;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-        .dish-meta {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            font-size: 0.9rem;
-            color: #777;
-        }
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
         .allergen-section {
             padding: 30px 20px;
-        }
-        .allergen-title {
-            font-size: 1.4rem;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-align: center;
         }
         .safe-notice {
             background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
@@ -652,21 +616,12 @@ function generateLabelHTML(dish, allergens) {
             text-align: center;
             color: #155724;
         }
-        .safe-notice h3 {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-        }
         .danger-notice {
             background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
             border: 2px solid #dc3545;
             border-radius: 10px;
             padding: 25px;
             color: #721c24;
-        }
-        .danger-notice h3 {
-            font-size: 1.5rem;
-            margin-bottom: 15px;
-            text-align: center;
         }
         .allergen-list {
             display: grid;
@@ -682,27 +637,6 @@ function generateLabelHTML(dish, allergens) {
             border-radius: 8px;
             border-left: 4px solid #dc3545;
         }
-        .allergen-icon {
-            font-size: 1.5rem;
-        }
-        .allergen-name {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-        .footer {
-            background: #f8f9fa;
-            padding: 20px;
-            text-align: center;
-            font-size: 0.8rem;
-            color: #666;
-            border-top: 1px solid #dee2e6;
-        }
-        .print-section {
-            padding: 20px;
-            text-align: center;
-            background: #f8f9fa;
-            border-top: 1px solid #dee2e6;
-        }
         .print-btn {
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             color: white;
@@ -710,41 +644,10 @@ function generateLabelHTML(dish, allergens) {
             padding: 15px 30px;
             border-radius: 8px;
             font-size: 1.1rem;
-            font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-            transition: all 0.3s ease;
             margin: 10px;
         }
-        .print-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
-        }
-        .print-instructions {
-            margin-top: 15px;
-            font-size: 0.9rem;
-            color: #666;
-        }
-        @media print {
-            .no-print { display: none !important; }
-            body { background: white; padding: 0; }
-            .label-container { 
-                box-shadow: none; 
-                max-width: none;
-                margin: 0;
-            }
-        }
-        @media (max-width: 600px) {
-            .dish-meta {
-                grid-template-columns: 1fr;
-            }
-            .header h1 {
-                font-size: 1.5rem;
-            }
-            .dish-name {
-                font-size: 1.4rem;
-            }
-        }
+        @media print { .no-print { display: none !important; } }
     </style>
 </head>
 <body>
@@ -756,43 +659,23 @@ function generateLabelHTML(dish, allergens) {
 
         <div class="dish-info">
             <div class="dish-name">${dish.name}</div>
-            <div class="dish-description">${dish.description}</div>
-            <div class="dish-meta">
-                <div class="meta-item">
-                    <span>👨‍🍳</span>
-                    <span><strong>Chef:</strong> ${dish.chef}</span>
-                </div>
-                <div class="meta-item">
-                    <span>📅</span>
-                    <span><strong>Fecha:</strong> ${dish.date}</span>
-                </div>
-                <div class="meta-item">
-                    <span>⚙️</span>
-                    <span><strong>Análisis:</strong> ${dish.analysis_mode || 'Automático'}</span>
-                </div>
-                <div class="meta-item">
-                    <span>🕒</span>
-                    <span><strong>Hora:</strong> ${new Date(dish.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-            </div>
+            <p>${dish.description}</p>
+            <p><strong>Chef:</strong> ${dish.chef} | <strong>Fecha:</strong> ${dish.date}</p>
         </div>
 
         <div class="allergen-section">
-            <div class="allergen-title">⚠️ Información de Alérgenos</div>
-            
             ${hasAllergens ? `
                 <div class="danger-notice">
                     <h3>⚠️ CONTIENE ALÉRGENOS</h3>
-                    <p><strong>Este plato contiene los siguientes alérgenos obligatorios según UE 1169/2011:</strong></p>
                     <div class="allergen-list">
                         ${allergens.map(code => {
                             const allergen = ALLERGENS[code];
                             if (!allergen) return '';
                             return `
                                 <div class="allergen-item">
-                                    <span class="allergen-icon">${allergen.icon}</span>
+                                    <span style="font-size: 1.5rem;">${allergen.icon}</span>
                                     <div>
-                                        <div class="allergen-name">${allergen.name}</div>
+                                        <div style="font-weight: bold;">${allergen.name}</div>
                                         <div style="font-size: 0.9rem; opacity: 0.8;">${allergen.description}</div>
                                     </div>
                                 </div>
@@ -803,52 +686,15 @@ function generateLabelHTML(dish, allergens) {
             ` : `
                 <div class="safe-notice">
                     <h3>✅ SIN ALÉRGENOS DETECTADOS</h3>
-                    <p>Este plato <strong>NO contiene</strong> ninguno de los 14 alérgenos de declaración obligatoria según la normativa europea UE 1169/2011.</p>
-                    <p style="margin-top: 10px; font-size: 0.9rem;">Es seguro para personas con alergias alimentarias comunes.</p>
+                    <p>Este plato NO contiene ninguno de los 14 alérgenos de declaración obligatoria según UE 1169/2011.</p>
                 </div>
             `}
         </div>
 
-        <div class="footer">
-            <p><strong>Generado:</strong> ${new Date().toLocaleString('es-ES')} | <strong>Sistema v2.0</strong></p>
-            <p>Normativa Europea UE 1169/2011 sobre información alimentaria al consumidor</p>
-            <p style="margin-top: 10px; font-size: 0.75rem;">
-                <strong>Alérgenos UE:</strong> Cereales con gluten, Crustáceos, Huevos, Pescado, Cacahuetes, 
-                Soja, Leche, Frutos de cáscara, Apio, Mostaza, Sésamo, Sulfitos, Altramuces, Moluscos
-            </p>
-        </div>
-
-        <div class="print-section no-print">
-            <button onclick="window.print()" class="print-btn">
-                🖨️ Imprimir Etiqueta
-            </button>
-            <button onclick="savePDF()" class="print-btn" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);">
-                📄 Guardar como PDF
-            </button>
-            <div class="print-instructions">
-                <p><strong>Para imprimir:</strong> Haz clic en "Imprimir Etiqueta" o presiona <kbd>Ctrl+P</kbd></p>
-                <p><strong>Para PDF:</strong> Selecciona "Guardar como PDF" en el diálogo de impresión</p>
-            </div>
+        <div style="text-align: center; padding: 20px;" class="no-print">
+            <button onclick="window.print()" class="print-btn">🖨️ Imprimir Etiqueta</button>
         </div>
     </div>
-
-    <script>
-        function savePDF() {
-            window.print();
-        }
-        
-        // Auto-focus para impresión rápida
-        document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 'p') {
-                e.preventDefault();
-                window.print();
-            }
-        });
-        
-        console.log('🏷️ Etiqueta de alérgenos cargada correctamente');
-        console.log('Plato: ${dish.name}');
-        console.log('Alérgenos: ${hasAllergens ? allergens.join(', ') : 'ninguno'}');
-    </script>
 </body>
 </html>`;
 }
@@ -858,50 +704,14 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ====== MIDDLEWARE DE LOGGING ======
-app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
-    next();
-});
-
-// ====== MANEJO DE ERRORES ======
-app.use((error, req, res, next) => {
-    console.error('❌ Error no manejado:', error);
-    res.status(500).json({
-        success: false,
-        error: 'Error interno del servidor',
-        details: process.env.NODE_ENV === 'development' ? error.message : 'Error interno'
-    });
-});
-
 // ====== INICIAR SERVIDOR ======
 app.listen(port, () => {
     console.log(`🚀 Servidor iniciado en puerto ${port}`);
     console.log(`📋 Sistema de Alérgenos v2.0 funcionando`);
-    console.log(`🤖 OpenAI: ${hasOpenAI ? 'Configurado y listo' : 'No configurado (modo simulación)'}`);
+    console.log(`🤖 OpenAI: ${hasOpenAI ? 'Configurado y listo' : 'No configurado (modo palabras clave)'}`);
     console.log(`🔗 Accede a: http://localhost:${port}`);
     console.log(`📊 ${Object.keys(ALLERGENS).length} alérgenos UE configurados`);
-    console.log('');
-    console.log('🛠️ Endpoints disponibles:');
-    console.log('   POST /api/analyze-dish-hybrid      - Análisis principal');
-    console.log('   POST /api/generate-beautiful-single/:id - Generar etiqueta');
-    console.log('   POST /api/print-directly/:id       - Preparar impresión');
-    console.log('   POST /api/save-manual-allergens    - Guardar cambios');
-    console.log('   GET  /api/dishes/today             - Platos del día');
-    console.log('   GET  /api/system-status            - Estado del sistema');
-    console.log('');
     console.log('✅ Sistema listo para usar');
-});
-
-// ====== GRACEFUL SHUTDOWN ======
-process.on('SIGTERM', () => {
-    console.log('🛑 Cerrando servidor...');
-    process.exit(0);
-});
-
-process.on('SIGINT', () => {
-    console.log('🛑 Cerrando servidor...');
-    process.exit(0);
 });
 
 module.exports = app;
