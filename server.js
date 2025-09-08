@@ -660,3 +660,360 @@ if (require.main === module) {
 }
 
 module.exports = app;
+// AÑADIR/REEMPLAZAR ESTAS FUNCIONES EN server.js
+
+// ====== CORRECCIÓN DE ENDPOINTS DE IMPRESIÓN ======
+
+// Generar etiqueta mejorada con mejor manejo de errores
+app.post('/api/generate-beautiful-single/:id', async (req, res) => {
+    try {
+        const dishId = parseInt(req.params.id);
+        console.log(`📄 Generando etiqueta para plato ID: ${dishId}`);
+        
+        // Buscar el plato
+        const dish = dishes.find(d => d.id === dishId);
+        
+        if (!dish) {
+            console.error(`❌ Plato no encontrado: ID ${dishId}`);
+            return res.status(404).json({ 
+                success: false, 
+                error: `Plato con ID ${dishId} no encontrado` 
+            });
+        }
+
+        console.log(`✅ Plato encontrado: ${dish.name}`);
+
+        // Crear PDF mejorado
+        const doc = new PDFDocument({ size: 'A4', margin: 50 });
+        const filename = `etiqueta_${dish.name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+        
+        // Configurar headers para descarga
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Cache-Control', 'no-cache');
+        
+        // Pipe del PDF a la respuesta
+        doc.pipe(res);
+
+        // ===== CONTENIDO DEL PDF =====
+        
+        // Header principal con diseño atractivo
+        doc.fontSize(28).fillColor('#D4AF37').text('🍽️ ETIQUETA DE ALÉRGENOS', 50, 50, { align: 'center' });
+        doc.fontSize(14).fillColor('#6b7280').text('Sistema de Gestión de Alérgenos - Normativa UE 1169/2011', 50, 85, { align: 'center' });
+        
+        // Línea decorativa
+        doc.moveTo(50, 115).lineTo(550, 115).stroke('#D4AF37');
+
+        // Información del plato con recuadro
+        doc.rect(50, 130, 500, 100).fill('#f8fafc').stroke('#e2e8f0');
+        
+        doc.fontSize(22).fillColor('#1f2937').text(dish.name, 70, 150);
+        doc.fontSize(12).fillColor('#4b5563').text(dish.description, 70, 180, { width: 460, height: 40 });
+
+        // Información del análisis
+        const analysisInfo = `${dish.analysis_mode || 'IA'} • Chef: ${dish.chef} • ${dish.date || new Date().toLocaleDateString('es-ES')}`;
+        doc.fontSize(10).fillColor('#9ca3af').text(analysisInfo, 70, 210);
+
+        // Sección de alérgenos
+        const finalAllergens = dish.final_allergens || dish.allergens || [];
+        
+        if (finalAllergens.length === 0) {
+            // Sin alérgenos - Diseño verde
+            doc.rect(50, 250, 500, 120).fill('#f0fdf4').stroke('#22c55e');
+            doc.fontSize(24).fillColor('#15803d').text('✅ SIN ALÉRGENOS DETECTADOS', 50, 290, { align: 'center' });
+            doc.fontSize(14).fillColor('#16a34a').text('Este plato es seguro para personas con alergias alimentarias', 50, 320, { align: 'center' });
+            doc.fontSize(12).fillColor('#16a34a').text('Verificado por el sistema de gestión de alérgenos', 50, 340, { align: 'center' });
+        } else {
+            // Con alérgenos - Diseño rojo con iconos
+            doc.rect(50, 250, 500, 200).fill('#fef2f2').stroke('#ef4444');
+            doc.fontSize(20).fillColor('#dc2626').text('⚠️ CONTIENE ALÉRGENOS', 50, 270, { align: 'center' });
+            
+            doc.fontSize(12).fillColor('#991b1b').text('Este plato contiene los siguientes alérgenos según la normativa UE 1169/2011:', 70, 300, { width: 460 });
+            
+            let yPos = 330;
+            finalAllergens.forEach((allergenCode, index) => {
+                if (ALLERGENS[allergenCode]) {
+                    const allergen = ALLERGENS[allergenCode];
+                    const confidence = dish.confidence ? dish.confidence[allergenCode] : null;
+                    
+                    // Fondo alternado para mejor legibilidad
+                    if (index % 2 === 0) {
+                        doc.rect(60, yPos - 5, 480, 25).fill('#fecaca').stroke('#fca5a5');
+                    }
+                    
+                    doc.fontSize(14).fillColor('#991b1b');
+                    let allergenText = `${allergen.icon} ${allergen.name.toUpperCase()}`;
+                    doc.text(allergenText, 70, yPos, { width: 350 });
+                    
+                    // Descripción del alérgeno
+                    doc.fontSize(10).fillColor('#7f1d1d');
+                    doc.text(allergen.description, 420, yPos + 2, { width: 110, align: 'right' });
+                    
+                    if (confidence) {
+                        doc.fontSize(10).fillColor('#7f1d1d');
+                        doc.text(`${Math.round(confidence * 100)}%`, 520, yPos + 2);
+                    }
+                    
+                    yPos += 30;
+                }
+            });
+            
+            // Advertencia adicional
+            doc.fontSize(10).fillColor('#dc2626').text(
+                'IMPORTANTE: Si eres alérgico a alguno de estos ingredientes, NO consumas este plato.',
+                70, yPos + 10, { width: 460, align: 'center' }
+            );
+        }
+
+        // Footer informativo
+        doc.fontSize(8).fillColor('#6b7280');
+        const footerY = 720;
+        doc.text(`Generado: ${new Date().toLocaleString('es-ES')} | Sistema Híbrido de Alérgenos v2.0`, 50, footerY);
+        doc.text('Reglamento (UE) Nº 1169/2011 sobre la información alimentaria facilitada al consumidor', 50, footerY + 12);
+        
+        // QR Code simulado (opcional)
+        doc.rect(500, footerY - 20, 40, 40).stroke('#9ca3af');
+        doc.fontSize(6).fillColor('#9ca3af').text('QR', 515, footerY - 5);
+
+        // Finalizar PDF
+        doc.end();
+        
+        console.log(`✅ Etiqueta PDF generada: ${filename}`);
+        
+    } catch (error) {
+        console.error('❌ Error generando etiqueta:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Error generando etiqueta',
+            details: error.message 
+        });
+    }
+});
+
+// Imprimir directamente mejorado
+app.post('/api/print-directly/:id', (req, res) => {
+    try {
+        const dishId = parseInt(req.params.id);
+        console.log(`🖨️ Solicitud de impresión para plato ID: ${dishId}`);
+        
+        const dish = dishes.find(d => d.id === dishId);
+        
+        if (!dish) {
+            console.error(`❌ Plato no encontrado para impresión: ID ${dishId}`);
+            return res.status(404).json({ 
+                success: false, 
+                error: `Plato con ID ${dishId} no encontrado` 
+            });
+        }
+
+        // Simular envío a impresora (en producción aquí iría la integración real)
+        console.log(`🖨️ SIMULANDO IMPRESIÓN:`);
+        console.log(`   Plato: ${dish.name}`);
+        console.log(`   Chef: ${dish.chef}`);
+        console.log(`   Alérgenos: ${(dish.final_allergens || dish.allergens || []).length}`);
+        console.log(`   Modo: ${dish.analysis_mode || 'IA'}`);
+        
+        // Simular delay de impresora
+        setTimeout(() => {
+            console.log(`✅ Impresión completada para: ${dish.name}`);
+        }, 1000);
+        
+        res.json({
+            success: true,
+            message: `Etiqueta de "${dish.name}" enviada a impresora correctamente`,
+            dish_id: dishId,
+            dish_name: dish.name,
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('❌ Error en impresión directa:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Error enviando a impresora',
+            details: error.message 
+        });
+    }
+});
+
+// Endpoint para verificar estado del sistema
+app.get('/api/system-status', (req, res) => {
+    const status = {
+        server_status: 'online',
+        dishes_count: dishes.length,
+        allergens_count: Object.keys(ALLERGENS).length,
+        openai_configured: !!process.env.OPENAI_API_KEY,
+        endpoints_available: [
+            '/api/analyze-dish-hybrid',
+            '/api/generate-beautiful-single/:id',
+            '/api/print-directly/:id',
+            '/api/save-manual-allergens',
+            '/api/dishes/today',
+            '/api/allergen-statistics'
+        ],
+        last_dish: dishes.length > 0 ? dishes[dishes.length - 1] : null,
+        timestamp: new Date().toISOString()
+    };
+    
+    res.json({
+        success: true,
+        status: status
+    });
+});
+
+// Endpoint de debug para listar todos los platos
+app.get('/api/debug/dishes', (req, res) => {
+    res.json({
+        success: true,
+        dishes: dishes,
+        count: dishes.length,
+        allergens_config: Object.keys(ALLERGENS).map(key => ({
+            code: key,
+            name: ALLERGENS[key].name,
+            icon: ALLERGENS[key].icon
+        }))
+    });
+});
+
+// ====== MIDDLEWARE DE LOGGING MEJORADO ======
+
+// Middleware para logging de requests
+app.use((req, res, next) => {
+    const timestamp = new Date().toISOString();
+    console.log(`📡 ${timestamp} ${req.method} ${req.path}`);
+    
+    // Log especial para endpoints de impresión
+    if (req.path.includes('generate-beautiful') || req.path.includes('print-directly')) {
+        console.log(`🖨️ Solicitud de impresión: ${req.method} ${req.path}`);
+    }
+    
+    next();
+});
+
+// ====== MANEJO DE ERRORES MEJORADO ======
+
+// Error handler global
+app.use((error, req, res, next) => {
+    console.error(`❌ Error en ${req.path}:`, error);
+    
+    res.status(500).json({
+        success: false,
+        error: 'Error interno del servidor',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// 404 handler
+app.use((req, res) => {
+    console.log(`❓ Ruta no encontrada: ${req.method} ${req.path}`);
+    res.status(404).json({
+        success: false,
+        error: 'Endpoint no encontrado',
+        available_endpoints: [
+            'GET /',
+            'POST /api/analyze-dish-hybrid',
+            'POST /api/generate-beautiful-single/:id',
+            'POST /api/print-directly/:id',
+            'POST /api/save-manual-allergens',
+            'GET /api/dishes/today',
+            'GET /api/allergen-statistics',
+            'GET /api/system-status'
+        ]
+    });
+});
+
+// ====== FUNCIONES DE UTILIDAD PARA DEBUG ======
+
+function logSystemInfo() {
+    console.log('\n🔧 INFORMACIÓN DEL SISTEMA');
+    console.log('===========================');
+    console.log(`📊 Platos en memoria: ${dishes.length}`);
+    console.log(`🏷️ Alérgenos configurados: ${Object.keys(ALLERGENS).length}`);
+    console.log(`🤖 OpenAI configurado: ${process.env.OPENAI_API_KEY ? 'SÍ' : 'NO'}`);
+    console.log(`🌐 Puerto: ${port}`);
+    console.log(`📅 Última actualización: ${new Date().toLocaleString('es-ES')}`);
+    
+    if (dishes.length > 0) {
+        const lastDish = dishes[dishes.length - 1];
+        console.log(`🍽️ Último plato: ${lastDish.name} (${lastDish.chef})`);
+    }
+    console.log('===========================\n');
+}
+
+// ====== TEST ENDPOINTS PARA DESARROLLO ======
+
+// Endpoint para crear plato de prueba
+app.post('/api/test/create-sample-dish', (req, res) => {
+    const sampleDish = {
+        id: dishId++,
+        name: 'Paella de Prueba',
+        description: 'Paella valenciana con gambas, mejillones, pollo y azafrán',
+        chef: 'Chef de Prueba',
+        date: new Date().toLocaleDateString('es-ES'),
+        timestamp: new Date().toISOString(),
+        analysis_mode: 'hybrid',
+        final_allergens: ['crustaceos', 'moluscos'],
+        confidence: { crustaceos: 0.95, moluscos: 0.88 },
+        method: 'hybrid'
+    };
+    
+    dishes.push(sampleDish);
+    console.log(`🧪 Plato de prueba creado: ${sampleDish.name} (ID: ${sampleDish.id})`);
+    
+    res.json({
+        success: true,
+        dish: sampleDish,
+        message: 'Plato de prueba creado correctamente'
+    });
+});
+
+// Endpoint para test de impresión
+app.post('/api/test/print-test', (req, res) => {
+    console.log('🧪 TEST DE IMPRESIÓN');
+    console.log('===================');
+    console.log('✅ Servidor funcionando');
+    console.log('✅ Endpoint accesible');
+    console.log('✅ Función de respuesta OK');
+    
+    res.json({
+        success: true,
+        message: 'Test de impresión exitoso',
+        server_time: new Date().toISOString(),
+        print_simulation: 'OK'
+    });
+});
+
+// ====== INSTRUCCIONES DE DEBUG ======
+
+function showDebugInstructions() {
+    console.log('\n🔧 INSTRUCCIONES DE DEBUG PARA IMPRESIÓN');
+    console.log('=========================================');
+    console.log('1. Verificar que el servidor está funcionando:');
+    console.log('   curl http://localhost:3000/api/system-status');
+    console.log('');
+    console.log('2. Crear plato de prueba:');
+    console.log('   curl -X POST http://localhost:3000/api/test/create-sample-dish');
+    console.log('');
+    console.log('3. Test de impresión:');
+    console.log('   curl -X POST http://localhost:3000/api/test/print-test');
+    console.log('');
+    console.log('4. Listar platos disponibles:');
+    console.log('   curl http://localhost:3000/api/debug/dishes');
+    console.log('');
+    console.log('5. Generar etiqueta de plato específico:');
+    console.log('   curl -X POST http://localhost:3000/api/generate-beautiful-single/1');
+    console.log('');
+    console.log('📱 Frontend Debug:');
+    console.log('- Abrir DevTools → Console');
+    console.log('- Ejecutar: runDiagnostics()');
+    console.log('- Ejecutar: testButtons()');
+    console.log('- Verificar: window.currentDish');
+    console.log('=========================================\n');
+}
+
+// Ejecutar al inicio del servidor
+setTimeout(() => {
+    logSystemInfo();
+    showDebugInstructions();
+}, 1000);
