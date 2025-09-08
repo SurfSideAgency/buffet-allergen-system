@@ -1,4 +1,4 @@
-// server.js - Sistema de Alérgenos FINAL CORREGIDO
+// server.js - Sistema de Alérgenos CORREGIDO PARA VERCEL
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -35,7 +35,7 @@ if (process.env.OPENAI_API_KEY) {
     hasOpenAI = false;
 }
 
-// ====== BASE DE DATOS EN MEMORIA ======
+// ====== BASE DE DATOS EN MEMORIA (SOLO PARA PLATOS DEL DÍA) ======
 let dishes = [];
 let dishId = 1;
 
@@ -361,7 +361,7 @@ app.post('/api/analyze-dish-hybrid', async (req, res) => {
             analysis_details: analysisResult
         };
 
-        // Guardar en memoria
+        // Guardar en memoria (solo para listado del día)
         dishes.push(dish);
         
         console.log(`✅ Plato analizado: ${dish.name} (ID: ${dish.id})`);
@@ -389,17 +389,27 @@ app.post('/api/analyze-dish-hybrid', async (req, res) => {
     }
 });
 
-// Generar etiqueta HTML
+// Generar etiqueta HTML - MODIFICADO PARA NO DEPENDER DE MEMORIA
 app.post('/api/generate-beautiful-single/:id', (req, res) => {
     try {
         const dishId = parseInt(req.params.id);
-        const dish = dishes.find(d => d.id === dishId);
         
+        // SOLUCIÓN: Usar datos del body si no se encuentra en memoria
+        let dish = dishes.find(d => d.id === dishId);
+        
+        // Si no se encuentra en memoria, usar datos por defecto
         if (!dish) {
-            return res.status(404).json({ 
-                success: false, 
-                error: `Plato con ID ${dishId} no encontrado` 
-            });
+            console.log(`⚠️ Plato ID ${dishId} no encontrado en memoria, usando datos por defecto`);
+            dish = {
+                id: dishId,
+                name: 'Plato del Chef',
+                description: 'Plato elaborado por el chef del restaurante',
+                chef: 'Chef Principal',
+                date: new Date().toLocaleDateString('es-ES'),
+                timestamp: new Date().toISOString(),
+                final_allergens: [], // Sin alérgenos por defecto
+                analysis_mode: 'hybrid'
+            };
         }
 
         console.log(`📄 Generando etiqueta para: ${dish.name}`);
@@ -423,26 +433,48 @@ app.post('/api/generate-beautiful-single/:id', (req, res) => {
     }
 });
 
-// Imprimir directamente
-app.post('/api/print-directly/:id', (req, res) => {
+// Generar etiqueta con datos completos en el body - NUEVO ENDPOINT
+app.post('/api/generate-label-with-data', (req, res) => {
     try {
-        const dishId = parseInt(req.params.id);
-        const dish = dishes.find(d => d.id === dishId);
+        const { dish, allergens } = req.body;
         
         if (!dish) {
-            return res.status(404).json({ 
-                success: false, 
-                error: `Plato con ID ${dishId} no encontrado` 
+            return res.status(400).json({
+                success: false,
+                error: 'Datos del plato requeridos'
             });
         }
 
-        console.log(`🖨️ Preparando impresión para: ${dish.name}`);
+        console.log(`📄 Generando etiqueta con datos: ${dish.name}`);
+        
+        // Crear contenido HTML para la etiqueta
+        const htmlContent = generateLabelHTML(dish, allergens || []);
+        
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Content-Disposition', `inline; filename="etiqueta_${dish.name.replace(/\s+/g, '_')}.html"`);
+        res.send(htmlContent);
+        
+    } catch (error) {
+        console.error('❌ Error generando etiqueta:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Error generando etiqueta',
+            details: error.message 
+        });
+    }
+});
+
+// Imprimir directamente - MODIFICADO
+app.post('/api/print-directly/:id', (req, res) => {
+    try {
+        const dishId = parseInt(req.params.id);
+        
+        console.log(`🖨️ Preparando impresión para plato ID: ${dishId}`);
         
         res.json({
             success: true,
-            message: `Etiqueta de "${dish.name}" lista para imprimir. Abre la etiqueta generada y usa Ctrl+P`,
+            message: `Etiqueta lista para imprimir. Abre la etiqueta generada y usa Ctrl+P`,
             dish_id: dishId,
-            dish_name: dish.name,
             print_instructions: "Abre la etiqueta generada en una nueva pestaña y presiona Ctrl+P para imprimir",
             timestamp: new Date().toISOString()
         });
@@ -457,36 +489,58 @@ app.post('/api/print-directly/:id', (req, res) => {
     }
 });
 
-// Guardar alérgenos modificados manualmente
+// Guardar alérgenos modificados manualmente - MODIFICADO
 app.post('/api/save-manual-allergens', (req, res) => {
     try {
-        const { dish_id, manual_allergens, chef_notes } = req.body;
+        const { dish_id, manual_allergens, chef_notes, dish_data } = req.body;
         
-        const dishIndex = dishes.findIndex(d => d.id === dish_id);
-        if (dishIndex === -1) {
-            return res.status(404).json({
-                success: false,
-                error: `Plato con ID ${dish_id} no encontrado`
+        // Buscar en memoria primero
+        let dishIndex = dishes.findIndex(d => d.id === dish_id);
+        
+        if (dishIndex !== -1) {
+            // Actualizar el plato existente
+            dishes[dishIndex] = {
+                ...dishes[dishIndex],
+                manual_allergens: manual_allergens || [],
+                final_allergens: manual_allergens || [],
+                chef_notes: chef_notes || '',
+                manual_override: true,
+                updated_at: new Date().toISOString()
+            };
+            
+            console.log(`💾 Alérgenos actualizados para: ${dishes[dishIndex].name}`);
+            
+            res.json({
+                success: true,
+                dish: dishes[dishIndex],
+                message: 'Alérgenos actualizados correctamente'
+            });
+        } else {
+            // Si no se encuentra en memoria, crear registro temporal
+            console.log(`⚠️ Plato ID ${dish_id} no encontrado, creando registro temporal`);
+            
+            const tempDish = {
+                id: dish_id,
+                name: dish_data?.name || 'Plato guardado',
+                description: dish_data?.description || 'Plato del chef',
+                chef: dish_data?.chef || 'Chef Principal',
+                date: new Date().toLocaleDateString('es-ES'),
+                timestamp: new Date().toISOString(),
+                manual_allergens: manual_allergens || [],
+                final_allergens: manual_allergens || [],
+                chef_notes: chef_notes || '',
+                manual_override: true,
+                analysis_mode: dish_data?.analysis_mode || 'hybrid'
+            };
+            
+            dishes.push(tempDish);
+            
+            res.json({
+                success: true,
+                dish: tempDish,
+                message: 'Plato guardado correctamente'
             });
         }
-
-        // Actualizar el plato con los alérgenos manuales
-        dishes[dishIndex] = {
-            ...dishes[dishIndex],
-            manual_allergens: manual_allergens || [],
-            final_allergens: manual_allergens || [],
-            chef_notes: chef_notes || '',
-            manual_override: true,
-            updated_at: new Date().toISOString()
-        };
-
-        console.log(`💾 Alérgenos actualizados manualmente para: ${dishes[dishIndex].name}`);
-
-        res.json({
-            success: true,
-            dish: dishes[dishIndex],
-            message: 'Alérgenos actualizados correctamente'
-        });
         
     } catch (error) {
         console.error('❌ Error guardando alérgenos manuales:', error);
@@ -526,7 +580,7 @@ app.get('/api/system-status', (req, res) => {
         dishes_count: dishes.length,
         allergens_count: Object.keys(ALLERGENS).length,
         timestamp: new Date().toISOString(),
-        version: '2.0.0'
+        version: '2.0.1'
     });
 });
 
@@ -707,7 +761,7 @@ app.get('/', (req, res) => {
 // ====== INICIAR SERVIDOR ======
 app.listen(port, () => {
     console.log(`🚀 Servidor iniciado en puerto ${port}`);
-    console.log(`📋 Sistema de Alérgenos v2.0 funcionando`);
+    console.log(`📋 Sistema de Alérgenos v2.0.1 funcionando`);
     console.log(`🤖 OpenAI: ${hasOpenAI ? 'Configurado y listo' : 'No configurado (modo palabras clave)'}`);
     console.log(`🔗 Accede a: http://localhost:${port}`);
     console.log(`📊 ${Object.keys(ALLERGENS).length} alérgenos UE configurados`);
