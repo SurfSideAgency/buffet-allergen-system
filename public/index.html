@@ -5,7 +5,124 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Alérgenos - Chef + IA</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --color-primary: #D4AF37;
+            --color-primary-dark: #B8860B;
+            --color-accent: #C44536;
+            --color-success: #16A34A;
+        }
+
+        .analysis-mode-toggle {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #f1f5f9;
+            border-radius: 12px;
+        }
+
+        .toggle-option {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .toggle-option.active {
+            border-color: var(--color-primary);
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
+
+        .allergen-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .allergen-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .allergen-card:hover {
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .allergen-card.selected {
+            border-color: var(--color-accent);
+            background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+        }
+
+        .allergen-card.ai-detected {
+            border-color: #3B82F6;
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+        }
+
+        .allergen-icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+
+        .allergen-name {
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .ai-suggestion {
+            background: #EFF6FF;
+            border: 1px solid #DBEAFE;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .hybrid-panel {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .analysis-mode-toggle {
+                flex-direction: column;
+            }
+            
+            .allergen-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
     
@@ -91,7 +208,7 @@
                                 >
                             </div>
                             <div class="flex items-end">
-                                <button id="analyzeBtn" class="btn-primary w-full flex items-center justify-center">
+                                <button id="analyzeBtn" onclick="analyzeDish()" class="btn-primary w-full flex items-center justify-center">
                                     <span class="mr-2">🔍</span>
                                     <span>Analizar Plato</span>
                                 </button>
@@ -166,15 +283,15 @@
 
                         <!-- Botones de Acción -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                            <button id="generateLabelBtn" class="btn-primary flex items-center justify-center">
+                            <button id="generateLabelBtn" onclick="generateLabel()" class="btn-primary flex items-center justify-center">
                                 <span class="mr-2">✨</span>
                                 Generar Etiqueta
                             </button>
-                            <button id="printBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
+                            <button id="printBtn" onclick="printLabel()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
                                 <span class="mr-2">🖨️</span>
                                 Imprimir
                             </button>
-                            <button id="saveBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
+                            <button id="saveBtn" onclick="saveDish()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
                                 <span class="mr-2">💾</span>
                                 Guardar
                             </button>
@@ -259,12 +376,675 @@
             <div class="text-center">
                 <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-500 mx-auto mb-4"></div>
                 <h3 class="text-lg font-bold text-gray-800 mb-2">Analizando...</h3>
-                <p id="loadingText" class="text-gray-600">La IA está procesando el plato</p>
+                <p id="loadingText" class="text-gray-600">Procesando el plato</p>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript principal -->
-    <script src="app.js"></script>
+    <!-- JavaScript embebido para asegurar funcionamiento -->
+    <script>
+        // Variables globales
+        let currentMode = 'hybrid';
+        let currentDish = null;
+        let selectedAllergens = new Set();
+        let aiSuggestedAllergens = new Set();
+        let originalAIAllergens = new Set();
+        let stats = { ai: 0, manual: 0, allergens: 0, hybrid: 0 };
+
+        // Lista completa de alérgenos UE
+        const ALLERGENS = {
+            'gluten': { name: 'Cereales con Gluten', icon: '🌾', description: 'Trigo, centeno, cebada, avena' },
+            'crustaceos': { name: 'Crustáceos', icon: '🦐', description: 'Gambas, langostinos, cangrejos' },
+            'huevos': { name: 'Huevos', icon: '🥚', description: 'Huevos y productos derivados' },
+            'pescado': { name: 'Pescado', icon: '🐟', description: 'Pescado y productos derivados' },
+            'cacahuetes': { name: 'Cacahuetes', icon: '🥜', description: 'Cacahuetes y productos derivados' },
+            'soja': { name: 'Soja', icon: '🌱', description: 'Soja y productos derivados' },
+            'lacteos': { name: 'Leche y Lácteos', icon: '🥛', description: 'Leche y productos lácteos' },
+            'frutos_secos': { name: 'Frutos de Cáscara', icon: '🌰', description: 'Almendras, nueces, avellanas...' },
+            'apio': { name: 'Apio', icon: '🥬', description: 'Apio y productos derivados' },
+            'mostaza': { name: 'Mostaza', icon: '🟡', description: 'Mostaza y productos derivados' },
+            'sesamo': { name: 'Granos de Sésamo', icon: '🫘', description: 'Sésamo y productos derivados' },
+            'sulfitos': { name: 'Sulfitos', icon: '🍷', description: 'Vino, conservas, frutos secos' },
+            'altramuces': { name: 'Altramuces', icon: '🫘', description: 'Altramuces y productos derivados' },
+            'moluscos': { name: 'Moluscos', icon: '🐚', description: 'Mejillones, almejas, caracoles...' }
+        };
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Inicializando Sistema de Alérgenos v2.0');
+            renderAllergenGrid();
+            loadTodaysDishes();
+            updateStats();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+        });
+
+        function setAnalysisMode(mode) {
+            currentMode = mode;
+            console.log(`🎯 Modo cambiado a: ${mode}`);
+            
+            document.querySelectorAll('.toggle-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+
+            if (currentDish) {
+                selectedAllergens.clear();
+                aiSuggestedAllergens.clear();
+                renderAllergenGrid();
+                updateSummary();
+            }
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-ES');
+            const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            
+            const dateTimeElement = document.getElementById('currentDateTime');
+            if (dateTimeElement) {
+                dateTimeElement.textContent = `${dateStr} - ${timeStr}`;
+            }
+        }
+
+        async function analyzeDish() {
+            const description = document.getElementById('dishDescription').value.trim();
+            const chef = document.getElementById('chefName').value.trim() || 'Chef Principal';
+
+            if (!description) {
+                alert('Por favor, describe el plato antes de analizar');
+                return;
+            }
+
+            console.log(`🔍 Analizando: ${description}`);
+            showLoading('Analizando plato...');
+
+            try {
+                const response = await fetch('/api/analyze-dish-hybrid', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        description: description,
+                        chef_name: chef,
+                        analysis_mode: currentMode
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error del servidor: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Error en el análisis');
+                }
+
+                console.log(`✅ Análisis completado:`, data);
+                
+                currentDish = data.dish;
+                
+                if (currentMode === 'manual') {
+                    aiSuggestedAllergens.clear();
+                    selectedAllergens.clear();
+                } else {
+                    const detectedAllergens = data.analysis.allergens || [];
+                    aiSuggestedAllergens = new Set(detectedAllergens);
+                    originalAIAllergens = new Set(detectedAllergens);
+                    selectedAllergens = new Set(detectedAllergens);
+                }
+
+                displayResults(data);
+                updateStats();
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+                alert(`Error analizando el plato: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayResults(data) {
+            console.log('📋 Mostrando resultados');
+            
+            const resultsPanel = document.getElementById('resultsPanel');
+            if (resultsPanel) {
+                resultsPanel.classList.remove('hidden');
+            }
+
+            displayDishInfo(data.dish);
+            displayAISuggestions(data);
+            renderAllergenGrid();
+            updateSummary();
+        }
+
+        function displayDishInfo(dish) {
+            const dishInfo = document.getElementById('dishInfo');
+            if (!dishInfo) return;
+            
+            const modeText = {
+                'ai': '🤖 Solo IA',
+                'manual': '👨‍🍳 Solo Manual',
+                'hybrid': '🤖➕👨‍🍳 Híbrido'
+            }[dish.analysis_mode] || '🤖➕👨‍🍳 Híbrido';
+
+            dishInfo.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <h4 class="font-bold text-lg text-gray-800 mb-1">${dish.name}</h4>
+                        <p class="text-gray-600 mb-3">${dish.description}</p>
+                        <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                            <span class="flex items-center">
+                                <span class="mr-1">👨‍🍳</span>
+                                <span>${dish.chef}</span>
+                            </span>
+                            <span class="flex items-center">
+                                <span class="mr-1">📅</span>
+                                <span>${dish.date}</span>
+                            </span>
+                            <span class="flex items-center">
+                                <span class="mr-1">⚙️</span>
+                                <span>${modeText}</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="text-4xl ml-4">🍽️</div>
+                </div>
+            `;
+        }
+
+        function displayAISuggestions(data) {
+            const aiSuggestions = document.getElementById('aiSuggestions');
+            if (!aiSuggestions) return;
+            
+            const analysis = data.analysis;
+            const hasAIDetections = analysis.allergens && analysis.allergens.length > 0;
+            
+            if (currentMode === 'hybrid' && hasAIDetections) {
+                aiSuggestions.classList.remove('hidden');
+                
+                const aiList = document.getElementById('aiDetectedList');
+                if (aiList) {
+                    aiList.innerHTML = analysis.allergens.map(code => {
+                        const allergen = ALLERGENS[code];
+                        if (!allergen) return '';
+                        return `
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 border border-blue-200 hover:bg-blue-200 transition-colors cursor-pointer"
+                                  onclick="toggleAllergen('${code}')">
+                                ${allergen.icon} ${allergen.name}
+                            </span>
+                        `;
+                    }).join('');
+                }
+            } else {
+                aiSuggestions.classList.add('hidden');
+            }
+        }
+
+        function renderAllergenGrid() {
+            const grid = document.getElementById('allergenGrid');
+            if (!grid) return;
+            
+            grid.innerHTML = Object.entries(ALLERGENS).map(([code, allergen]) => {
+                const isSelected = selectedAllergens.has(code);
+                const isAISuggested = aiSuggestedAllergens.has(code);
+                
+                let cardClass = 'allergen-card';
+                if (isSelected && isAISuggested) {
+                    cardClass += ' ai-detected selected';
+                } else if (isSelected) {
+                    cardClass += ' selected';
+                } else if (isAISuggested) {
+                    cardClass += ' ai-detected';
+                }
+
+                return `
+                    <div class="${cardClass}" onclick="toggleAllergen('${code}')">
+                        <div class="flex items-center">
+                            <span class="allergen-icon">${allergen.icon}</span>
+                            <div>
+                                <div class="allergen-name">${allergen.name}</div>
+                                <div class="text-xs text-gray-500">${allergen.description}</div>
+                            </div>
+                        </div>
+                        ${isSelected ? '<div class="absolute bottom-2 right-2 text-red-600 font-bold text-lg">✓</div>' : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleAllergen(code) {
+            if (currentMode === 'ai') {
+                alert('En modo IA automático no se pueden hacer cambios manuales.');
+                return;
+            }
+            
+            if (selectedAllergens.has(code)) {
+                selectedAllergens.delete(code);
+            } else {
+                selectedAllergens.add(code);
+                stats.manual++;
+            }
+            
+            renderAllergenGrid();
+            updateSummary();
+            updateStats();
+        }
+
+        function updateSummary() {
+            const count = selectedAllergens.size;
+            
+            const selectedCount = document.getElementById('selectedCount');
+            if (selectedCount) {
+                selectedCount.textContent = count;
+            }
+
+            const confirmedList = document.getElementById('confirmedAllergens');
+            const safetyStatus = document.getElementById('safetyStatus');
+            
+            if (!confirmedList || !safetyStatus) return;
+
+            if (count === 0) {
+                confirmedList.innerHTML = '<span class="text-green-600 font-semibold">✅ Ninguno detectado</span>';
+                safetyStatus.innerHTML = '<span class="text-green-600">✅ Seguro para consumo general</span>';
+            } else {
+                const allergenItems = Array.from(selectedAllergens)
+                    .map(code => {
+                        const allergen = ALLERGENS[code];
+                        if (!allergen) return '';
+                        const wasAI = originalAIAllergens.has(code);
+                        const source = wasAI ? '🤖' : '👨‍🍳';
+                        return `
+                            <div class="flex items-center justify-between p-2 bg-red-50 rounded-lg border border-red-200 mb-2">
+                                <span class="flex items-center">
+                                    ${allergen.icon} ${allergen.name}
+                                </span>
+                                <span class="text-xs text-red-600" title="${wasAI ? 'Detectado por IA' : 'Añadido manualmente'}">${source}</span>
+                            </div>
+                        `;
+                    })
+                    .join('');
+                    
+                confirmedList.innerHTML = allergenItems;
+                safetyStatus.innerHTML = `<span class="text-red-600 font-bold">⚠️ Contiene ${count} alérgeno${count > 1 ? 's' : ''}</span>`;
+            }
+
+            stats.allergens = count;
+            updateStats();
+        }
+
+        function updateStats() {
+            const elements = {
+                ai: document.getElementById('statsAI'),
+                manual: document.getElementById('statsManual'), 
+                allergens: document.getElementById('statsAllergens')
+            };
+            
+            if (elements.ai) elements.ai.textContent = stats.ai;
+            if (elements.manual) elements.manual.textContent = stats.manual;
+            if (elements.allergens) elements.allergens.textContent = stats.allergens;
+        }
+
+        async function generateLabel() {
+            if (!currentDish) {
+                alert('No hay plato para generar etiqueta');
+                return;
+            }
+
+            console.log('✨ Generando etiqueta...');
+            showLoading('Generando etiqueta...');
+
+            try {
+                currentDish.final_allergens = Array.from(selectedAllergens);
+                
+                const response = await fetch(`/api/generate-beautiful-single/${currentDish.id}`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                
+                const newWindow = window.open(url, '_blank');
+                if (newWindow) {
+                    newWindow.focus();
+                    alert('✨ Etiqueta abierta en nueva pestaña');
+                } else {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `etiqueta_${currentDish.name.replace(/\s+/g, '_')}.html`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    alert('✨ Etiqueta descargada correctamente');
+                }
+                
+                window.URL.revokeObjectURL(url);
+                stats.ai++;
+                updateStats();
+
+            } catch (error) {
+                console.error('❌ Error generando etiqueta:', error);
+                alert('Error generando etiqueta: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function printLabel() {
+            if (!currentDish) {
+                alert('No hay plato para imprimir');
+                return;
+            }
+
+            console.log('🖨️ Preparando impresión...');
+            showLoading('Preparando impresión...');
+
+            try {
+                const response = await fetch(`/api/print-directly/${currentDish.id}`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Error en preparación de impresión');
+                }
+
+                alert('🖨️ ' + data.message);
+
+            } catch (error) {
+                console.error('❌ Error preparando impresión:', error);
+                alert('Error preparando impresión: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function saveDish() {
+            if (!currentDish) {
+                alert('No hay plato para guardar');
+                return;
+            }
+
+            console.log('💾 Guardando plato...');
+            showLoading('Guardando plato...');
+
+            try {
+                const dishData = {
+                    dish_id: currentDish.id,
+                    manual_allergens: Array.from(selectedAllergens),
+                    chef_notes: `Análisis en modo ${currentMode}. Alérgenos confirmados por chef.`,
+                    final_analysis_mode: currentMode
+                };
+
+                const response = await fetch('/api/save-manual-allergens', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(dishData)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Error guardando plato');
+                }
+
+                alert('💾 Plato guardado correctamente');
+                stats.hybrid++;
+                updateStats();
+                loadTodaysDishes();
+                
+                setTimeout(() => {
+                    if (confirm('¿Quieres crear otro plato?')) {
+                        clearForm();
+                    }
+                }, 1500);
+
+            } catch (error) {
+                console.error('❌ Error guardando plato:', error);
+                alert('Error guardando plato: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function clearForm() {
+            const dishDescription = document.getElementById('dishDescription');
+            if (dishDescription) dishDescription.value = '';
+            
+            const resultsPanel = document.getElementById('resultsPanel');
+            if (resultsPanel) resultsPanel.classList.add('hidden');
+            
+            currentDish = null;
+            selectedAllergens.clear();
+            aiSuggestedAllergens.clear();
+            originalAIAllergens.clear();
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function loadTodaysDishes() {
+            try {
+                const response = await fetch('/api/dishes/today');
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                
+                const dishes = await response.json();
+                
+                const container = document.getElementById('todayDishes');
+                const counter = document.getElementById('todayCount');
+                
+                if (!container) return;
+                
+                if (counter) counter.textContent = dishes.length;
+
+                if (dishes.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <div class="text-4xl mb-2">🍽️</div>
+                            <p>No hay platos registrados hoy</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = dishes.map(dish => {
+                    const allergens = dish.final_allergens || dish.allergens || [];
+                    const modeIcon = {
+                        'ai': '🤖',
+                        'manual': '👨‍🍳',
+                        'hybrid': '🤖👨‍🍳'
+                    }[dish.analysis_mode] || '🤖👨‍🍳';
+                    
+                    const modeClass = {
+                        'ai': 'bg-blue-100 text-blue-800',
+                        'manual': 'bg-yellow-100 text-yellow-800', 
+                        'hybrid': 'bg-purple-100 text-purple-800'
+                    }[dish.analysis_mode] || 'bg-purple-100 text-purple-800';
+
+                    return `
+                        <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors border-l-4 ${
+                            allergens.length > 0 ? 'border-red-400' : 'border-green-400'
+                        }">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-semibold text-gray-800">${dish.name}</h4>
+                                <span class="text-xs px-2 py-1 rounded-full ${modeClass}">
+                                    ${modeIcon}
+                                </span>
+                            </div>
+                            
+                            <p class="text-sm text-gray-600 mb-2">${dish.description}</p>
+                            
+                            <div class="flex items-center justify-between text-sm text-gray-500 mb-2">
+                                <span class="flex items-center">
+                                    <span class="mr-1">👨‍🍳</span>
+                                    <span>${dish.chef}</span>
+                                </span>
+                                <span class="flex items-center">
+                                    <span class="mr-1">🕒</span>
+                                    <span>${new Date(dish.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                                </span>
+                            </div>
+                            
+                            ${allergens.length > 0 ? `
+                                <div class="flex flex-wrap gap-1 mt-2">
+                                    ${allergens.slice(0, 3).map(code => `
+                                        <span class="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full">
+                                            ${ALLERGENS[code]?.icon || '⚠️'} ${ALLERGENS[code]?.name || code}
+                                        </span>
+                                    `).join('')}
+                                    ${allergens.length > 3 ? `
+                                        <span class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                                            +${allergens.length - 3} más
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            ` : `
+                                <div class="text-xs text-green-600 font-medium mt-2">✅ Sin alérgenos</div>
+                            `}
+                            
+                            <div class="mt-3 flex gap-2">
+                                <button onclick="downloadDishLabel(${dish.id})" 
+                                        class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors">
+                                    📄 Etiqueta
+                                </button>
+                                <button onclick="printDishLabel(${dish.id})" 
+                                        class="text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded transition-colors">
+                                    🖨️ Imprimir
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('❌ Error cargando platos:', error);
+            }
+        }
+
+        async function downloadDishLabel(dishId) {
+            try {
+                showLoading('Generando etiqueta...');
+                
+                const response = await fetch(`/api/generate-beautiful-single/${dishId}`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                
+                const newWindow = window.open(url, '_blank');
+                if (newWindow) {
+                    newWindow.focus();
+                    alert('📄 Etiqueta abierta en nueva pestaña');
+                } else {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `etiqueta_${dishId}.html`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    alert('📄 Etiqueta descargada');
+                }
+                
+                window.URL.revokeObjectURL(url);
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+                alert('Error generando etiqueta');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function printDishLabel(dishId) {
+            try {
+                showLoading('Preparando impresión...');
+                
+                const response = await fetch(`/api/print-directly/${dishId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('🖨️ ' + result.message);
+                } else {
+                    throw new Error(result.error || 'Error de impresión');
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                alert('Error preparando impresión');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function showLoading(message) {
+            const modal = document.getElementById('loadingModal');
+            const text = document.getElementById('loadingText');
+            
+            if (modal) modal.classList.remove('hidden');
+            if (text) text.textContent = message || 'Procesando...';
+        }
+
+        function hideLoading() {
+            const modal = document.getElementById('loadingModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        // Exponer funciones globalmente
+        window.setAnalysisMode = setAnalysisMode;
+        window.downloadDishLabel = downloadDishLabel;
+        window.printDishLabel = printDishLabel;
+        window.toggleAllergen = toggleAllergen;
+        window.analyzeDish = analyzeDish;
+        window.generateLabel = generateLabel;
+        window.printLabel = printLabel;
+        window.saveDish = saveDish;
+
+        // Debug
+        window.debugSystem = function() {
+            console.log('🐛 DEBUG SISTEMA:');
+            console.log('currentMode:', currentMode);
+            console.log('currentDish:', currentDish);
+            console.log('selectedAllergens:', Array.from(selectedAllergens));
+            console.log('ALLERGENS:', Object.keys(ALLERGENS));
+            
+            fetch('/api/system-status')
+                .then(response => response.json())
+                .then(data => console.log('Sistema:', data))
+                .catch(error => console.error('Error:', error));
+        };
+
+        // Auto-test de conectividad
+        setTimeout(() => {
+            fetch('/api/system-status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('✅ Conectividad confirmada');
+                        console.log(`📊 OpenAI: ${data.openai_available ? 'Disponible' : 'No disponible'}`);
+                    }
+                })
+                .catch(error => {
+                    console.warn('⚠️ No conectado:', error.message);
+                });
+        }, 1000);
+
+        console.log('🎉 Sistema cargado. Funciones disponibles: debugSystem()');
+    </script>
 </body>
 </html>
