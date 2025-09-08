@@ -87,6 +87,11 @@
             background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
         }
 
+        .allergen-card.ai-detected.selected {
+            border-color: #8b5cf6;
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+        }
+
         .allergen-icon {
             font-size: 1.5rem;
             margin-right: 0.5rem;
@@ -381,7 +386,7 @@
         </div>
     </div>
 
-    <!-- JavaScript embebido para asegurar funcionamiento -->
+    <!-- JavaScript completo -->
     <script>
         // Variables globales
         let currentMode = 'hybrid';
@@ -412,27 +417,92 @@
         // Inicialización
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Inicializando Sistema de Alérgenos v2.0');
-            renderAllergenGrid();
-            loadTodaysDishes();
-            updateStats();
+            initializeApp();
             updateDateTime();
             setInterval(updateDateTime, 1000);
         });
 
+        function initializeApp() {
+            setupEventListeners();
+            renderAllergenGrid();
+            loadTodaysDishes();
+            updateStats();
+            setAnalysisMode('hybrid');
+            console.log('✅ Sistema inicializado correctamente');
+        }
+
+        function setupEventListeners() {
+            // Event listeners principales
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const generateLabelBtn = document.getElementById('generateLabelBtn');
+            const printBtn = document.getElementById('printBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            
+            if (analyzeBtn) {
+                analyzeBtn.addEventListener('click', analyzeDish);
+                console.log('✅ Event listener añadido a analyzeBtn');
+            }
+            
+            if (generateLabelBtn) {
+                generateLabelBtn.addEventListener('click', generateLabel);
+                console.log('✅ Event listener añadido a generateLabelBtn');
+            }
+            
+            if (printBtn) {
+                printBtn.addEventListener('click', printLabel);
+                console.log('✅ Event listener añadido a printBtn');
+            }
+            
+            if (saveBtn) {
+                saveBtn.addEventListener('click', saveDish);
+                console.log('✅ Event listener añadido a saveBtn');
+            }
+            
+            // Enter key para analizar
+            const dishInput = document.getElementById('dishDescription');
+            if (dishInput) {
+                dishInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                        e.preventDefault();
+                        analyzeDish();
+                    }
+                });
+            }
+            
+            console.log('👂 Event listeners configurados');
+        }
+
         function setAnalysisMode(mode) {
             currentMode = mode;
-            console.log(`🎯 Modo cambiado a: ${mode}`);
+            console.log(`🎯 Modo de análisis cambiado a: ${mode}`);
             
+            // Actualizar UI del selector
             document.querySelectorAll('.toggle-option').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.mode === mode);
             });
 
+            // Limpiar selecciones anteriores si cambia el modo
             if (currentDish) {
                 selectedAllergens.clear();
                 aiSuggestedAllergens.clear();
                 renderAllergenGrid();
                 updateSummary();
             }
+            
+            updatePlaceholderByMode(mode);
+        }
+
+        function updatePlaceholderByMode(mode) {
+            const dishInput = document.getElementById('dishDescription');
+            if (!dishInput) return;
+            
+            const placeholders = {
+                'ai': 'Describe el plato y la IA detectará automáticamente todos los alérgenos...',
+                'manual': 'Describe el plato y selecciona manualmente todos los alérgenos...',
+                'hybrid': 'Describe el plato: la IA detectará alérgenos y tú podrás revisar y modificar...'
+            };
+            
+            dishInput.placeholder = placeholders[mode] || placeholders.hybrid;
         }
 
         function updateDateTime() {
@@ -451,14 +521,18 @@
             const chef = document.getElementById('chefName').value.trim() || 'Chef Principal';
 
             if (!description) {
-                alert('Por favor, describe el plato antes de analizar');
+                showError('Por favor, describe el plato antes de analizar');
                 return;
             }
 
-            console.log(`🔍 Analizando: ${description}`);
+            console.log(`🔍 Iniciando análisis en modo: ${currentMode}`);
+            console.log(`📝 Plato: ${description}`);
+            
             showLoading('Analizando plato...');
+            updateLoadingMessage(currentMode);
 
             try {
+                // Llamada al endpoint híbrido
                 const response = await fetch('/api/analyze-dish-hybrid', {
                     method: 'POST',
                     headers: {
@@ -483,52 +557,88 @@
 
                 console.log(`✅ Análisis completado:`, data);
                 
+                // Procesar resultados
                 currentDish = data.dish;
                 
+                // Configurar alérgenos según el modo
                 if (currentMode === 'manual') {
+                    // Modo manual: no sugerencias de IA
                     aiSuggestedAllergens.clear();
                     selectedAllergens.clear();
                 } else {
+                    // Modo AI o híbrido: usar sugerencias de IA
                     const detectedAllergens = data.analysis.allergens || [];
                     aiSuggestedAllergens = new Set(detectedAllergens);
                     originalAIAllergens = new Set(detectedAllergens);
-                    selectedAllergens = new Set(detectedAllergens);
+                    
+                    if (currentMode === 'ai') {
+                        // Modo IA: aceptar automáticamente sugerencias
+                        selectedAllergens = new Set(detectedAllergens);
+                    } else {
+                        // Modo híbrido: empezar con sugerencias de IA
+                        selectedAllergens = new Set(detectedAllergens);
+                    }
                 }
 
                 displayResults(data);
                 updateStats();
 
             } catch (error) {
-                console.error('❌ Error:', error);
-                alert(`Error analizando el plato: ${error.message}`);
+                console.error('❌ Error en análisis:', error);
+                showError(`Error analizando el plato: ${error.message}`);
             } finally {
                 hideLoading();
             }
         }
 
-        function displayResults(data) {
-            console.log('📋 Mostrando resultados');
+        function updateLoadingMessage(mode) {
+            const messages = {
+                'ai': 'La IA está analizando automáticamente...',
+                'manual': 'Preparando interfaz manual...',
+                'hybrid': 'IA analizando + preparando revisión manual...'
+            };
             
+            const loadingText = document.getElementById('loadingText');
+            if (loadingText) {
+                loadingText.textContent = messages[mode] || messages.hybrid;
+            }
+        }
+
+        function displayResults(data) {
+            console.log('📋 Mostrando resultados del análisis');
+            
+            // Mostrar panel de resultados
             const resultsPanel = document.getElementById('resultsPanel');
             if (resultsPanel) {
                 resultsPanel.classList.remove('hidden');
+                resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
 
+            // Información del plato
             displayDishInfo(data.dish);
+            
+            // Mostrar sugerencias de IA si aplica
             displayAISuggestions(data);
+            
+            // Renderizar grid de alérgenos
             renderAllergenGrid();
+            
+            // Actualizar resumen
             updateSummary();
+            
+            console.log('✅ Resultados mostrados correctamente');
         }
 
         function displayDishInfo(dish) {
             const dishInfo = document.getElementById('dishInfo');
             if (!dishInfo) return;
             
+            const analysisMode = dish.analysis_mode || 'hybrid';
             const modeText = {
                 'ai': '🤖 Solo IA',
                 'manual': '👨‍🍳 Solo Manual',
                 'hybrid': '🤖➕👨‍🍳 Híbrido'
-            }[dish.analysis_mode] || '🤖➕👨‍🍳 Híbrido';
+            }[analysisMode] || '🤖➕👨‍🍳 Híbrido';
 
             dishInfo.innerHTML = `
                 <div class="flex items-center justify-between">
@@ -543,6 +653,10 @@
                             <span class="flex items-center">
                                 <span class="mr-1">📅</span>
                                 <span>${dish.date}</span>
+                            </span>
+                            <span class="flex items-center">
+                                <span class="mr-1">🕒</span>
+                                <span>${new Date(dish.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
                             </span>
                             <span class="flex items-center">
                                 <span class="mr-1">⚙️</span>
@@ -565,18 +679,30 @@
             if (currentMode === 'hybrid' && hasAIDetections) {
                 aiSuggestions.classList.remove('hidden');
                 
+                const confidence = analysis.confidence || {};
+                const avgConfidence = Object.keys(confidence).length > 0 
+                    ? Object.values(confidence).reduce((a, b) => a + b, 0) / Object.keys(confidence).length 
+                    : 0;
+                
                 const aiList = document.getElementById('aiDetectedList');
                 if (aiList) {
                     aiList.innerHTML = analysis.allergens.map(code => {
                         const allergen = ALLERGENS[code];
                         if (!allergen) return '';
+                        const conf = confidence[code] || 0;
                         return `
                             <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 border border-blue-200 hover:bg-blue-200 transition-colors cursor-pointer"
                                   onclick="toggleAllergen('${code}')">
                                 ${allergen.icon} ${allergen.name}
+                                <span class="ml-1 text-xs">(${Math.round(conf * 100)}%)</span>
                             </span>
                         `;
                     }).join('');
+                }
+                
+                const aiConfidence = document.getElementById('aiConfidence');
+                if (aiConfidence) {
+                    aiConfidence.textContent = Math.round(avgConfidence * 100) + '%';
                 }
             } else {
                 aiSuggestions.classList.add('hidden');
@@ -587,44 +713,92 @@
             const grid = document.getElementById('allergenGrid');
             if (!grid) return;
             
+            console.log('🎨 Renderizando grid de alérgenos');
+            
             grid.innerHTML = Object.entries(ALLERGENS).map(([code, allergen]) => {
                 const isSelected = selectedAllergens.has(code);
                 const isAISuggested = aiSuggestedAllergens.has(code);
+                const wasOriginallyAI = originalAIAllergens.has(code);
                 
                 let cardClass = 'allergen-card';
-                if (isSelected && isAISuggested) {
-                    cardClass += ' ai-detected selected';
-                } else if (isSelected) {
+                let statusClass = '';
+                let statusIcon = '';
+                
+                // Determinar estado visual
+                if (isSelected && wasOriginallyAI) {
+                    if (currentMode === 'hybrid') {
+                        cardClass += ' ai-detected selected';
+                        statusClass = 'status-hybrid';
+                        statusIcon = '🤖✓';
+                    } else {
+                        cardClass += ' selected';
+                        statusClass = 'status-ai';
+                        statusIcon = '🤖';
+                    }
+                } else if (isSelected && !wasOriginallyAI) {
                     cardClass += ' selected';
-                } else if (isAISuggested) {
+                    statusClass = 'status-manual';
+                    statusIcon = '👨‍🍳';
+                } else if (isAISuggested && !isSelected) {
                     cardClass += ' ai-detected';
+                    statusClass = 'status-ai';
+                    statusIcon = '🤖❌';
                 }
 
                 return `
-                    <div class="${cardClass}" onclick="toggleAllergen('${code}')">
-                        <div class="flex items-center">
-                            <span class="allergen-icon">${allergen.icon}</span>
-                            <div>
-                                <div class="allergen-name">${allergen.name}</div>
-                                <div class="text-xs text-gray-500">${allergen.description}</div>
+                    <div class="${cardClass}" onclick="toggleAllergen('${code}')" title="Click para ${isSelected ? 'deseleccionar' : 'seleccionar'}">
+                        <div class="allergen-header">
+                            <div class="flex items-center flex-1">
+                                <span class="allergen-icon">${allergen.icon}</span>
+                                <div class="flex-1">
+                                    <div class="allergen-name">${allergen.name}</div>
+                                    <div class="text-xs text-gray-500 mt-1">${allergen.description}</div>
+                                </div>
                             </div>
                         </div>
+                        
                         ${isSelected ? '<div class="absolute bottom-2 right-2 text-red-600 font-bold text-lg">✓</div>' : ''}
+                        
+                        ${currentMode === 'hybrid' && wasOriginallyAI && !isSelected ? 
+                            '<div class="absolute top-2 left-2 text-blue-600 text-xs bg-blue-100 px-1 rounded">IA</div>' : ''}
                     </div>
                 `;
             }).join('');
+            
+            console.log(`✅ Grid renderizado: ${selectedAllergens.size} alérgenos seleccionados`);
         }
 
         function toggleAllergen(code) {
+            console.log(`🔄 Toggle alérgeno: ${code} (${ALLERGENS[code].name})`);
+            
+            // En modo AI puro, no permitir cambios manuales
             if (currentMode === 'ai') {
-                alert('En modo IA automático no se pueden hacer cambios manuales.');
+                showWarning('En modo IA automático no se pueden hacer cambios manuales. Cambia a modo Híbrido para revisar.');
                 return;
             }
             
-            if (selectedAllergens.has(code)) {
+            const wasSelected = selectedAllergens.has(code);
+            
+            if (wasSelected) {
                 selectedAllergens.delete(code);
+                console.log(`➖ Alérgeno ${code} removido`);
+                
+                // Si era originalmente detectado por IA, mostrar advertencia
+                if (originalAIAllergens.has(code)) {
+                    showWarning(`⚠️ Has removido "${ALLERGENS[code].name}" que fue detectado por IA. Asegúrate de que es correcto.`);
+                }
             } else {
                 selectedAllergens.add(code);
+                console.log(`➕ Alérgeno ${code} añadido`);
+                
+                // Si no fue detectado por IA, mostrar confirmación
+                if (!originalAIAllergens.has(code)) {
+                    showInfo(`✅ Has añadido "${ALLERGENS[code].name}" manualmente.`);
+                }
+            }
+            
+            // Actualizar estadísticas
+            if (!wasSelected) {
                 stats.manual++;
             }
             
@@ -636,11 +810,13 @@
         function updateSummary() {
             const count = selectedAllergens.size;
             
+            // Actualizar contador
             const selectedCount = document.getElementById('selectedCount');
             if (selectedCount) {
                 selectedCount.textContent = count;
             }
 
+            // Actualizar lista de alérgenos confirmados
             const confirmedList = document.getElementById('confirmedAllergens');
             const safetyStatus = document.getElementById('safetyStatus');
             
@@ -671,6 +847,7 @@
                 safetyStatus.innerHTML = `<span class="text-red-600 font-bold">⚠️ Contiene ${count} alérgeno${count > 1 ? 's' : ''}</span>`;
             }
 
+            // Actualizar estadísticas globales
             stats.allergens = count;
             updateStats();
         }
@@ -689,7 +866,7 @@
 
         async function generateLabel() {
             if (!currentDish) {
-                alert('No hay plato para generar etiqueta');
+                showError('No hay plato para generar etiqueta');
                 return;
             }
 
@@ -697,6 +874,7 @@
             showLoading('Generando etiqueta...');
 
             try {
+                // Actualizar alérgenos finales del plato antes de generar
                 currentDish.final_allergens = Array.from(selectedAllergens);
                 
                 const response = await fetch(`/api/generate-beautiful-single/${currentDish.id}`, {
@@ -707,30 +885,217 @@
                     throw new Error(`Error HTTP: ${response.status}`);
                 }
 
+                // Abrir etiqueta en nueva ventana
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 
+                // Abrir en nueva pestaña
                 const newWindow = window.open(url, '_blank');
                 if (newWindow) {
                     newWindow.focus();
-                    alert('✨ Etiqueta abierta en nueva pestaña');
+                    showSuccessMessage('📄 Etiqueta abierta en nueva pestaña');
                 } else {
+                    // Fallback: descargar
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `etiqueta_${dishId}.html`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    showSuccessMessage('📄 Etiqueta descargada');
+                }
+                
+                window.URL.revokeObjectURL(url);
+
+            } catch (error) {
+                console.error('❌ Error descargando etiqueta:', error);
+                showError('Error generando etiqueta');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function printDishLabel(dishId) {
+            try {
+                showLoading('Preparando impresión...');
+                
+                const response = await fetch(`/api/print-directly/${dishId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showSuccessMessage('🖨️ ' + result.message);
+                } else {
+                    throw new Error(result.error || 'Error de impresión');
+                }
+            } catch (error) {
+                console.error('❌ Error preparando impresión:', error);
+                showError('Error preparando impresión');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Funciones de utilidad
+        function setsEqual(set1, set2) {
+            if (set1.size !== set2.size) return false;
+            for (let item of set1) {
+                if (!set2.has(item)) return false;
+            }
+            return true;
+        }
+
+        function showLoading(message) {
+            const modal = document.getElementById('loadingModal');
+            const text = document.getElementById('loadingText');
+            
+            if (modal) modal.classList.remove('hidden');
+            if (text) text.textContent = message || 'Procesando...';
+        }
+
+        function hideLoading() {
+            const modal = document.getElementById('loadingModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function showError(message) {
+            showToast(message, 'error');
+            console.error('🚫 Error:', message);
+        }
+
+        function showWarning(message) {
+            showToast(message, 'warning');
+            console.warn('⚠️ Advertencia:', message);
+        }
+
+        function showInfo(message) {
+            showToast(message, 'info');
+            console.info('ℹ️ Info:', message);
+        }
+
+        function showSuccessMessage(message) {
+            showToast(message, 'success');
+            console.log('✅ Éxito:', message);
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-yellow-500',
+                info: 'bg-blue-500'
+            };
+            
+            toast.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300 max-w-sm`;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+
+            // Animar entrada
+            setTimeout(() => {
+                toast.classList.add('translate-x-0');
+            }, 100);
+
+            // Remover después de 4 segundos
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        // Exponer funciones globalmente
+        window.setAnalysisMode = setAnalysisMode;
+        window.downloadDishLabel = downloadDishLabel;
+        window.printDishLabel = printDishLabel;
+        window.toggleAllergen = toggleAllergen;
+        window.analyzeDish = analyzeDish;
+        window.generateLabel = generateLabel;
+        window.printLabel = printLabel;
+        window.saveDish = saveDish;
+
+        // Debug y testing
+        window.debugSystem = function() {
+            console.log('🐛 DEBUG SISTEMA DE ALÉRGENOS');
+            console.log('================================');
+            console.log('currentMode:', currentMode);
+            console.log('currentDish:', currentDish);
+            console.log('selectedAllergens:', Array.from(selectedAllergens));
+            console.log('aiSuggestedAllergens:', Array.from(aiSuggestedAllergens));
+            console.log('originalAIAllergens:', Array.from(originalAIAllergens));
+            console.log('stats:', stats);
+            console.log('ALLERGENS:', Object.keys(ALLERGENS));
+            
+            // Test de conectividad
+            console.log('\n🔌 TEST DE CONECTIVIDAD:');
+            fetch('/api/system-status')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('✅ Sistema conectado:', data);
+                })
+                .catch(error => {
+                    console.error('❌ Error de conectividad:', error);
+                });
+        };
+
+        // Función para test rápido
+        window.testAnalysis = function(description = 'Paella con gambas y mejillones') {
+            console.log('🧪 TEST RÁPIDO DE ANÁLISIS');
+            document.getElementById('dishDescription').value = description;
+            analyzeDish();
+        };
+
+        console.log('🎉 Sistema de Alérgenos v2.0 cargado correctamente');
+        console.log('📋 Funciones disponibles:');
+        console.log('  - debugSystem() - Debug completo del sistema');
+        console.log('  - testAnalysis() - Test rápido de análisis');
+        console.log('  - setAnalysisMode(mode) - Cambiar modo de análisis');
+
+        // Auto-test de conectividad al cargar
+        setTimeout(() => {
+            fetch('/api/system-status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('✅ Conectividad confirmada con el servidor');
+                        console.log(`📊 Estado: ${data.status} | OpenAI: ${data.openai_available ? 'Disponible' : 'No disponible'}`);
+                    }
+                })
+                .catch(error => {
+                    console.warn('⚠️ No se pudo conectar con el servidor:', error.message);
+                });
+        }, 1000);
+    </script>
+</body>
+</html> '_blank');
+                if (newWindow) {
+                    newWindow.focus();
+                    showSuccessMessage('✨ Etiqueta abierta en nueva pestaña');
+                } else {
+                    // Fallback: descargar archivo
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = `etiqueta_${currentDish.name.replace(/\s+/g, '_')}.html`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    alert('✨ Etiqueta descargada correctamente');
+                    showSuccessMessage('✨ Etiqueta descargada correctamente');
                 }
                 
                 window.URL.revokeObjectURL(url);
-                stats.ai++;
+
+                stats.ai++; // Incrementar contador
                 updateStats();
 
             } catch (error) {
                 console.error('❌ Error generando etiqueta:', error);
-                alert('Error generando etiqueta: ' + error.message);
+                showError('Error generando etiqueta: ' + error.message);
             } finally {
                 hideLoading();
             }
@@ -738,7 +1103,7 @@
 
         async function printLabel() {
             if (!currentDish) {
-                alert('No hay plato para imprimir');
+                showError('No hay plato para imprimir');
                 return;
             }
 
@@ -756,11 +1121,11 @@
                     throw new Error(data.error || 'Error en preparación de impresión');
                 }
 
-                alert('🖨️ ' + data.message);
+                showSuccessMessage('🖨️ ' + data.message);
 
             } catch (error) {
                 console.error('❌ Error preparando impresión:', error);
-                alert('Error preparando impresión: ' + error.message);
+                showError('Error preparando impresión: ' + error.message);
             } finally {
                 hideLoading();
             }
@@ -768,19 +1133,22 @@
 
         async function saveDish() {
             if (!currentDish) {
-                alert('No hay plato para guardar');
+                showError('No hay plato para guardar');
                 return;
             }
 
             console.log('💾 Guardando plato...');
-            showLoading('Guardando plato...');
+            showLoading('Guardando plato en el sistema...');
 
             try {
+                // Preparar datos para guardar
                 const dishData = {
                     dish_id: currentDish.id,
                     manual_allergens: Array.from(selectedAllergens),
                     chef_notes: `Análisis en modo ${currentMode}. Alérgenos confirmados por chef.`,
-                    final_analysis_mode: currentMode
+                    final_analysis_mode: currentMode,
+                    ai_suggestions: Array.from(originalAIAllergens),
+                    manual_overrides: !setsEqual(selectedAllergens, originalAIAllergens)
                 };
 
                 const response = await fetch('/api/save-manual-allergens', {
@@ -797,11 +1165,16 @@
                     throw new Error(data.error || 'Error guardando plato');
                 }
 
-                alert('💾 Plato guardado correctamente');
+                showSuccessMessage('💾 Plato guardado correctamente');
+                
+                // Actualizar estadísticas
                 stats.hybrid++;
                 updateStats();
+                
+                // Recargar lista de platos del día
                 loadTodaysDishes();
                 
+                // Preguntar si quiere crear otro plato
                 setTimeout(() => {
                     if (confirm('¿Quieres crear otro plato?')) {
                         clearForm();
@@ -810,13 +1183,15 @@
 
             } catch (error) {
                 console.error('❌ Error guardando plato:', error);
-                alert('Error guardando plato: ' + error.message);
+                showError('Error guardando plato: ' + error.message);
             } finally {
                 hideLoading();
             }
         }
 
         function clearForm() {
+            console.log('🧹 Limpiando formulario');
+            
             const dishDescription = document.getElementById('dishDescription');
             if (dishDescription) dishDescription.value = '';
             
@@ -828,10 +1203,13 @@
             aiSuggestedAllergens.clear();
             originalAIAllergens.clear();
             
+            // Scroll al inicio
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         async function loadTodaysDishes() {
+            console.log('📋 Cargando platos de hoy...');
+            
             try {
                 const response = await fetch('/api/dishes/today');
                 
@@ -883,7 +1261,7 @@
                                 </span>
                             </div>
                             
-                            <p class="text-sm text-gray-600 mb-2">${dish.description}</p>
+                            <p class="text-sm text-gray-600 mb-2 line-clamp-2">${dish.description}</p>
                             
                             <div class="flex items-center justify-between text-sm text-gray-500 mb-2">
                                 <span class="flex items-center">
@@ -926,9 +1304,12 @@
                         </div>
                     `;
                 }).join('');
+                
+                console.log(`✅ ${dishes.length} platos cargados`);
 
             } catch (error) {
-                console.error('❌ Error cargando platos:', error);
+                console.error('❌ Error cargando platos de hoy:', error);
+                showError('Error cargando platos del día');
             }
         }
 
@@ -945,106 +1326,5 @@
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 
-                const newWindow = window.open(url, '_blank');
-                if (newWindow) {
-                    newWindow.focus();
-                    alert('📄 Etiqueta abierta en nueva pestaña');
-                } else {
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `etiqueta_${dishId}.html`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    alert('📄 Etiqueta descargada');
-                }
-                
-                window.URL.revokeObjectURL(url);
-
-            } catch (error) {
-                console.error('❌ Error:', error);
-                alert('Error generando etiqueta');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        async function printDishLabel(dishId) {
-            try {
-                showLoading('Preparando impresión...');
-                
-                const response = await fetch(`/api/print-directly/${dishId}`, {
-                    method: 'POST'
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    alert('🖨️ ' + result.message);
-                } else {
-                    throw new Error(result.error || 'Error de impresión');
-                }
-            } catch (error) {
-                console.error('❌ Error:', error);
-                alert('Error preparando impresión');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function showLoading(message) {
-            const modal = document.getElementById('loadingModal');
-            const text = document.getElementById('loadingText');
-            
-            if (modal) modal.classList.remove('hidden');
-            if (text) text.textContent = message || 'Procesando...';
-        }
-
-        function hideLoading() {
-            const modal = document.getElementById('loadingModal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        // Exponer funciones globalmente
-        window.setAnalysisMode = setAnalysisMode;
-        window.downloadDishLabel = downloadDishLabel;
-        window.printDishLabel = printDishLabel;
-        window.toggleAllergen = toggleAllergen;
-        window.analyzeDish = analyzeDish;
-        window.generateLabel = generateLabel;
-        window.printLabel = printLabel;
-        window.saveDish = saveDish;
-
-        // Debug
-        window.debugSystem = function() {
-            console.log('🐛 DEBUG SISTEMA:');
-            console.log('currentMode:', currentMode);
-            console.log('currentDish:', currentDish);
-            console.log('selectedAllergens:', Array.from(selectedAllergens));
-            console.log('ALLERGENS:', Object.keys(ALLERGENS));
-            
-            fetch('/api/system-status')
-                .then(response => response.json())
-                .then(data => console.log('Sistema:', data))
-                .catch(error => console.error('Error:', error));
-        };
-
-        // Auto-test de conectividad
-        setTimeout(() => {
-            fetch('/api/system-status')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        console.log('✅ Conectividad confirmada');
-                        console.log(`📊 OpenAI: ${data.openai_available ? 'Disponible' : 'No disponible'}`);
-                    }
-                })
-                .catch(error => {
-                    console.warn('⚠️ No conectado:', error.message);
-                });
-        }, 1000);
-
-        console.log('🎉 Sistema cargado. Funciones disponibles: debugSystem()');
-    </script>
-</body>
-</html>
+                // Abrir en nueva pestaña
+                const newWindow = window.open(url,
