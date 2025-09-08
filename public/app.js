@@ -1,5 +1,63 @@
 // app.js - Sistema de Alérgenos FUNCIONAL COMPLETO
 
+// ====== VARIABLES GLOBALES ======
+let currentMode = 'hybrid';
+let currentDish = null;
+let selectedAllergens = new Set();
+let aiSuggestedAllergens = new Set();
+let originalAIAllergens = new Set();
+let stats = { ai: 0, manual: 0, allergens: 0, hybrid: 0 };
+
+// Lista completa de alérgenos UE
+const ALLERGENS = {
+    'gluten': { name: 'Cereales con Gluten', icon: '🌾', description: 'Trigo, centeno, cebada, avena' },
+    'crustaceos': { name: 'Crustáceos', icon: '🦐', description: 'Gambas, langostinos, cangrejos' },
+    'huevos': { name: 'Huevos', icon: '🥚', description: 'Huevos y productos derivados' },
+    'pescado': { name: 'Pescado', icon: '🐟', description: 'Pescado y productos derivados' },
+    'cacahuetes': { name: 'Cacahuetes', icon: '🥜', description: 'Cacahuetes y productos derivados' },
+    'soja': { name: 'Soja', icon: '🌱', description: 'Soja y productos derivados' },
+    'lacteos': { name: 'Leche y Lácteos', icon: '🥛', description: 'Leche y productos lácteos' },
+    'frutos_secos': { name: 'Frutos de Cáscara', icon: '🌰', description: 'Almendras, nueces, avellanas...' },
+    'apio': { name: 'Apio', icon: '🥬', description: 'Apio y productos derivados' },
+    'mostaza': { name: 'Mostaza', icon: '🟡', description: 'Mostaza y productos derivados' },
+    'sesamo': { name: 'Granos de Sésamo', icon: '🫘', description: 'Sésamo y productos derivados' },
+    'sulfitos': { name: 'Sulfitos', icon: '🍷', description: 'Vino, conservas, frutos secos' },
+    'altramuces': { name: 'Altramuces', icon: '🫘', description: 'Altramuces y productos derivados' },
+    'moluscos': { name: 'Moluscos', icon: '🐚', description: 'Mejillones, almejas, caracoles...' }
+};
+
+// ====== INICIALIZACIÓN ======
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Inicializando Sistema de Alérgenos v2.0');
+    initializeApp();
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+});
+
+function initializeApp() {
+    setupEventListeners();
+    renderAllergenGrid();
+    loadTodaysDishes();
+    updateStats();
+    setAnalysisMode('hybrid');
+    console.log('✅ Sistema inicializado correctamente');
+}
+
+function setupEventListeners() {
+    // Enter key para analizar
+    const dishInput = document.getElementById('dishDescription');
+    if (dishInput) {
+        dishInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                analyzeDish();
+            }
+        });
+    }
+    
+    console.log('👂 Event listeners configurados');
+}
+
 // ====== GESTIÓN DE MODOS ======
 
 function setAnalysisMode(mode) {
@@ -281,8 +339,6 @@ function renderAllergenGrid() {
                         </div>
                     </div>
                 </div>
-                
-                ${statusClass ? `<div class="allergen-status ${statusClass}" title="${statusIcon}"></div>` : ''}
                 
                 ${isSelected ? '<div class="absolute bottom-2 right-2 text-red-600 font-bold text-lg">✓</div>' : ''}
                 
@@ -817,18 +873,6 @@ function showToast(message, type = 'info') {
     }, 4000);
 }
 
-// ====== FUNCIONES GLOBALES PARA COMPATIBILIDAD ======
-
-// Exponer funciones globalmente
-window.setAnalysisMode = setAnalysisMode;
-window.downloadDishLabel = downloadDishLabel;
-window.printDishLabel = printDishLabel;
-window.toggleAllergen = toggleAllergen;
-window.analyzeDish = analyzeDish;
-window.generateLabel = generateLabel;
-window.printLabel = printLabel;
-window.saveDish = saveDish;
-
 // ====== DEBUG Y TESTING ======
 
 // Función de debug para testing
@@ -883,88 +927,4 @@ setTimeout(() => {
         .catch(error => {
             console.warn('⚠️ No se pudo conectar con el servidor:', error.message);
         });
-}, 1000); VARIABLES GLOBALES ======
-let currentMode = 'hybrid';
-let currentDish = null;
-let selectedAllergens = new Set();
-let aiSuggestedAllergens = new Set();
-let originalAIAllergens = new Set();
-let stats = { ai: 0, manual: 0, allergens: 0, hybrid: 0 };
-
-// Lista completa de alérgenos UE
-const ALLERGENS = {
-    'gluten': { name: 'Cereales con Gluten', icon: '🌾', description: 'Trigo, centeno, cebada, avena' },
-    'crustaceos': { name: 'Crustáceos', icon: '🦐', description: 'Gambas, langostinos, cangrejos' },
-    'huevos': { name: 'Huevos', icon: '🥚', description: 'Huevos y productos derivados' },
-    'pescado': { name: 'Pescado', icon: '🐟', description: 'Pescado y productos derivados' },
-    'cacahuetes': { name: 'Cacahuetes', icon: '🥜', description: 'Cacahuetes y productos derivados' },
-    'soja': { name: 'Soja', icon: '🌱', description: 'Soja y productos derivados' },
-    'lacteos': { name: 'Leche y Lácteos', icon: '🥛', description: 'Leche y productos lácteos' },
-    'frutos_secos': { name: 'Frutos de Cáscara', icon: '🌰', description: 'Almendras, nueces, avellanas...' },
-    'apio': { name: 'Apio', icon: '🥬', description: 'Apio y productos derivados' },
-    'mostaza': { name: 'Mostaza', icon: '🟡', description: 'Mostaza y productos derivados' },
-    'sesamo': { name: 'Granos de Sésamo', icon: '🫘', description: 'Sésamo y productos derivados' },
-    'sulfitos': { name: 'Sulfitos', icon: '🍷', description: 'Vino, conservas, frutos secos' },
-    'altramuces': { name: 'Altramuces', icon: '🫘', description: 'Altramuces y productos derivados' },
-    'moluscos': { name: 'Moluscos', icon: '🐚', description: 'Mejillones, almejas, caracoles...' }
-};
-
-// ====== INICIALIZACIÓN ======
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Inicializando Sistema de Alérgenos v2.0');
-    initializeApp();
-    updateDateTime();
-    setInterval(updateDateTime, 1000);
-});
-
-function initializeApp() {
-    setupEventListeners();
-    renderAllergenGrid();
-    loadTodaysDishes();
-    updateStats();
-    setAnalysisMode('hybrid');
-    console.log('✅ Sistema inicializado correctamente');
-}
-
-function setupEventListeners() {
-    // Event listeners principales
-    const analyzeBtn = document.getElementById('analyzeBtn');
-    const generateLabelBtn = document.getElementById('generateLabelBtn');
-    const printBtn = document.getElementById('printBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    
-    if (analyzeBtn) {
-        analyzeBtn.addEventListener('click', analyzeDish);
-        console.log('✅ Event listener añadido a analyzeBtn');
-    }
-    
-    if (generateLabelBtn) {
-        generateLabelBtn.addEventListener('click', generateLabel);
-        console.log('✅ Event listener añadido a generateLabelBtn');
-    }
-    
-    if (printBtn) {
-        printBtn.addEventListener('click', printLabel);
-        console.log('✅ Event listener añadido a printBtn');
-    }
-    
-    if (saveBtn) {
-        saveBtn.addEventListener('click', saveDish);
-        console.log('✅ Event listener añadido a saveBtn');
-    }
-    
-    // Enter key para analizar
-    const dishInput = document.getElementById('dishDescription');
-    if (dishInput) {
-        dishInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && e.ctrlKey) {
-                e.preventDefault();
-                analyzeDish();
-            }
-        });
-    }
-    
-    console.log('👂 Event listeners configurados');
-}
-
-// ======
+}, 1000);
