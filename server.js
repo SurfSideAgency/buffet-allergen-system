@@ -1,4 +1,4 @@
-// server.js - Sistema de Alérgenos COMPLETO Y FUNCIONAL
+// server.js - Sistema de Alérgenos COMPLETAMENTE FUNCIONAL
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -6,45 +6,32 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
+// Middleware esencial
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// CRÍTICO: Servir archivos estáticos ANTES que las rutas
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ====== CONFIGURACIÓN OPENAI ======
 let openai = null;
 let hasOpenAI = false;
 
-// Inicializar OpenAI solo si hay API key
-const initializeOpenAI = () => {
-    if (process.env.OPENAI_API_KEY) {
-        try {
-            const { OpenAI } = require('openai');
-            openai = new OpenAI({
-                apiKey: process.env.OPENAI_API_KEY
-            });
-            console.log('✅ OpenAI configurado correctamente');
-            hasOpenAI = true;
-            return true;
-        } catch (error) {
-            console.error('❌ Error configurando OpenAI:', error.message);
-            console.log('⚠️ Funcionando en modo simulación sin IA');
-            hasOpenAI = false;
-            return false;
-        }
-    } else {
-        console.warn('⚠️ OPENAI_API_KEY no configurada - funcionará en modo simulación');
+if (process.env.OPENAI_API_KEY) {
+    try {
+        const { OpenAI } = require('openai');
+        openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY
+        });
+        console.log('✅ OpenAI configurado correctamente');
+        hasOpenAI = true;
+    } catch (error) {
+        console.error('❌ Error configurando OpenAI:', error.message);
         hasOpenAI = false;
-        return false;
     }
-};
-
-// Intentar inicializar OpenAI
-try {
-    initializeOpenAI();
-} catch (error) {
-    console.log('⚠️ OpenAI no disponible, usando modo simulación');
+} else {
+    console.warn('⚠️ OPENAI_API_KEY no configurada - funcionará sin IA');
     hasOpenAI = false;
 }
 
@@ -64,7 +51,7 @@ const ALLERGENS = {
         name: 'Crustáceos', 
         icon: '🦐', 
         description: 'Gambas, langostinos, cangrejos, langostas',
-        keywords: ['gamba', 'langostino', 'cangrejo', 'langosta', 'bogavante', 'cigala', 'crustaceo']
+        keywords: ['gamba', 'langostino', 'cangrejo', 'langosta', 'bogavante', 'cigala', 'crustaceo', 'marisco']
     },
     'huevos': { 
         name: 'Huevos', 
@@ -142,7 +129,7 @@ const ALLERGENS = {
 
 // ====== FUNCIONES DE ANÁLISIS ======
 
-// Análisis por palabras clave mejorado
+// Análisis por palabras clave
 function analyzeByKeywords(description) {
     const detectedAllergens = [];
     const confidence = {};
@@ -176,7 +163,7 @@ function analyzeByKeywords(description) {
     };
 }
 
-// Análisis con OpenAI (si está disponible)
+// Análisis con OpenAI
 async function analyzeWithOpenAI(description) {
     if (!hasOpenAI || !openai) {
         throw new Error('OpenAI no configurada');
@@ -402,7 +389,7 @@ app.post('/api/analyze-dish-hybrid', async (req, res) => {
     }
 });
 
-// Generar etiqueta PDF mejorada
+// Generar etiqueta HTML
 app.post('/api/generate-beautiful-single/:id', (req, res) => {
     try {
         const dishId = parseInt(req.params.id);
@@ -866,22 +853,18 @@ function generateLabelHTML(dish, allergens) {
 </html>`;
 }
 
-// ====== SERVIR ARCHIVOS ESTÁTICOS ======
-
-// Página principal
+// ====== PÁGINA PRINCIPAL ======
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ====== MIDDLEWARE DE LOGGING ======
-
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
     next();
 });
 
 // ====== MANEJO DE ERRORES ======
-
 app.use((error, req, res, next) => {
     console.error('❌ Error no manejado:', error);
     res.status(500).json({
@@ -892,7 +875,6 @@ app.use((error, req, res, next) => {
 });
 
 // ====== INICIAR SERVIDOR ======
-
 app.listen(port, () => {
     console.log(`🚀 Servidor iniciado en puerto ${port}`);
     console.log(`📋 Sistema de Alérgenos v2.0 funcionando`);
@@ -912,7 +894,6 @@ app.listen(port, () => {
 });
 
 // ====== GRACEFUL SHUTDOWN ======
-
 process.on('SIGTERM', () => {
     console.log('🛑 Cerrando servidor...');
     process.exit(0);
