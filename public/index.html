@@ -147,11 +147,10 @@
                             id="searchInput" 
                             class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 transition-all" 
                             placeholder="Buscar por nombre..."
-                            onkeyup="filterIngredients()"
                         >
                     </div>
 
-                    <!-- Lista de Ingredientes por Categoría -->
+                    <!-- Lista de Ingredientes -->
                     <div class="mb-6">
                         <label class="block text-sm font-bold text-gray-700 mb-4">
                             🥘 Seleccionar Ingredientes
@@ -189,18 +188,13 @@
                         Plato Creado
                     </h3>
                     
-                    <!-- Info del Plato -->
                     <div id="dishInfo" class="bg-blue-50 rounded-lg p-4 mb-6"></div>
 
-                    <!-- Alérgenos Detectados -->
                     <div class="mb-6">
                         <h4 class="font-bold text-gray-800 mb-3">⚠️ Alérgenos Detectados Automáticamente</h4>
-                        <div id="allergensDisplay" class="flex flex-wrap gap-2">
-                            <!-- Se llena dinámicamente -->
-                        </div>
+                        <div id="allergensDisplay" class="flex flex-wrap gap-2"></div>
                     </div>
 
-                    <!-- Botones de Acción -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <button onclick="generateLabel()" class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl transition-all">
                             ✨ Generar Etiqueta
@@ -217,8 +211,6 @@
 
             <!-- Sidebar -->
             <div class="space-y-8">
-                
-                <!-- Platos de Hoy -->
                 <div class="bg-white rounded-2xl shadow-xl p-6">
                     <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center justify-between">
                         <span class="flex items-center">
@@ -235,7 +227,6 @@
                     </div>
                 </div>
 
-                <!-- Estadísticas -->
                 <div class="bg-white rounded-2xl shadow-xl p-6">
                     <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
                         <span class="mr-2">📊</span>
@@ -256,31 +247,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Guía de Alérgenos -->
-                <div class="bg-white rounded-2xl shadow-xl p-6">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                        <span class="mr-2">📚</span>
-                        Alérgenos UE
-                    </h3>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                            <span>🌾</span><span>Gluten</span>
-                        </div>
-                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                            <span>🦐</span><span>Crustáceos</span>
-                        </div>
-                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                            <span>🥚</span><span>Huevos</span>
-                        </div>
-                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                            <span>🥛</span><span>Lácteos</span>
-                        </div>
-                        <div class="text-center text-xs text-gray-500 mt-2">
-                            + 10 alérgenos más
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -296,6 +262,456 @@
         </div>
     </div>
 
-    <script src="app-ingredients.js"></script>
+    <script>
+        // ====== JAVASCRIPT INTEGRADO ======
+        console.log('🚀 Iniciando sistema...');
+        
+        let allIngredients = {};
+        let categorizedIngredients = {};
+        let selectedIngredients = new Set();
+        let currentDish = null;
+        let stats = { platos: 0, ingredientes: 0, alergenos: 0 };
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ DOM cargado');
+            loadIngredients();
+            loadTodaysDishes();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            
+            // Event listener para búsqueda
+            document.getElementById('searchInput').addEventListener('keyup', filterIngredients);
+        });
+
+        // Cargar ingredientes
+        async function loadIngredients() {
+            try {
+                console.log('📥 Cargando ingredientes...');
+                showLoading('Cargando ingredientes...');
+                
+                const response = await fetch('/api/ingredients');
+                console.log('📡 Respuesta recibida:', response.status);
+                
+                const data = await response.json();
+                console.log('📦 Datos:', data);
+                
+                if (data.success) {
+                    allIngredients = data.ingredients;
+                    categorizedIngredients = data.categorized;
+                    
+                    console.log(`✅ ${data.total} ingredientes cargados`);
+                    renderIngredientsList();
+                } else {
+                    throw new Error(data.error || 'Error cargando ingredientes');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('ingredientsList').innerHTML = `
+                    <div class="text-center text-red-600 p-4">
+                        <p class="font-bold">Error cargando ingredientes</p>
+                        <p class="text-sm">${error.message}</p>
+                        <button onclick="loadIngredients()" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded">
+                            Reintentar
+                        </button>
+                    </div>
+                `;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Renderizar lista de ingredientes
+        function renderIngredientsList() {
+            const container = document.getElementById('ingredientsList');
+            
+            if (!container) return;
+            
+            let html = '';
+            
+            Object.entries(categorizedIngredients).forEach(([category, ingredients]) => {
+                html += `
+                    <div class="category-section">
+                        <div class="category-title">${category}</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            ${ingredients.map(ingredient => {
+                                const isSelected = selectedIngredients.has(ingredient.code);
+                                return `
+                                    <div class="ingredient-card ${isSelected ? 'selected' : ''}" 
+                                         onclick="toggleIngredient('${ingredient.code}')"
+                                         data-name="${ingredient.name.toLowerCase()}"
+                                         data-code="${ingredient.code}">
+                                        <div class="flex items-center justify-between">
+                                            <span class="font-medium text-sm">${ingredient.name}</span>
+                                            ${isSelected ? '<span class="text-yellow-600 font-bold">✓</span>' : ''}
+                                        </div>
+                                        ${ingredient.allergens.length > 0 ? `
+                                            <div class="text-xs text-red-600 mt-1">
+                                                ⚠️ ${ingredient.allergens.length} alérgeno(s)
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            console.log('✅ Lista renderizada');
+        }
+
+        // Toggle ingrediente
+        function toggleIngredient(code) {
+            const ingredient = allIngredients[code];
+            
+            if (!ingredient) return;
+            
+            if (selectedIngredients.has(code)) {
+                selectedIngredients.delete(code);
+                console.log(`➖ Removido: ${ingredient.name}`);
+            } else {
+                selectedIngredients.add(code);
+                console.log(`➕ Añadido: ${ingredient.name}`);
+            }
+            
+            updateSelectedDisplay();
+            renderIngredientsList();
+        }
+
+        // Actualizar display de seleccionados
+        function updateSelectedDisplay() {
+            const container = document.getElementById('selectedIngredients');
+            const countDisplay = document.getElementById('selectedCount');
+            
+            if (!container) return;
+            
+            const count = selectedIngredients.size;
+            
+            if (countDisplay) countDisplay.textContent = count;
+            
+            if (count === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-sm">Selecciona ingredientes de la lista inferior...</p>';
+                return;
+            }
+            
+            let html = '';
+            
+            selectedIngredients.forEach(code => {
+                const ingredient = allIngredients[code];
+                if (ingredient) {
+                    html += `
+                        <span class="selected-ingredient">
+                            ${ingredient.name}
+                            <span class="remove-btn" onclick="toggleIngredient('${code}')">✕</span>
+                        </span>
+                    `;
+                }
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Filtrar ingredientes
+        function filterIngredients() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('.ingredient-card');
+            
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name');
+                card.style.display = name.includes(searchTerm) ? 'block' : 'none';
+            });
+        }
+
+        // Crear plato
+        async function createDish() {
+            const dishName = document.getElementById('dishName').value.trim();
+            const chefName = document.getElementById('chefName').value.trim();
+            
+            if (!dishName) {
+                showError('Por favor, escribe el nombre del plato');
+                return;
+            }
+            
+            if (selectedIngredients.size === 0) {
+                showError('Por favor, selecciona al menos un ingrediente');
+                return;
+            }
+            
+            console.log(`🍽️ Creando plato: ${dishName}`);
+            
+            showLoading('Creando plato...');
+            
+            try {
+                const response = await fetch('/api/analyze-by-ingredients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dish_name: dishName,
+                        ingredients: Array.from(selectedIngredients),
+                        chef_name: chefName
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentDish = data.dish;
+                    displayResults(data);
+                    updateStats();
+                    showSuccessMessage('✅ Plato creado correctamente');
+                } else {
+                    showError(data.error || 'Error creando plato');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showError('Error conectando con el servidor');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Mostrar resultados
+        function displayResults(data) {
+            const resultsPanel = document.getElementById('resultsPanel');
+            const dishInfo = document.getElementById('dishInfo');
+            const allergensDisplay = document.getElementById('allergensDisplay');
+            
+            if (!resultsPanel || !dishInfo || !allergensDisplay) return;
+            
+            resultsPanel.classList.remove('hidden');
+            resultsPanel.scrollIntoView({ behavior: 'smooth' });
+            
+            dishInfo.innerHTML = `
+                <h4 class="font-bold text-xl mb-2">${data.dish.name}</h4>
+                <div class="flex items-center space-x-4 text-sm text-gray-600 mb-3">
+                    <span>👨‍🍳 ${data.dish.chef}</span>
+                    <span>📅 ${data.dish.date}</span>
+                    <span>🥘 ${data.dish.ingredients.length} ingredientes</span>
+                </div>
+                <div class="bg-white rounded p-3">
+                    <strong class="text-sm">Ingredientes:</strong>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                        ${data.dish.ingredients.map(ing => 
+                            `<span class="text-xs px-2 py-1 bg-gray-100 rounded-full">${ing.name}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+            `;
+            
+            if (data.allergens.length > 0) {
+                allergensDisplay.innerHTML = data.allergens_info.map(allergen => `
+                    <div class="allergen-badge">
+                        <span class="text-xl">${allergen.icon}</span>
+                        <div>
+                            <div class="font-bold text-sm">${allergen.name}</div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                stats.alergenos = data.allergens.length;
+            } else {
+                allergensDisplay.innerHTML = `
+                    <div class="w-full bg-green-50 border-2 border-green-500 rounded-lg p-4 text-center">
+                        <div class="text-green-700 font-bold text-lg">✅ Sin Alérgenos</div>
+                    </div>
+                `;
+            }
+            
+            stats.platos++;
+            stats.ingredientes += data.dish.ingredients.length;
+            updateStats();
+        }
+
+        // Generar etiqueta
+        async function generateLabel() {
+            if (!currentDish) {
+                showError('No hay plato para generar etiqueta');
+                return;
+            }
+            
+            showLoading('Generando etiqueta...');
+            
+            try {
+                const response = await fetch('/api/generate-label-with-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dish: currentDish,
+                        allergens: currentDish.final_allergens
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Error HTTP');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                
+                const newWindow = window.open(url, '_blank');
+                if (newWindow) {
+                    newWindow.focus();
+                    showSuccessMessage('✨ Etiqueta abierta');
+                }
+                
+                window.URL.revokeObjectURL(url);
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showError('Error generando etiqueta');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function printLabel() {
+            showSuccessMessage('🖨️ Abre la etiqueta y usa Ctrl+P');
+        }
+
+        async function saveDish() {
+            if (!currentDish) {
+                showError('No hay plato para guardar');
+                return;
+            }
+            
+            showLoading('Guardando...');
+            
+            try {
+                const response = await fetch('/api/save-dish', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dish_id: currentDish.id })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccessMessage('💾 Plato guardado');
+                    loadTodaysDishes();
+                    
+                    setTimeout(() => {
+                        if (confirm('¿Crear otro plato?')) clearForm();
+                    }, 1500);
+                } else {
+                    showError(data.error);
+                }
+                
+            } catch (error) {
+                showError('Error guardando');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('dishName').value = '';
+            document.getElementById('searchInput').value = '';
+            selectedIngredients.clear();
+            currentDish = null;
+            
+            updateSelectedDisplay();
+            renderIngredientsList();
+            
+            document.getElementById('resultsPanel').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function loadTodaysDishes() {
+            try {
+                const response = await fetch('/api/dishes/today');
+                const dishes = await response.json();
+                
+                const container = document.getElementById('todayDishes');
+                const counter = document.getElementById('todayCount');
+                
+                if (!container) return;
+                
+                if (counter) counter.textContent = dishes.length;
+                
+                if (dishes.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <div class="text-4xl mb-2">🍽️</div>
+                            <p>No hay platos registrados hoy</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = dishes.map(dish => {
+                    const allergens = dish.final_allergens || [];
+                    return `
+                        <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors border-l-4 ${
+                            allergens.length > 0 ? 'border-red-400' : 'border-green-400'
+                        }">
+                            <h4 class="font-semibold text-gray-800">${dish.name}</h4>
+                            <div class="text-sm text-gray-600 mb-2">
+                                👨‍🍳 ${dish.chef} | 🥘 ${dish.ingredients?.length || 0} ing.
+                            </div>
+                            ${allergens.length > 0 ? `
+                                <span class="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full">
+                                    ⚠️ ${allergens.length} alérgeno(s)
+                                </span>
+                            ` : `
+                                <span class="text-xs text-green-600 font-medium">✅ Sin alérgenos</span>
+                            `}
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('statsPlatos').textContent = stats.platos;
+            document.getElementById('statsIngredientes').textContent = stats.ingredientes;
+            document.getElementById('statsAlergenos').textContent = stats.alergenos;
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('currentDateTime').textContent = 
+                now.toLocaleDateString('es-ES') + ' - ' + now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function showLoading(message) {
+            document.getElementById('loadingModal').classList.remove('hidden');
+            document.getElementById('loadingText').textContent = message || 'Procesando...';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingModal').classList.add('hidden');
+        }
+
+        function showError(message) {
+            showToast(message, 'error');
+        }
+
+        function showSuccessMessage(message) {
+            showToast(message, 'success');
+        }
+
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500'
+            };
+            
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm`;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        console.log('✅ Sistema cargado completamente');
+    </script>
 </body>
 </html>
