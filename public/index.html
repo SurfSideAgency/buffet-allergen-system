@@ -3,133 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Alérgenos - Chef + IA</title>
+    <title>Sistema de Alérgenos - Ingredientes</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <style>
         :root {
             --color-primary: #D4AF37;
             --color-primary-dark: #B8860B;
-            --color-accent: #C44536;
-            --color-success: #16A34A;
         }
 
-        .analysis-mode-toggle {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            padding: 1rem;
-            background: #f1f5f9;
-            border-radius: 12px;
-        }
-
-        .toggle-option {
-            flex: 1;
-            text-align: center;
-            padding: 0.75rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            cursor: pointer;
+        .ingredient-card {
             transition: all 0.3s ease;
-            background: white;
-        }
-
-        .toggle-option.active {
-            border-color: var(--color-primary);
-            background: var(--color-primary);
-            color: white;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
-        }
-
-        .allergen-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-
-        .allergen-card {
-            background: white;
             border: 2px solid #e5e7eb;
             border-radius: 12px;
-            padding: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
+            padding: 0.75rem;
+            background: white;
         }
 
-        .allergen-card:hover {
-            border-color: var(--color-primary);
+        .ingredient-card:hover {
+            transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: var(--color-primary);
         }
 
-        .allergen-card.selected {
-            border-color: var(--color-accent);
-            background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+        .ingredient-card.selected {
+            border-color: var(--color-primary);
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
         }
 
-        .allergen-card.ai-detected {
-            border-color: #3B82F6;
-            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+        .selected-ingredient {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            margin: 0.25rem;
         }
 
-        .allergen-card.ai-detected.selected {
-            border-color: #8b5cf6;
-            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+        .remove-btn {
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0 0.25rem;
         }
 
-        .allergen-icon {
-            font-size: 1.5rem;
-            margin-right: 0.5rem;
+        .remove-btn:hover {
+            color: #dc2626;
         }
 
-        .allergen-name {
+        .category-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .category-title {
             font-weight: bold;
             color: #1f2937;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--color-primary);
         }
 
-        .ai-suggestion {
-            background: #EFF6FF;
-            border: 1px solid #DBEAFE;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .hybrid-panel {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-        }
-
-        @media (max-width: 768px) {
-            .analysis-mode-toggle {
-                flex-direction: column;
-            }
-            
-            .allergen-grid {
-                grid-template-columns: 1fr 1fr;
-            }
+        .allergen-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+            border: 2px solid #EF4444;
+            border-radius: 12px;
+            margin: 0.25rem;
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+<body class="bg-gray-50 min-h-screen">
     
     <!-- Header -->
     <div class="bg-white shadow-lg">
@@ -141,17 +89,15 @@
                     </div>
                     <div>
                         <h1 class="text-3xl font-bold text-gray-900">Sistema de Alérgenos</h1>
-                        <p class="text-gray-600">Análisis Híbrido: IA + Manual</p>
+                        <p class="text-gray-600">Selección por Ingredientes</p>
                     </div>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <div class="text-right">
-                        <div class="flex items-center space-x-2 text-green-600">
-                            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span class="text-sm font-medium">Sistema Activo</span>
-                        </div>
-                        <div class="text-xs text-gray-500" id="currentDateTime"></div>
+                <div class="text-right">
+                    <div class="flex items-center space-x-2 text-green-600">
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm font-medium">Sistema Activo</span>
                     </div>
+                    <div class="text-xs text-gray-500" id="currentDateTime"></div>
                 </div>
             </div>
         </div>
@@ -168,144 +114,108 @@
                         Registrar Nuevo Plato
                     </h2>
 
-                    <!-- Selector de Modo de Análisis -->
-                    <div class="analysis-mode-toggle">
-                        <div class="toggle-option active" data-mode="hybrid" onclick="setAnalysisMode('hybrid')">
-                            <div class="text-lg mb-1">🤖➕👨‍🍳</div>
-                            <div class="font-bold">Híbrido</div>
-                            <div class="text-xs opacity-75">IA + Chef</div>
-                        </div>
-                        <div class="toggle-option" data-mode="ai" onclick="setAnalysisMode('ai')">
-                            <div class="text-lg mb-1">🤖</div>
-                            <div class="font-bold">Solo IA</div>
-                            <div class="text-xs opacity-75">Automático</div>
-                        </div>
-                        <div class="toggle-option" data-mode="manual" onclick="setAnalysisMode('manual')">
-                            <div class="text-lg mb-1">👨‍🍳</div>
-                            <div class="font-bold">Manual</div>
-                            <div class="text-xs opacity-75">Solo Chef</div>
+                    <!-- Nombre del Plato -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            📝 Nombre del Plato
+                        </label>
+                        <input 
+                            type="text" 
+                            id="dishName" 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 transition-all" 
+                            placeholder="Ej: Paella Valenciana, Ensalada César, Salmón a la plancha..."
+                        >
+                    </div>
+
+                    <!-- Ingredientes Seleccionados -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            ✅ Ingredientes Seleccionados (<span id="selectedCount">0</span>)
+                        </label>
+                        <div id="selectedIngredients" class="min-h-16 p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                            <p class="text-gray-400 text-sm" id="emptyMessage">Selecciona ingredientes de la lista inferior...</p>
                         </div>
                     </div>
 
-                    <!-- Entrada de Datos -->
-                    <div class="space-y-6">
+                    <!-- Buscador -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            🔍 Buscar Ingrediente
+                        </label>
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 transition-all" 
+                            placeholder="Buscar por nombre..."
+                            onkeyup="filterIngredients()"
+                        >
+                    </div>
+
+                    <!-- Lista de Ingredientes por Categoría -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-4">
+                            🥘 Seleccionar Ingredientes
+                        </label>
+                        <div id="ingredientsList" class="max-h-96 overflow-y-auto p-4 bg-gray-50 rounded-lg">
+                            <p class="text-center text-gray-500">Cargando ingredientes...</p>
+                        </div>
+                    </div>
+
+                    <!-- Chef y Botón -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-2">
-                                📝 Descripción del Plato
+                                👨‍🍳 Chef Responsable
                             </label>
-                            <textarea 
-                                id="dishDescription" 
-                                class="w-full h-24 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 transition-all duration-300" 
-                                placeholder="Ej: Paella valenciana con gambas, mejillones, pollo, arroz bomba, azafrán..."
-                            ></textarea>
+                            <input 
+                                type="text" 
+                                id="chefName" 
+                                value="Chef Principal"
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 transition-all"
+                            >
                         </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">
-                                    👨‍🍳 Chef Responsable
-                                </label>
-                                <input 
-                                    type="text" 
-                                    id="chefName" 
-                                    value="Chef Principal"
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 transition-all duration-300"
-                                >
-                            </div>
-                            <div class="flex items-end">
-                                <button id="analyzeBtn" onclick="analyzeDish()" class="btn-primary w-full flex items-center justify-center">
-                                    <span class="mr-2">🔍</span>
-                                    <span>Analizar Plato</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Panel de Resultados -->
-                    <div id="resultsPanel" class="hidden mt-8">
-                        <!-- Información del Plato -->
-                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-6">
-                            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                                <span class="mr-2">🍽️</span>
-                                Plato Identificado
-                            </h3>
-                            <div id="dishInfo" class="space-y-2">
-                                <!-- Se llena dinámicamente -->
-                            </div>
-                        </div>
-
-                        <!-- Panel de Alérgenos -->
-                        <div class="hybrid-panel">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-bold text-gray-800 flex items-center">
-                                    <span class="mr-2">⚠️</span>
-                                    Gestión de Alérgenos
-                                </h3>
-                                <div class="text-sm text-gray-600">
-                                    <span id="selectedCount">0</span> de 14 alérgenos seleccionados
-                                </div>
-                            </div>
-
-                            <!-- Sugerencias de IA -->
-                            <div id="aiSuggestions" class="ai-suggestion hidden">
-                                <h4 class="font-bold text-blue-800 mb-2 flex items-center">
-                                    <span class="mr-2">🤖</span>
-                                    Sugerencias de IA
-                                </h4>
-                                <p class="text-sm text-blue-700 mb-3">
-                                    La IA ha detectado los siguientes alérgenos. Puedes confirmar, añadir o quitar según tu criterio:
-                                </p>
-                                <div id="aiDetectedList" class="flex flex-wrap gap-2">
-                                    <!-- Se llena dinámicamente -->
-                                </div>
-                                <div class="mt-3 text-xs text-blue-600">
-                                    Confianza del análisis: <span id="aiConfidence" class="font-bold">95%</span>
-                                </div>
-                            </div>
-
-                            <!-- Grid de Alérgenos -->
-                            <div class="allergen-grid" id="allergenGrid">
-                                <!-- Se llena dinámicamente -->
-                            </div>
-
-                            <!-- Resumen -->
-                            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                                <h4 class="font-bold text-gray-800 mb-2">📋 Resumen Final</h4>
-                                <div id="finalSummary" class="text-sm text-gray-700">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <strong>Alérgenos Confirmados:</strong>
-                                            <div id="confirmedAllergens" class="mt-1">Ninguno</div>
-                                        </div>
-                                        <div>
-                                            <strong>Estado de Seguridad:</strong>
-                                            <div id="safetyStatus" class="mt-1 font-bold text-green-600">✅ Seguro para consumo general</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Botones de Acción -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                            <button id="generateLabelBtn" onclick="generateLabel()" class="btn-primary flex items-center justify-center">
-                                <span class="mr-2">✨</span>
-                                Generar Etiqueta
-                            </button>
-                            <button id="printBtn" onclick="printLabel()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
-                                <span class="mr-2">🖨️</span>
-                                Imprimir
-                            </button>
-                            <button id="saveBtn" onclick="saveDish()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
-                                <span class="mr-2">💾</span>
-                                Guardar
+                        <div class="flex items-end">
+                            <button onclick="createDish()" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg">
+                                ✨ Crear Plato
                             </button>
                         </div>
                     </div>
                 </div>
+
+                <!-- Panel de Resultados -->
+                <div id="resultsPanel" class="hidden mt-8 bg-white rounded-2xl shadow-xl p-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">🍽️</span>
+                        Plato Creado
+                    </h3>
+                    
+                    <!-- Info del Plato -->
+                    <div id="dishInfo" class="bg-blue-50 rounded-lg p-4 mb-6"></div>
+
+                    <!-- Alérgenos Detectados -->
+                    <div class="mb-6">
+                        <h4 class="font-bold text-gray-800 mb-3">⚠️ Alérgenos Detectados Automáticamente</h4>
+                        <div id="allergensDisplay" class="flex flex-wrap gap-2">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button onclick="generateLabel()" class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl transition-all">
+                            ✨ Generar Etiqueta
+                        </button>
+                        <button onclick="printLabel()" class="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl transition-all">
+                            🖨️ Imprimir
+                        </button>
+                        <button onclick="saveDish()" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl transition-all">
+                            💾 Guardar
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <!-- Panel Lateral -->
+            <!-- Sidebar -->
             <div class="space-y-8">
                 
                 <!-- Platos de Hoy -->
@@ -333,16 +243,16 @@
                     </h3>
                     <div class="space-y-4">
                         <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Análisis IA</span>
-                            <span id="statsAI" class="text-2xl font-bold text-blue-600">0</span>
+                            <span class="text-gray-600">Platos Creados</span>
+                            <span id="statsPlatos" class="text-2xl font-bold text-blue-600">0</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Revisiones Chef</span>
-                            <span id="statsManual" class="text-2xl font-bold text-yellow-600">0</span>
+                            <span class="text-gray-600">Ingredientes Usados</span>
+                            <span id="statsIngredientes" class="text-2xl font-bold text-yellow-600">0</span>
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-gray-600">Alérgenos Detectados</span>
-                            <span id="statsAllergens" class="text-2xl font-bold text-red-600">0</span>
+                            <span id="statsAlergenos" class="text-2xl font-bold text-red-600">0</span>
                         </div>
                     </div>
                 </div>
@@ -351,11 +261,11 @@
                 <div class="bg-white rounded-2xl shadow-xl p-6">
                     <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
                         <span class="mr-2">📚</span>
-                        Guía UE 1169/2011
+                        Alérgenos UE
                     </h3>
                     <div class="space-y-2 text-sm">
                         <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                            <span>🌾</span><span>Cereales con gluten</span>
+                            <span>🌾</span><span>Gluten</span>
                         </div>
                         <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
                             <span>🦐</span><span>Crustáceos</span>
@@ -364,10 +274,10 @@
                             <span>🥚</span><span>Huevos</span>
                         </div>
                         <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                            <span>🐟</span><span>Pescado</span>
+                            <span>🥛</span><span>Lácteos</span>
                         </div>
                         <div class="text-center text-xs text-gray-500 mt-2">
-                            + 10 alérgenos más según normativa
+                            + 10 alérgenos más
                         </div>
                     </div>
                 </div>
@@ -380,13 +290,12 @@
         <div class="bg-white rounded-2xl p-8 max-w-sm w-full mx-4">
             <div class="text-center">
                 <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-500 mx-auto mb-4"></div>
-                <h3 class="text-lg font-bold text-gray-800 mb-2">Analizando...</h3>
-                <p id="loadingText" class="text-gray-600">Procesando el plato</p>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Procesando...</h3>
+                <p id="loadingText" class="text-gray-600">Espere un momento</p>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript separado correctamente -->
-    <script src="app.js"></script>
+    <script src="app-ingredients.js"></script>
 </body>
 </html>
