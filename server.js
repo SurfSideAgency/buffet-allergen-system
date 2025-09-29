@@ -1,10 +1,18 @@
-// server.js - Sistema de Alérgenos CON INGREDIENTES - COMPLETO
+// server.js - Sistema de Alérgenos CON INGREDIENTES PERSONALIZADOS
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const multer = require('multer');
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// ====== CONFIGURACIÓN MULTER ======
+const storage = multer.memoryStorage();
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 }
+});
 
 // ====== MIDDLEWARE BÁSICO ======
 app.use(cors());
@@ -15,6 +23,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ====== BASE DE DATOS EN MEMORIA ======
 let dishes = [];
 let dishId = 1;
+let customIngredients = {}; // NUEVO: Ingredientes personalizados
+let ingredientId = 1;
 
 // ====== ALÉRGENOS UE 1169/2011 ======
 const ALLERGENS = {
@@ -34,9 +44,9 @@ const ALLERGENS = {
     'moluscos': { name: 'Moluscos', icon: '🐚', description: 'Mejillones, almejas, caracoles' }
 };
 
-// ====== BASE DE DATOS DE INGREDIENTES ======
-const INGREDIENTS = {
-    // CEREALES Y HARINAS
+// ====== BASE DE DATOS DE INGREDIENTES BASE ======
+const BASE_INGREDIENTS = {
+    // CEREALES
     'harina_trigo': { name: 'Harina de trigo', category: '🌾 Cereales', allergens: ['gluten'] },
     'pan': { name: 'Pan', category: '🌾 Cereales', allergens: ['gluten'] },
     'pasta': { name: 'Pasta', category: '🌾 Cereales', allergens: ['gluten'] },
@@ -63,25 +73,20 @@ const INGREDIENTS = {
     'lubina': { name: 'Lubina', category: '🐟 Pescados', allergens: ['pescado'] },
     'dorada': { name: 'Dorada', category: '🐟 Pescados', allergens: ['pescado'] },
     
-    // MARISCOS - CRUSTÁCEOS
+    // MARISCOS
     'gambas': { name: 'Gambas', category: '🦐 Mariscos', allergens: ['crustaceos'] },
     'langostinos': { name: 'Langostinos', category: '🦐 Mariscos', allergens: ['crustaceos'] },
     'cangrejo': { name: 'Cangrejo', category: '🦐 Mariscos', allergens: ['crustaceos'] },
-    'cigalas': { name: 'Cigalas', category: '🦐 Mariscos', allergens: ['crustaceos'] },
-    
-    // MARISCOS - MOLUSCOS
     'mejillones': { name: 'Mejillones', category: '🐚 Moluscos', allergens: ['moluscos'] },
     'almejas': { name: 'Almejas', category: '🐚 Moluscos', allergens: ['moluscos'] },
     'calamares': { name: 'Calamares', category: '🐚 Moluscos', allergens: ['moluscos'] },
     'pulpo': { name: 'Pulpo', category: '🐚 Moluscos', allergens: ['moluscos'] },
-    'sepia': { name: 'Sepia', category: '🐚 Moluscos', allergens: ['moluscos'] },
     
     // FRUTOS SECOS
     'almendras': { name: 'Almendras', category: '🌰 Frutos Secos', allergens: ['frutos_secos'] },
     'nueces': { name: 'Nueces', category: '🌰 Frutos Secos', allergens: ['frutos_secos'] },
     'avellanas': { name: 'Avellanas', category: '🌰 Frutos Secos', allergens: ['frutos_secos'] },
     'pistachos': { name: 'Pistachos', category: '🌰 Frutos Secos', allergens: ['frutos_secos'] },
-    'anacardos': { name: 'Anacardos', category: '🌰 Frutos Secos', allergens: ['frutos_secos'] },
     'cacahuetes': { name: 'Cacahuetes', category: '🥜 Legumbres', allergens: ['cacahuetes'] },
     
     // CARNES
@@ -89,10 +94,8 @@ const INGREDIENTS = {
     'ternera': { name: 'Ternera', category: '🥩 Carnes', allergens: [] },
     'cerdo': { name: 'Cerdo', category: '🥓 Carnes', allergens: [] },
     'cordero': { name: 'Cordero', category: '🐑 Carnes', allergens: [] },
-    'pavo': { name: 'Pavo', category: '🦃 Carnes', allergens: [] },
-    'conejo': { name: 'Conejo', category: '🐰 Carnes', allergens: [] },
     
-    // VERDURAS Y HORTALIZAS
+    // VERDURAS
     'tomate': { name: 'Tomate', category: '🍅 Verduras', allergens: [] },
     'cebolla': { name: 'Cebolla', category: '🧅 Verduras', allergens: [] },
     'ajo': { name: 'Ajo', category: '🧄 Verduras', allergens: [] },
@@ -100,49 +103,141 @@ const INGREDIENTS = {
     'apio': { name: 'Apio', category: '🥬 Verduras', allergens: ['apio'] },
     'zanahoria': { name: 'Zanahoria', category: '🥕 Verduras', allergens: [] },
     'lechuga': { name: 'Lechuga', category: '🥬 Verduras', allergens: [] },
-    'espinacas': { name: 'Espinacas', category: '🥬 Verduras', allergens: [] },
-    'calabacin': { name: 'Calabacín', category: '🥒 Verduras', allergens: [] },
-    'berenjena': { name: 'Berenjena', category: '🍆 Verduras', allergens: [] },
     
-    // LEGUMBRES
-    'garbanzos': { name: 'Garbanzos', category: '🫘 Legumbres', allergens: [] },
-    'lentejas': { name: 'Lentejas', category: '🫘 Legumbres', allergens: [] },
-    'judias': { name: 'Judías', category: '🫘 Legumbres', allergens: [] },
-    
-    // SALSAS Y CONDIMENTOS
+    // SALSAS
     'mayonesa': { name: 'Mayonesa', category: '🥫 Salsas', allergens: ['huevos'] },
     'mostaza': { name: 'Mostaza', category: '🥫 Salsas', allergens: ['mostaza'] },
     'salsa_soja': { name: 'Salsa de soja', category: '🥫 Salsas', allergens: ['soja', 'gluten'] },
     'aceite_oliva': { name: 'Aceite de oliva', category: '🫒 Aceites', allergens: [] },
     'aceite_sesamo': { name: 'Aceite de sésamo', category: '🫒 Aceites', allergens: ['sesamo'] },
-    'aceite_girasol': { name: 'Aceite de girasol', category: '🫒 Aceites', allergens: [] },
-    
-    // ESPECIAS Y HIERBAS
-    'azafran': { name: 'Azafrán', category: '🌿 Especias', allergens: [] },
-    'perejil': { name: 'Perejil', category: '🌿 Hierbas', allergens: [] },
-    'oregano': { name: 'Orégano', category: '🌿 Hierbas', allergens: [] },
-    'albahaca': { name: 'Albahaca', category: '🌿 Hierbas', allergens: [] },
-    'romero': { name: 'Romero', category: '🌿 Hierbas', allergens: [] },
-    'tomillo': { name: 'Tomillo', category: '🌿 Hierbas', allergens: [] },
     
     // OTROS
     'vino_blanco': { name: 'Vino blanco', category: '🍷 Bebidas', allergens: ['sulfitos'] },
     'vino_tinto': { name: 'Vino tinto', category: '🍷 Bebidas', allergens: ['sulfitos'] },
-    'cerveza': { name: 'Cerveza', category: '🍺 Bebidas', allergens: ['gluten'] },
-    'tofu': { name: 'Tofu', category: '🌱 Vegetal', allergens: ['soja'] },
     'sal': { name: 'Sal', category: '🧂 Condimentos', allergens: [] },
     'pimienta': { name: 'Pimienta', category: '🧂 Condimentos', allergens: [] },
     'limon': { name: 'Limón', category: '🍋 Frutas', allergens: [] },
     'patata': { name: 'Patata', category: '🥔 Tubérculos', allergens: [] }
 };
 
-// ====== ENDPOINT: OBTENER INGREDIENTES ======
+// ====== NUEVO: ESCANEAR ETIQUETA (SIMULADO) ======
+app.post('/api/scan-ingredient-label', upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'No se recibió imagen'
+            });
+        }
+
+        console.log('📸 Imagen recibida:', req.file.originalname);
+
+        // Simulación de análisis IA (2 segundos)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const simulatedResponse = {
+            nombre: "Ingrediente detectado",
+            alergenos: [],
+            categoria: "📦 Personalizado"
+        };
+
+        res.json({
+            success: true,
+            data: simulatedResponse,
+            message: 'Análisis completado (modo simulación)'
+        });
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error procesando imagen'
+        });
+    }
+});
+
+// ====== NUEVO: GUARDAR INGREDIENTE PERSONALIZADO ======
+app.post('/api/custom-ingredients', (req, res) => {
+    try {
+        const { name, category, allergens, brand, notes } = req.body;
+
+        if (!name) {
+            return res.status(400).json({
+                success: false,
+                error: 'El nombre es requerido'
+            });
+        }
+
+        const code = `custom_${ingredientId++}`;
+        
+        customIngredients[code] = {
+            code: code,
+            name: name,
+            category: category || '📦 Personalizado',
+            allergens: allergens || [],
+            brand: brand || '',
+            notes: notes || '',
+            created_at: new Date().toISOString(),
+            is_custom: true
+        };
+
+        console.log(`✅ Ingrediente guardado: ${name}`);
+
+        res.json({
+            success: true,
+            ingredient: customIngredients[code]
+        });
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error guardando ingrediente'
+        });
+    }
+});
+
+// ====== NUEVO: OBTENER INGREDIENTES PERSONALIZADOS ======
+app.get('/api/custom-ingredients', (req, res) => {
+    res.json({
+        success: true,
+        ingredients: customIngredients,
+        count: Object.keys(customIngredients).length
+    });
+});
+
+// ====== NUEVO: ELIMINAR INGREDIENTE PERSONALIZADO ======
+app.delete('/api/custom-ingredients/:code', (req, res) => {
+    const { code } = req.params;
+    
+    if (!customIngredients[code]) {
+        return res.status(404).json({
+            success: false,
+            error: 'Ingrediente no encontrado'
+        });
+    }
+
+    const deleted = customIngredients[code];
+    delete customIngredients[code];
+
+    console.log(`🗑️ Ingrediente eliminado: ${deleted.name}`);
+
+    res.json({
+        success: true,
+        deleted: deleted
+    });
+});
+
+// ====== MODIFICADO: OBTENER TODOS LOS INGREDIENTES ======
 app.get('/api/ingredients', (req, res) => {
     try {
-        // Agrupar ingredientes por categoría
+        // Combinar ingredientes base con personalizados
+        const allIngredients = { ...BASE_INGREDIENTS, ...customIngredients };
+        
+        // Agrupar por categoría
         const categorized = {};
         
-        Object.entries(INGREDIENTS).forEach(([code, ingredient]) => {
+        Object.entries(allIngredients).forEach(([code, ingredient]) => {
             const category = ingredient.category;
             if (!categorized[category]) {
                 categorized[category] = [];
@@ -155,9 +250,11 @@ app.get('/api/ingredients', (req, res) => {
         
         res.json({
             success: true,
-            ingredients: INGREDIENTS,
+            ingredients: allIngredients,
             categorized: categorized,
-            total: Object.keys(INGREDIENTS).length
+            total: Object.keys(allIngredients).length,
+            base_count: Object.keys(BASE_INGREDIENTS).length,
+            custom_count: Object.keys(customIngredients).length
         });
     } catch (error) {
         console.error('❌ Error obteniendo ingredientes:', error);
@@ -168,7 +265,7 @@ app.get('/api/ingredients', (req, res) => {
     }
 });
 
-// ====== ENDPOINT: ANALIZAR PLATO POR INGREDIENTES ======
+// ====== ANALIZAR PLATO POR INGREDIENTES ======
 app.post('/api/analyze-by-ingredients', (req, res) => {
     try {
         const { dish_name, ingredients, chef_name } = req.body;
@@ -182,20 +279,22 @@ app.post('/api/analyze-by-ingredients', (req, res) => {
         
         console.log(`🔍 Analizando plato: "${dish_name}" con ${ingredients.length} ingredientes`);
         
-        // Calcular alérgenos desde ingredientes
+        // MODIFICADO: Usar ingredientes base + personalizados
+        const allIngredients = { ...BASE_INGREDIENTS, ...customIngredients };
+        
         const detectedAllergens = new Set();
         const ingredientDetails = [];
         
         ingredients.forEach(ingredientCode => {
-            const ingredient = INGREDIENTS[ingredientCode];
+            const ingredient = allIngredients[ingredientCode];
             if (ingredient) {
                 ingredientDetails.push({
                     code: ingredientCode,
                     name: ingredient.name,
-                    category: ingredient.category
+                    category: ingredient.category,
+                    is_custom: ingredient.is_custom || false
                 });
                 
-                // Añadir alérgenos de este ingrediente
                 ingredient.allergens.forEach(allergen => {
                     detectedAllergens.add(allergen);
                 });
@@ -204,7 +303,6 @@ app.post('/api/analyze-by-ingredients', (req, res) => {
         
         const allergensArray = Array.from(detectedAllergens);
         
-        // Crear objeto del plato
         const dish = {
             id: dishId++,
             name: dish_name,
@@ -217,11 +315,9 @@ app.post('/api/analyze-by-ingredients', (req, res) => {
             analysis_mode: 'ingredients'
         };
         
-        // Guardar en memoria
         dishes.push(dish);
         
         console.log(`✅ Plato creado: ${dish.name} (ID: ${dish.id})`);
-        console.log(`📊 ${ingredientDetails.length} ingredientes, ${allergensArray.length} alérgenos detectados`);
         
         res.json({
             success: true,
@@ -329,11 +425,14 @@ app.get('/api/system-status', (req, res) => {
     res.json({
         success: true,
         status: 'online',
-        ingredients_count: Object.keys(INGREDIENTS).length,
+        base_ingredients: Object.keys(BASE_INGREDIENTS).length,
+        custom_ingredients: Object.keys(customIngredients).length,
+        total_ingredients: Object.keys(BASE_INGREDIENTS).length + Object.keys(customIngredients).length,
         dishes_count: dishes.length,
         allergens_count: Object.keys(ALLERGENS).length,
         timestamp: new Date().toISOString(),
-        version: '3.0.0 - Ingredients'
+        version: '3.1.0 - With Scan',
+        features: ['ingredient_scan', 'custom_ingredients', 'simulated_ai']
     });
 });
 
@@ -386,10 +485,6 @@ function generateLabelHTML(dish, allergens) {
             background: #f8f9fa;
             border-radius: 8px;
         }
-        .ingredients-section h4 {
-            margin-bottom: 10px;
-            color: #2c3e50;
-        }
         .ingredient-tag {
             display: inline-block;
             padding: 5px 10px;
@@ -415,11 +510,6 @@ function generateLabelHTML(dish, allergens) {
             padding: 25px;
             color: #721c24;
         }
-        .allergen-list {
-            display: grid;
-            gap: 10px;
-            margin-top: 15px;
-        }
         .allergen-item {
             display: flex;
             align-items: center;
@@ -428,6 +518,7 @@ function generateLabelHTML(dish, allergens) {
             background: rgba(220, 53, 69, 0.1);
             border-radius: 8px;
             border-left: 4px solid #dc3545;
+            margin: 10px 0;
         }
         .print-btn {
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
@@ -467,26 +558,24 @@ function generateLabelHTML(dish, allergens) {
             ${hasAllergens ? `
                 <div class="danger-notice">
                     <h3>⚠️ CONTIENE ALÉRGENOS</h3>
-                    <div class="allergen-list">
-                        ${allergens.map(code => {
-                            const allergen = ALLERGENS[code];
-                            if (!allergen) return '';
-                            return `
-                                <div class="allergen-item">
-                                    <span style="font-size: 1.5rem;">${allergen.icon}</span>
-                                    <div>
-                                        <div style="font-weight: bold;">${allergen.name}</div>
-                                        <div style="font-size: 0.9rem; opacity: 0.8;">${allergen.description}</div>
-                                    </div>
+                    ${allergens.map(code => {
+                        const allergen = ALLERGENS[code];
+                        if (!allergen) return '';
+                        return `
+                            <div class="allergen-item">
+                                <span style="font-size: 1.5rem;">${allergen.icon}</span>
+                                <div>
+                                    <div style="font-weight: bold;">${allergen.name}</div>
+                                    <div style="font-size: 0.9rem; opacity: 0.8;">${allergen.description}</div>
                                 </div>
-                            `;
-                        }).join('')}
-                    </div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             ` : `
                 <div class="safe-notice">
                     <h3>✅ SIN ALÉRGENOS</h3>
-                    <p>Este plato NO contiene ninguno de los 14 alérgenos de declaración obligatoria.</p>
+                    <p>Este plato NO contiene alérgenos de declaración obligatoria.</p>
                 </div>
             `}
         </div>
@@ -503,172 +592,13 @@ function generateLabelHTML(dish, allergens) {
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-// ====== AÑADIR ANTES DE app.listen() ======
-
-// Configurar multer para imágenes
-const multer = require('multer');
-const storage = multer.memoryStorage();
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 }
-});
-
-// Base de datos de ingredientes personalizados (EN MEMORIA)
-let customIngredients = {};
-let ingredientId = 1;
-
-// NUEVO: Escanear etiqueta (SIMULADO - sin IA real)
-app.post('/api/scan-ingredient-label', upload.single('image'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({
-                success: false,
-                error: 'No se recibió ninguna imagen'
-            });
-        }
-
-        console.log('📸 Imagen recibida:', req.file.originalname);
-
-        // SIMULACIÓN (espera 2 segundos para parecer real)
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Respuesta simulada
-        const simulatedResponse = {
-            nombre: "Ingrediente detectado",
-            alergenos: [],
-            categoria: "📦 Personalizado"
-        };
-
-        res.json({
-            success: true,
-            data: simulatedResponse,
-            message: 'Análisis completado (simulación)'
-        });
-
-    } catch (error) {
-        console.error('❌ Error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Error procesando imagen'
-        });
-    }
-});
-
-// NUEVO: Guardar ingrediente personalizado
-app.post('/api/custom-ingredients', (req, res) => {
-    try {
-        const { name, category, allergens, brand, notes } = req.body;
-
-        if (!name) {
-            return res.status(400).json({
-                success: false,
-                error: 'El nombre es requerido'
-            });
-        }
-
-        const code = `custom_${ingredientId++}`;
-        
-        customIngredients[code] = {
-            code: code,
-            name: name,
-            category: category || '📦 Personalizado',
-            allergens: allergens || [],
-            brand: brand || '',
-            notes: notes || '',
-            created_at: new Date().toISOString(),
-            is_custom: true
-        };
-
-        console.log(`✅ Ingrediente guardado: ${name}`);
-
-        res.json({
-            success: true,
-            ingredient: customIngredients[code]
-        });
-
-    } catch (error) {
-        console.error('❌ Error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Error guardando'
-        });
-    }
-});
-
-// NUEVO: Obtener ingredientes personalizados
-app.get('/api/custom-ingredients', (req, res) => {
-    res.json({
-        success: true,
-        ingredients: customIngredients,
-        count: Object.keys(customIngredients).length
-    });
-});
-
-// NUEVO: Eliminar ingrediente
-app.delete('/api/custom-ingredients/:code', (req, res) => {
-    const { code } = req.params;
-    
-    if (!customIngredients[code]) {
-        return res.status(404).json({
-            success: false,
-            error: 'No encontrado'
-        });
-    }
-
-    delete customIngredients[code];
-    console.log(`🗑️ Ingrediente eliminado`);
-
-    res.json({ success: true });
-});
-
-// MODIFICAR el endpoint existente /api/ingredients
-// Busca esta función y reemplázala:
-app.get('/api/ingredients', (req, res) => {
-    try {
-        // Combinar ingredientes base con personalizados
-        const allIngredients = { ...INGREDIENTS, ...customIngredients };
-        
-        const categorized = {};
-        
-        Object.entries(allIngredients).forEach(([code, ingredient]) => {
-            const category = ingredient.category;
-            if (!categorized[category]) {
-                categorized[category] = [];
-            }
-            categorized[category].push({
-                code: code,
-                ...ingredient
-            });
-        });
-        
-        res.json({
-            success: true,
-            ingredients: allIngredients,
-            categorized: categorized,
-            total: Object.keys(allIngredients).length,
-            custom_count: Object.keys(customIngredients).length
-        });
-    } catch (error) {
-        console.error('❌ Error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Error obteniendo ingredientes'
-        });
-    }
-});
-
-// MODIFICAR también el endpoint /api/analyze-by-ingredients
-// Añade esta línea al inicio de la función (después de las validaciones):
-const allIngredients = { ...INGREDIENTS, ...customIngredients };
-
-// Y reemplaza todas las referencias a INGREDIENTS[ingredientCode]
-// por allIngredients[ingredientCode]
 
 // ====== INICIAR SERVIDOR ======
 app.listen(port, () => {
     console.log(`🚀 Servidor en puerto ${port}`);
-    console.log(`📋 Sistema de Alérgenos v3.0.0 - Por Ingredientes`);
-    console.log(`🥘 ${Object.keys(INGREDIENTS).length} ingredientes configurados`);
+    console.log(`📋 Sistema de Alérgenos v3.1.0`);
+    console.log(`🥘 ${Object.keys(BASE_INGREDIENTS).length} ingredientes base`);
+    console.log(`📸 Escaneo de ingredientes: ACTIVO (simulado)`);
     console.log(`⚠️ ${Object.keys(ALLERGENS).length} alérgenos UE`);
     console.log('✅ Sistema listo');
 });
