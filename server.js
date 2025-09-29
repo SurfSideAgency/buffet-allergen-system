@@ -1,4 +1,4 @@
-// server.js - Sistema de Alérgenos CON INGREDIENTES
+// server.js - Sistema de Alérgenos CON INGREDIENTES - COMPLETO
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -34,7 +34,7 @@ const ALLERGENS = {
     'moluscos': { name: 'Moluscos', icon: '🐚', description: 'Mejillones, almejas, caracoles' }
 };
 
-// ====== NUEVA: BASE DE DATOS DE INGREDIENTES ======
+// ====== BASE DE DATOS DE INGREDIENTES ======
 const INGREDIENTS = {
     // CEREALES Y HARINAS
     'harina_trigo': { name: 'Harina de trigo', category: '🌾 Cereales', allergens: ['gluten'] },
@@ -60,23 +60,28 @@ const INGREDIENTS = {
     'merluza': { name: 'Merluza', category: '🐟 Pescados', allergens: ['pescado'] },
     'bacalao': { name: 'Bacalao', category: '🐟 Pescados', allergens: ['pescado'] },
     'atun': { name: 'Atún', category: '🐟 Pescados', allergens: ['pescado'] },
+    'lubina': { name: 'Lubina', category: '🐟 Pescados', allergens: ['pescado'] },
+    'dorada': { name: 'Dorada', category: '🐟 Pescados', allergens: ['pescado'] },
     
     // MARISCOS - CRUSTÁCEOS
     'gambas': { name: 'Gambas', category: '🦐 Mariscos', allergens: ['crustaceos'] },
     'langostinos': { name: 'Langostinos', category: '🦐 Mariscos', allergens: ['crustaceos'] },
     'cangrejo': { name: 'Cangrejo', category: '🦐 Mariscos', allergens: ['crustaceos'] },
+    'cigalas': { name: 'Cigalas', category: '🦐 Mariscos', allergens: ['crustaceos'] },
     
     // MARISCOS - MOLUSCOS
     'mejillones': { name: 'Mejillones', category: '🐚 Moluscos', allergens: ['moluscos'] },
     'almejas': { name: 'Almejas', category: '🐚 Moluscos', allergens: ['moluscos'] },
     'calamares': { name: 'Calamares', category: '🐚 Moluscos', allergens: ['moluscos'] },
     'pulpo': { name: 'Pulpo', category: '🐚 Moluscos', allergens: ['moluscos'] },
+    'sepia': { name: 'Sepia', category: '🐚 Moluscos', allergens: ['moluscos'] },
     
     // FRUTOS SECOS
     'almendras': { name: 'Almendras', category: '🌰 Frutos Secos', allergens: ['frutos_secos'] },
     'nueces': { name: 'Nueces', category: '🌰 Frutos Secos', allergens: ['frutos_secos'] },
     'avellanas': { name: 'Avellanas', category: '🌰 Frutos Secos', allergens: ['frutos_secos'] },
     'pistachos': { name: 'Pistachos', category: '🌰 Frutos Secos', allergens: ['frutos_secos'] },
+    'anacardos': { name: 'Anacardos', category: '🌰 Frutos Secos', allergens: ['frutos_secos'] },
     'cacahuetes': { name: 'Cacahuetes', category: '🥜 Legumbres', allergens: ['cacahuetes'] },
     
     // CARNES
@@ -84,6 +89,8 @@ const INGREDIENTS = {
     'ternera': { name: 'Ternera', category: '🥩 Carnes', allergens: [] },
     'cerdo': { name: 'Cerdo', category: '🥓 Carnes', allergens: [] },
     'cordero': { name: 'Cordero', category: '🐑 Carnes', allergens: [] },
+    'pavo': { name: 'Pavo', category: '🦃 Carnes', allergens: [] },
+    'conejo': { name: 'Conejo', category: '🐰 Carnes', allergens: [] },
     
     // VERDURAS Y HORTALIZAS
     'tomate': { name: 'Tomate', category: '🍅 Verduras', allergens: [] },
@@ -93,6 +100,14 @@ const INGREDIENTS = {
     'apio': { name: 'Apio', category: '🥬 Verduras', allergens: ['apio'] },
     'zanahoria': { name: 'Zanahoria', category: '🥕 Verduras', allergens: [] },
     'lechuga': { name: 'Lechuga', category: '🥬 Verduras', allergens: [] },
+    'espinacas': { name: 'Espinacas', category: '🥬 Verduras', allergens: [] },
+    'calabacin': { name: 'Calabacín', category: '🥒 Verduras', allergens: [] },
+    'berenjena': { name: 'Berenjena', category: '🍆 Verduras', allergens: [] },
+    
+    // LEGUMBRES
+    'garbanzos': { name: 'Garbanzos', category: '🫘 Legumbres', allergens: [] },
+    'lentejas': { name: 'Lentejas', category: '🫘 Legumbres', allergens: [] },
+    'judias': { name: 'Judías', category: '🫘 Legumbres', allergens: [] },
     
     // SALSAS Y CONDIMENTOS
     'mayonesa': { name: 'Mayonesa', category: '🥫 Salsas', allergens: ['huevos'] },
@@ -100,17 +115,25 @@ const INGREDIENTS = {
     'salsa_soja': { name: 'Salsa de soja', category: '🥫 Salsas', allergens: ['soja', 'gluten'] },
     'aceite_oliva': { name: 'Aceite de oliva', category: '🫒 Aceites', allergens: [] },
     'aceite_sesamo': { name: 'Aceite de sésamo', category: '🫒 Aceites', allergens: ['sesamo'] },
+    'aceite_girasol': { name: 'Aceite de girasol', category: '🫒 Aceites', allergens: [] },
     
     // ESPECIAS Y HIERBAS
     'azafran': { name: 'Azafrán', category: '🌿 Especias', allergens: [] },
     'perejil': { name: 'Perejil', category: '🌿 Hierbas', allergens: [] },
     'oregano': { name: 'Orégano', category: '🌿 Hierbas', allergens: [] },
     'albahaca': { name: 'Albahaca', category: '🌿 Hierbas', allergens: [] },
+    'romero': { name: 'Romero', category: '🌿 Hierbas', allergens: [] },
+    'tomillo': { name: 'Tomillo', category: '🌿 Hierbas', allergens: [] },
     
     // OTROS
     'vino_blanco': { name: 'Vino blanco', category: '🍷 Bebidas', allergens: ['sulfitos'] },
     'vino_tinto': { name: 'Vino tinto', category: '🍷 Bebidas', allergens: ['sulfitos'] },
-    'tofu': { name: 'Tofu', category: '🌱 Vegetal', allergens: ['soja'] }
+    'cerveza': { name: 'Cerveza', category: '🍺 Bebidas', allergens: ['gluten'] },
+    'tofu': { name: 'Tofu', category: '🌱 Vegetal', allergens: ['soja'] },
+    'sal': { name: 'Sal', category: '🧂 Condimentos', allergens: [] },
+    'pimienta': { name: 'Pimienta', category: '🧂 Condimentos', allergens: [] },
+    'limon': { name: 'Limón', category: '🍋 Frutas', allergens: [] },
+    'patata': { name: 'Patata', category: '🥔 Tubérculos', allergens: [] }
 };
 
 // ====== ENDPOINT: OBTENER INGREDIENTES ======
