@@ -1,167 +1,4 @@
-<script>
-        const ALLERGENS_DATA = {
-            'gluten': { name: 'Cereales con Gluten', icon: '🌾' },
-            'crustaceos': { name: 'Crustáceos', icon: '🦐' },
-            'huevos': { name: 'Huevos', icon: '🥚' },
-            'pescado': { name: 'Pescado', icon: '🐟' },
-            'cacahuetes': { name: 'Cacahuetes', icon: '🥜' },
-            'soja': { name: 'Soja', icon: '🌱' },
-            'lacteos': { name: 'Lácteos', icon: '🥛' },
-            'frutos_secos': { name: 'Frutos Secos', icon: '🌰' },
-            'apio': { name: 'Apio', icon: '🥬' },
-            'mostaza': { name: 'Mostaza', icon: '🟡' },
-            'sesamo': { name: 'Sésamo', icon: '🫘' },
-            'sulfitos': { name: 'Sulfitos', icon: '🍷' },
-            'altramuces': { name: 'Altramuces', icon: '🫘' },
-            'moluscos': { name: 'Moluscos', icon: '🐚' }
-        };
-
-        let currentDish = null;
-        let selectedAllergens = new Set();
-        let editorVisible = false;
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDishes();
-        });
-
-        async function analyzeDish() {
-            const description = document.getElementById('dishInput').value.trim();
-            const chef = document.getElementById('chefInput').value.trim();
-
-            if (!description) {
-                showToast('⚠️ Por favor describe el plato', 'warning');
-                return;
-            }
-
-            document.getElementById('loading').classList.remove('hidden');
-            document.getElementById('results').classList.add('hidden');
-
-            try {
-                const response = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ description, chef })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    currentDish = data.dish;
-                    selectedAllergens = new Set(data.dish.allergens);
-                    displayResults(data);
-                    loadDishes();
-                    showToast('✅ Análisis completado', 'success');
-                } else {
-                    showToast('❌ Error: ' + data.error, 'error');
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                showToast('❌ Error de conexión', 'error');
-            } finally {
-                document.getElementById('loading').classList.add('hidden');
-            }
-        }
-
-        function displayResults(data) {
-            document.getElementById('dishName').textContent = data.dish.name;
-            document.getElementById('dishMeta').innerHTML = `
-                <strong>Chef:</strong> ${data.dish.chef} | 
-                <strong>Fecha:</strong> ${data.dish.date}
-            `;
-
-            renderAllergensList();
-            renderAllergenSelector();
-            
-            document.getElementById('results').classList.remove('hidden');
-            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        function renderAllergensList() {
-            const container = document.getElementById('allergensList');
-            
-            if (selectedAllergens.size === 0) {
-                container.innerHTML = `
-                    <div class="bg-green-50 border-2 border-green-400 rounded-lg p-6 text-center">
-                        <div class="text-4xl mb-2">✅</div>
-                        <div class="text-green-800 font-bold text-lg">Sin Alérgenos</div>
-                        <p class="text-green-600 text-sm mt-1">Este plato no contiene alérgenos detectados</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = Array.from(selectedAllergens).map(code => {
-                const allergen = ALLERGENS_DATA[code];
-                if (!allergen) return '';
-                return `
-                    <div class="allergen-badge selected">
-                        <span class="text-2xl">${allergen.icon}</span>
-                        <div class="flex-1">
-                            <div class="font-bold text-sm">${allergen.name}</div>
-                        </div>
-                        <div class="remove-btn" onclick="removeAllergen('${code}')">✕</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderAllergenSelector() {
-            const container = document.getElementById('allergenSelector');
-            
-            container.innerHTML = Object.entries(ALLERGENS_DATA).map(([code, allergen]) => {
-                const isSelected = selectedAllergens.has(code);
-                return `
-                    <div class="allergen-option ${isSelected ? 'active' : ''}" onclick="toggleAllergen('${code}')">
-                        <div class="text-xl mb-1">${allergen.icon}</div>
-                        <div class="text-xs font-semibold">${allergen.name}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function toggleAllergenEditor() {
-            editorVisible = !editorVisible;
-            const editor = document.getElementById('allergenEditor');
-            editor.classList.toggle('hidden', !editorVisible);
-        }
-
-        function toggleAllergen(code) {
-            if (selectedAllergens.has(code)) {
-                selectedAllergens.delete(code);
-                showToast(`➖ ${ALLERGENS_DATA[code].name} eliminado`, 'info');
-            } else {
-                selectedAllergens.add(code);
-                showToast(`➕ ${ALLERGENS_DATA[code].name} añadido`, 'success');
-            }
-            renderAllergensList();
-            renderAllergenSelector();
-            updateCurrentDish();
-        }
-
-        function removeAllergen(code) {
-            selectedAllergens.delete(code);
-            showToast(`✅ ${ALLERGENS_DATA[code].name} eliminado`, 'info');
-            renderAllergensList();
-            renderAllergenSelector();
-            updateCurrentDish();
-        }
-
-        function updateCurrentDish() {
-            if (currentDish) {
-                currentDish.allergens = Array.from(selectedAllergens);
-            }
-        }
-
-        async function generateLabel() {
-            if (!currentDish) {
-                showToast('⚠️ No hay plato para generar etiqueta', 'warning');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/generate-label', {
-                    method: 'POST',<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -294,6 +131,28 @@
             outline: none;
             border-color: var(--color-primary);
             box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
         }
     </style>
 </head>
@@ -480,15 +339,31 @@
     </div>
 
     <script>
-        let currentDish = null;
+        const ALLERGENS_DATA = {
+            'gluten': { name: 'Cereales con Gluten', icon: '🌾' },
+            'crustaceos': { name: 'Crustáceos', icon: '🦐' },
+            'huevos': { name: 'Huevos', icon: '🥚' },
+            'pescado': { name: 'Pescado', icon: '🐟' },
+            'cacahuetes': { name: 'Cacahuetes', icon: '🥜' },
+            'soja': { name: 'Soja', icon: '🌱' },
+            'lacteos': { name: 'Lácteos', icon: '🥛' },
+            'frutos_secos': { name: 'Frutos Secos', icon: '🌰' },
+            'apio': { name: 'Apio', icon: '🥬' },
+            'mostaza': { name: 'Mostaza', icon: '🟡' },
+            'sesamo': { name: 'Sésamo', icon: '🫘' },
+            'sulfitos': { name: 'Sulfitos', icon: '🍷' },
+            'altramuces': { name: 'Altramuces', icon: '🫘' },
+            'moluscos': { name: 'Moluscos', icon: '🐚' }
+        };
 
-        // Ocultar loading al inicio
+        let currentDish = null;
+        let selectedAllergens = new Set();
+        let editorVisible = false;
+
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('loading').classList.remove('active');
             loadDishes();
         });
 
-        // Analizar plato
         async function analyzeDish() {
             const description = document.getElementById('dishInput').value.trim();
             const chef = document.getElementById('chefInput').value.trim();
@@ -498,8 +373,7 @@
                 return;
             }
 
-            // Mostrar loading
-            document.getElementById('loading').classList.add('active');
+            document.getElementById('loading').classList.remove('hidden');
             document.getElementById('results').classList.add('hidden');
 
             try {
@@ -513,6 +387,7 @@
 
                 if (data.success) {
                     currentDish = data.dish;
+                    selectedAllergens = new Set(data.dish.allergens);
                     displayResults(data);
                     loadDishes();
                     showToast('✅ Análisis completado', 'success');
@@ -524,48 +399,100 @@
                 console.error('Error:', error);
                 showToast('❌ Error de conexión', 'error');
             } finally {
-                document.getElementById('loading').classList.remove('active');
+                document.getElementById('loading').classList.add('hidden');
             }
         }
 
-        // Mostrar resultados
         function displayResults(data) {
-            const resultsDiv = document.getElementById('results');
-            const allergensDiv = document.getElementById('allergensList');
-
-            // Info del plato
             document.getElementById('dishName').textContent = data.dish.name;
             document.getElementById('dishMeta').innerHTML = `
                 <strong>Chef:</strong> ${data.dish.chef} | 
                 <strong>Fecha:</strong> ${data.dish.date}
             `;
 
-            // Alérgenos
-            if (data.allergens.length > 0) {
-                allergensDiv.innerHTML = data.allergens.map(allergen => `
-                    <div class="allergen-badge">
-                        <span class="text-2xl">${allergen.icon}</span>
-                        <div>
-                            <div class="font-bold text-sm">${allergen.name}</div>
-                            <div class="text-xs opacity-75">${allergen.description}</div>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                allergensDiv.innerHTML = `
-                    <div class="bg-green-50 border-2 border-green-500 rounded-xl p-6 text-center">
+            renderAllergensList();
+            renderAllergenSelector();
+            
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function renderAllergensList() {
+            const container = document.getElementById('allergensList');
+            
+            if (selectedAllergens.size === 0) {
+                container.innerHTML = `
+                    <div class="bg-green-50 border-2 border-green-400 rounded-lg p-6 text-center">
                         <div class="text-4xl mb-2">✅</div>
                         <div class="text-green-800 font-bold text-lg">Sin Alérgenos</div>
                         <p class="text-green-600 text-sm mt-1">Este plato no contiene alérgenos detectados</p>
                     </div>
                 `;
+                return;
             }
 
-            resultsDiv.classList.remove('hidden');
-            resultsDiv.scrollIntoView({ behavior: 'smooth' });
+            container.innerHTML = Array.from(selectedAllergens).map(code => {
+                const allergen = ALLERGENS_DATA[code];
+                if (!allergen) return '';
+                return `
+                    <div class="allergen-badge selected">
+                        <span class="text-2xl">${allergen.icon}</span>
+                        <div class="flex-1">
+                            <div class="font-bold text-sm">${allergen.name}</div>
+                        </div>
+                        <div class="remove-btn" onclick="removeAllergen('${code}')">✕</div>
+                    </div>
+                `;
+            }).join('');
         }
 
-        // Generar etiqueta
+        function renderAllergenSelector() {
+            const container = document.getElementById('allergenSelector');
+            
+            container.innerHTML = Object.entries(ALLERGENS_DATA).map(([code, allergen]) => {
+                const isSelected = selectedAllergens.has(code);
+                return `
+                    <div class="allergen-option ${isSelected ? 'active' : ''}" onclick="toggleAllergen('${code}')">
+                        <div class="text-xl mb-1">${allergen.icon}</div>
+                        <div class="text-xs font-semibold">${allergen.name}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleAllergenEditor() {
+            editorVisible = !editorVisible;
+            const editor = document.getElementById('allergenEditor');
+            editor.classList.toggle('hidden', !editorVisible);
+        }
+
+        function toggleAllergen(code) {
+            if (selectedAllergens.has(code)) {
+                selectedAllergens.delete(code);
+                showToast(`➖ ${ALLERGENS_DATA[code].name} eliminado`, 'info');
+            } else {
+                selectedAllergens.add(code);
+                showToast(`➕ ${ALLERGENS_DATA[code].name} añadido`, 'success');
+            }
+            renderAllergensList();
+            renderAllergenSelector();
+            updateCurrentDish();
+        }
+
+        function removeAllergen(code) {
+            selectedAllergens.delete(code);
+            showToast(`✅ ${ALLERGENS_DATA[code].name} eliminado`, 'info');
+            renderAllergensList();
+            renderAllergenSelector();
+            updateCurrentDish();
+        }
+
+        function updateCurrentDish() {
+            if (currentDish) {
+                currentDish.allergens = Array.from(selectedAllergens);
+            }
+        }
+
         async function generateLabel() {
             if (!currentDish) {
                 showToast('⚠️ No hay plato para generar etiqueta', 'warning');
@@ -669,7 +596,6 @@
             }, 3000);
         }
 
-        // Atajo de teclado
         document.getElementById('dishInput').addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && e.ctrlKey) {
                 analyzeDish();
@@ -677,41 +603,5 @@
         });
     </script>
 
-    <style>
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(100px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        @keyframes slideOut {
-            from {
-                opacity: 1;
-                transform: translateX(0);
-            }
-            to {
-                opacity: 0;
-                transform: translateX(100px);
-            }
-        }
-    </style>
-
 </body>
 </html>
-                        <span>🤖</span>
-                        <p>Detección automática con IA</p>
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <span>⚠️</span>
-                        <p>14 alérgenos UE 1169/2011</p>
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <span>📄</span>
-                        <p>Etiquetas imprimibles</p>
-                    </div>
-                    <div class="flex items-start gap-2">
