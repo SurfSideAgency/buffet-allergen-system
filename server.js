@@ -503,6 +503,166 @@ function generateLabelHTML(dish, allergens) {
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+// ====== AÑADIR ANTES DE app.listen() ======
+
+// Configurar multer para imágenes
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+// Base de datos de ingredientes personalizados (EN MEMORIA)
+let customIngredients = {};
+let ingredientId = 1;
+
+// NUEVO: Escanear etiqueta (SIMULADO - sin IA real)
+app.post('/api/scan-ingredient-label', upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'No se recibió ninguna imagen'
+            });
+        }
+
+        console.log('📸 Imagen recibida:', req.file.originalname);
+
+        // SIMULACIÓN (espera 2 segundos para parecer real)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Respuesta simulada
+        const simulatedResponse = {
+            nombre: "Ingrediente detectado",
+            alergenos: [],
+            categoria: "📦 Personalizado"
+        };
+
+        res.json({
+            success: true,
+            data: simulatedResponse,
+            message: 'Análisis completado (simulación)'
+        });
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error procesando imagen'
+        });
+    }
+});
+
+// NUEVO: Guardar ingrediente personalizado
+app.post('/api/custom-ingredients', (req, res) => {
+    try {
+        const { name, category, allergens, brand, notes } = req.body;
+
+        if (!name) {
+            return res.status(400).json({
+                success: false,
+                error: 'El nombre es requerido'
+            });
+        }
+
+        const code = `custom_${ingredientId++}`;
+        
+        customIngredients[code] = {
+            code: code,
+            name: name,
+            category: category || '📦 Personalizado',
+            allergens: allergens || [],
+            brand: brand || '',
+            notes: notes || '',
+            created_at: new Date().toISOString(),
+            is_custom: true
+        };
+
+        console.log(`✅ Ingrediente guardado: ${name}`);
+
+        res.json({
+            success: true,
+            ingredient: customIngredients[code]
+        });
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error guardando'
+        });
+    }
+});
+
+// NUEVO: Obtener ingredientes personalizados
+app.get('/api/custom-ingredients', (req, res) => {
+    res.json({
+        success: true,
+        ingredients: customIngredients,
+        count: Object.keys(customIngredients).length
+    });
+});
+
+// NUEVO: Eliminar ingrediente
+app.delete('/api/custom-ingredients/:code', (req, res) => {
+    const { code } = req.params;
+    
+    if (!customIngredients[code]) {
+        return res.status(404).json({
+            success: false,
+            error: 'No encontrado'
+        });
+    }
+
+    delete customIngredients[code];
+    console.log(`🗑️ Ingrediente eliminado`);
+
+    res.json({ success: true });
+});
+
+// MODIFICAR el endpoint existente /api/ingredients
+// Busca esta función y reemplázala:
+app.get('/api/ingredients', (req, res) => {
+    try {
+        // Combinar ingredientes base con personalizados
+        const allIngredients = { ...INGREDIENTS, ...customIngredients };
+        
+        const categorized = {};
+        
+        Object.entries(allIngredients).forEach(([code, ingredient]) => {
+            const category = ingredient.category;
+            if (!categorized[category]) {
+                categorized[category] = [];
+            }
+            categorized[category].push({
+                code: code,
+                ...ingredient
+            });
+        });
+        
+        res.json({
+            success: true,
+            ingredients: allIngredients,
+            categorized: categorized,
+            total: Object.keys(allIngredients).length,
+            custom_count: Object.keys(customIngredients).length
+        });
+    } catch (error) {
+        console.error('❌ Error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error obteniendo ingredientes'
+        });
+    }
+});
+
+// MODIFICAR también el endpoint /api/analyze-by-ingredients
+// Añade esta línea al inicio de la función (después de las validaciones):
+const allIngredients = { ...INGREDIENTS, ...customIngredients };
+
+// Y reemplaza todas las referencias a INGREDIENTS[ingredientCode]
+// por allIngredients[ingredientCode]
 
 // ====== INICIAR SERVIDOR ======
 app.listen(port, () => {
