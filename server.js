@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -11,9 +10,154 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Cargar bases de datos JSON
-const ALLERGENS = JSON.parse(fs.readFileSync('./data/allergens.json', 'utf8'));
-const INGREDIENTS = JSON.parse(fs.readFileSync('./data/ingredients.json', 'utf8'));
+// ====== BASES DE DATOS INCRUSTADAS ======
+const ALLERGENS = {
+  "gluten": {
+    "name": "Cereales con Gluten",
+    "icon": "🌾",
+    "description": "Trigo, centeno, cebada, avena",
+    "keywords": ["trigo", "harina", "pan", "pasta", "centeno", "cebada", "avena", "gluten"]
+  },
+  "crustaceos": {
+    "name": "Crustáceos",
+    "icon": "🦐",
+    "description": "Gambas, langostinos, cangrejos",
+    "keywords": ["gambas", "langostinos", "cangrejo", "camarón", "bogavante", "crustáceo"]
+  },
+  "huevos": {
+    "name": "Huevos",
+    "icon": "🥚",
+    "description": "Huevos y productos derivados",
+    "keywords": ["huevo", "huevos", "clara", "yema", "mayonesa", "tortilla"]
+  },
+  "pescado": {
+    "name": "Pescado",
+    "icon": "🐟",
+    "description": "Pescado y productos derivados",
+    "keywords": ["pescado", "salmón", "atún", "merluza", "bacalao", "anchoa", "sardina"]
+  },
+  "cacahuetes": {
+    "name": "Cacahuetes",
+    "icon": "🥜",
+    "description": "Cacahuetes y productos derivados",
+    "keywords": ["cacahuete", "cacahuetes", "maní", "crema de cacahuete"]
+  },
+  "soja": {
+    "name": "Soja",
+    "icon": "🌱",
+    "description": "Soja y productos derivados",
+    "keywords": ["soja", "salsa de soja", "tofu", "edamame", "miso"]
+  },
+  "lacteos": {
+    "name": "Leche y Lácteos",
+    "icon": "🥛",
+    "description": "Leche y productos lácteos",
+    "keywords": ["leche", "queso", "mantequilla", "nata", "yogur", "crema", "lácteo"]
+  },
+  "frutos_secos": {
+    "name": "Frutos de Cáscara",
+    "icon": "🌰",
+    "description": "Almendras, nueces, avellanas",
+    "keywords": ["almendra", "nuez", "avellana", "pistacho", "anacardo", "castaña"]
+  },
+  "apio": {
+    "name": "Apio",
+    "icon": "🥬",
+    "description": "Apio y productos derivados",
+    "keywords": ["apio"]
+  },
+  "mostaza": {
+    "name": "Mostaza",
+    "icon": "🟡",
+    "description": "Mostaza y productos derivados",
+    "keywords": ["mostaza"]
+  },
+  "sesamo": {
+    "name": "Granos de Sésamo",
+    "icon": "🫘",
+    "description": "Sésamo y productos derivados",
+    "keywords": ["sésamo", "sesamo", "ajonjolí", "tahini"]
+  },
+  "sulfitos": {
+    "name": "Sulfitos",
+    "icon": "🍷",
+    "description": "Vino, conservas, frutos secos",
+    "keywords": ["vino", "sulfito", "conserva", "vinagre"]
+  },
+  "altramuces": {
+    "name": "Altramuces",
+    "icon": "🫘",
+    "description": "Altramuces y productos derivados",
+    "keywords": ["altramuz", "altramuces", "lupino"]
+  },
+  "moluscos": {
+    "name": "Moluscos",
+    "icon": "🐚",
+    "description": "Mejillones, almejas, caracoles",
+    "keywords": ["mejillón", "almeja", "calamar", "pulpo", "sepia", "caracol", "molusco"]
+  }
+};
+
+const INGREDIENTS = {
+  "cereales": {
+    "harina_trigo": { "name": "Harina de trigo", "allergens": ["gluten"] },
+    "pan": { "name": "Pan", "allergens": ["gluten"] },
+    "pasta": { "name": "Pasta", "allergens": ["gluten"] },
+    "arroz": { "name": "Arroz", "allergens": [] },
+    "avena": { "name": "Avena", "allergens": ["gluten"] }
+  },
+  "lacteos": {
+    "leche": { "name": "Leche", "allergens": ["lacteos"] },
+    "queso": { "name": "Queso", "allergens": ["lacteos"] },
+    "mantequilla": { "name": "Mantequilla", "allergens": ["lacteos"] },
+    "nata": { "name": "Nata", "allergens": ["lacteos"] },
+    "yogur": { "name": "Yogur", "allergens": ["lacteos"] }
+  },
+  "huevos": {
+    "huevos": { "name": "Huevos", "allergens": ["huevos"] },
+    "mayonesa": { "name": "Mayonesa", "allergens": ["huevos"] }
+  },
+  "pescados": {
+    "salmon": { "name": "Salmón", "allergens": ["pescado"] },
+    "merluza": { "name": "Merluza", "allergens": ["pescado"] },
+    "bacalao": { "name": "Bacalao", "allergens": ["pescado"] },
+    "atun": { "name": "Atún", "allergens": ["pescado"] }
+  },
+  "mariscos": {
+    "gambas": { "name": "Gambas", "allergens": ["crustaceos"] },
+    "langostinos": { "name": "Langostinos", "allergens": ["crustaceos"] },
+    "mejillones": { "name": "Mejillones", "allergens": ["moluscos"] },
+    "almejas": { "name": "Almejas", "allergens": ["moluscos"] },
+    "calamares": { "name": "Calamares", "allergens": ["moluscos"] }
+  },
+  "frutos_secos": {
+    "almendras": { "name": "Almendras", "allergens": ["frutos_secos"] },
+    "nueces": { "name": "Nueces", "allergens": ["frutos_secos"] },
+    "cacahuetes": { "name": "Cacahuetes", "allergens": ["cacahuetes"] }
+  },
+  "carnes": {
+    "pollo": { "name": "Pollo", "allergens": [] },
+    "ternera": { "name": "Ternera", "allergens": [] },
+    "cerdo": { "name": "Cerdo", "allergens": [] }
+  },
+  "verduras": {
+    "tomate": { "name": "Tomate", "allergens": [] },
+    "cebolla": { "name": "Cebolla", "allergens": [] },
+    "ajo": { "name": "Ajo", "allergens": [] },
+    "pimiento": { "name": "Pimiento", "allergens": [] },
+    "apio": { "name": "Apio", "allergens": ["apio"] }
+  },
+  "salsas": {
+    "mostaza": { "name": "Mostaza", "allergens": ["mostaza"] },
+    "salsa_soja": { "name": "Salsa de soja", "allergens": ["soja", "gluten"] },
+    "aceite_sesamo": { "name": "Aceite de sésamo", "allergens": ["sesamo"] }
+  },
+  "otros": {
+    "vino_blanco": { "name": "Vino blanco", "allergens": ["sulfitos"] },
+    "sal": { "name": "Sal", "allergens": [] },
+    "pimienta": { "name": "Pimienta", "allergens": [] }
+  }
+};
 
 // Almacenamiento temporal de platos
 let dishes = [];
