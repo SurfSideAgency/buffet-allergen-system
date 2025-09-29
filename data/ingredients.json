@@ -1,0 +1,60 @@
+{
+  "cereales": {
+    "harina_trigo": { "name": "Harina de trigo", "allergens": ["gluten"] },
+    "pan": { "name": "Pan", "allergens": ["gluten"] },
+    "pasta": { "name": "Pasta", "allergens": ["gluten"] },
+    "arroz": { "name": "Arroz", "allergens": [] },
+    "avena": { "name": "Avena", "allergens": ["gluten"] }
+  },
+  "lacteos": {
+    "leche": { "name": "Leche", "allergens": ["lacteos"] },
+    "queso": { "name": "Queso", "allergens": ["lacteos"] },
+    "mantequilla": { "name": "Mantequilla", "allergens": ["lacteos"] },
+    "nata": { "name": "Nata", "allergens": ["lacteos"] },
+    "yogur": { "name": "Yogur", "allergens": ["lacteos"] }
+  },
+  "huevos": {
+    "huevos": { "name": "Huevos", "allergens": ["huevos"] },
+    "mayonesa": { "name": "Mayonesa", "allergens": ["huevos"] }
+  },
+  "pescados": {
+    "salmon": { "name": "Salmón", "allergens": ["pescado"] },
+    "merluza": { "name": "Merluza", "allergens": ["pescado"] },
+    "bacalao": { "name": "Bacalao", "allergens": ["pescado"] },
+    "atun": { "name": "Atún", "allergens": ["pescado"] }
+  },
+  "mariscos": {
+    "gambas": { "name": "Gambas", "allergens": ["crustaceos"] },
+    "langostinos": { "name": "Langostinos", "allergens": ["crustaceos"] },
+    "mejillones": { "name": "Mejillones", "allergens": ["moluscos"] },
+    "almejas": { "name": "Almejas", "allergens": ["moluscos"] },
+    "calamares": { "name": "Calamares", "allergens": ["moluscos"] }
+  },
+  "frutos_secos": {
+    "almendras": { "name": "Almendras", "allergens": ["frutos_secos"] },
+    "nueces": { "name": "Nueces", "allergens": ["frutos_secos"] },
+    "cacahuetes": { "name": "Cacahuetes", "allergens": ["cacahuetes"] }
+  },
+  "carnes": {
+    "pollo": { "name": "Pollo", "allergens": [] },
+    "ternera": { "name": "Ternera", "allergens": [] },
+    "cerdo": { "name": "Cerdo", "allergens": [] }
+  },
+  "verduras": {
+    "tomate": { "name": "Tomate", "allergens": [] },
+    "cebolla": { "name": "Cebolla", "allergens": [] },
+    "ajo": { "name": "Ajo", "allergens": [] },
+    "pimiento": { "name": "Pimiento", "allergens": [] },
+    "apio": { "name": "Apio", "allergens": ["apio"] }
+  },
+  "salsas": {
+    "mostaza": { "name": "Mostaza", "allergens": ["mostaza"] },
+    "salsa_soja": { "name": "Salsa de soja", "allergens": ["soja", "gluten"] },
+    "aceite_sesamo": { "name": "Aceite de sésamo", "allergens": ["sesamo"] }
+  },
+  "otros": {
+    "vino_blanco": { "name": "Vino blanco", "allergens": ["sulfitos"] },
+    "sal": { "name": "Sal", "allergens": [] },
+    "pimienta": { "name": "Pimienta", "allergens": [] }
+  }
+}
