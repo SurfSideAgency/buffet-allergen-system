@@ -1,0 +1,86 @@
+{
+  "gluten": {
+    "name": "Cereales con Gluten",
+    "icon": "🌾",
+    "description": "Trigo, centeno, cebada, avena",
+    "keywords": ["trigo", "harina", "pan", "pasta", "centeno", "cebada", "avena", "gluten"]
+  },
+  "crustaceos": {
+    "name": "Crustáceos",
+    "icon": "🦐",
+    "description": "Gambas, langostinos, cangrejos",
+    "keywords": ["gambas", "langostinos", "cangrejo", "camarón", "bogavante", "crustáceo"]
+  },
+  "huevos": {
+    "name": "Huevos",
+    "icon": "🥚",
+    "description": "Huevos y productos derivados",
+    "keywords": ["huevo", "huevos", "clara", "yema", "mayonesa", "tortilla"]
+  },
+  "pescado": {
+    "name": "Pescado",
+    "icon": "🐟",
+    "description": "Pescado y productos derivados",
+    "keywords": ["pescado", "salmón", "atún", "merluza", "bacalao", "anchoa", "sardina"]
+  },
+  "cacahuetes": {
+    "name": "Cacahuetes",
+    "icon": "🥜",
+    "description": "Cacahuetes y productos derivados",
+    "keywords": ["cacahuete", "cacahuetes", "maní", "crema de cacahuete"]
+  },
+  "soja": {
+    "name": "Soja",
+    "icon": "🌱",
+    "description": "Soja y productos derivados",
+    "keywords": ["soja", "salsa de soja", "tofu", "edamame", "miso"]
+  },
+  "lacteos": {
+    "name": "Leche y Lácteos",
+    "icon": "🥛",
+    "description": "Leche y productos lácteos",
+    "keywords": ["leche", "queso", "mantequilla", "nata", "yogur", "crema", "lácteo"]
+  },
+  "frutos_secos": {
+    "name": "Frutos de Cáscara",
+    "icon": "🌰",
+    "description": "Almendras, nueces, avellanas",
+    "keywords": ["almendra", "nuez", "avellana", "pistacho", "anacardo", "castaña"]
+  },
+  "apio": {
+    "name": "Apio",
+    "icon": "🥬",
+    "description": "Apio y productos derivados",
+    "keywords": ["apio"]
+  },
+  "mostaza": {
+    "name": "Mostaza",
+    "icon": "🟡",
+    "description": "Mostaza y productos derivados",
+    "keywords": ["mostaza"]
+  },
+  "sesamo": {
+    "name": "Granos de Sésamo",
+    "icon": "🫘",
+    "description": "Sésamo y productos derivados",
+    "keywords": ["sésamo", "sesamo", "ajonjolí", "tahini"]
+  },
+  "sulfitos": {
+    "name": "Sulfitos",
+    "icon": "🍷",
+    "description": "Vino, conservas, frutos secos",
+    "keywords": ["vino", "sulfito", "conserva", "vinagre"]
+  },
+  "altramuces": {
+    "name": "Altramuces",
+    "icon": "🫘",
+    "description": "Altramuces y productos derivados",
+    "keywords": ["altramuz", "altramuces", "lupino"]
+  },
+  "moluscos": {
+    "name": "Moluscos",
+    "icon": "🐚",
+    "description": "Mejillones, almejas, caracoles",
+    "keywords": ["mejillón", "almeja", "calamar", "pulpo", "sepia", "caracol", "molusco"]
+  }
+}
