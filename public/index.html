@@ -1,76 +1,85 @@
-<button onclick="setInputMode('ingredients')" id="ingredientsTab" class="tab-button">
-                        🥘 Por Ingredientes
-                    </button>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Alérgenos - Buffet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --color-primary: #D4AF37;
+            --color-primary-dark: #B8860B;
+        }
+        body { background: #f8fafc; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .gradient-header { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); }
+        .analyze-btn { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); transition: all 0.2s; }
+        .analyze-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3); }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .voice-btn { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }
+        .voice-btn.recording { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); } }
+        .allergen-badge { display: inline-flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: #fef2f2; border: 2px solid #fecaca; border-radius: 12px; margin: 0.25rem; }
+        .allergen-badge:hover { border-color: #ef4444; background: #fee2e2; }
+    </style>
+</head>
+<body>
+    
+    <!-- Header -->
+    <div class="gradient-header text-white py-6 mb-6 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">🍽️</span>
+                    <div>
+                        <h1 class="text-2xl font-bold">Sistema de Alérgenos</h1>
+                        <p class="text-sm opacity-90">Control Sanitario de Buffet</p>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="max-w-7xl mx-auto px-4 pb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Panel Principal -->
+            <div class="lg:col-span-2 space-y-6">
                 
-                <!-- Entrada por Texto -->
-                <div id="textMode" class="main-card p-6">
-                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <span>📝</span>
-                        Describe el Plato
-                    </h2>
+                <!-- Formulario -->
+                <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">📝 Describe el Plato</h2>
 
                     <div class="space-y-4">
-                        <!-- Campo de descripción con botón de voz -->
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                🥘 Plato e Ingredientes
-                            </label>
-                            <div class="relative">
-                                <textarea 
-                                    id="dishInput"
-                                    rows="3"
-                                    class="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-lg transition-all resize-none"
-                                    placeholder="Ejemplo: Paella valenciana con arroz, gambas, mejillones, pollo y azafrán"
-                                ></textarea>
-                                <button 
-                                    onclick="toggleVoiceRecording('dishInput')"
-                                    id="voiceBtn"
-                                    class="absolute right-2 top-2 p-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all"
-                                    title="Dictar con voz">
-                                    🎤
-                                </button>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">
-                                💡 Describe el plato con sus ingredientes o usa el micrófono para dictar
-                            </p>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">🥘 Plato e Ingredientes</label>
+                            <textarea 
+                                id="dishInput"
+                                rows="3"
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none resize-none"
+                                placeholder="Ejemplo: Paella valenciana con arroz, gambas, mejillones, pollo y azafrán"
+                            ></textarea>
                         </div>
 
-                        <!-- Campo de elaboración (para recetario) -->
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                📝 Proceso de Elaboración <span class="text-xs text-gray-500">(para recetario)</span>
-                            </label>
-                            <div class="relative">
-                                <textarea 
-                                    id="elaborationInput"
-                                    rows="4"
-                                    class="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-lg transition-all resize-none"
-                                    placeholder="1. Sofreír el ajo y la cebolla en aceite de oliva&#10;2. Añadir el arroz y tostar ligeramente&#10;3. Incorporar el caldo caliente..."
-                                ></textarea>
-                                <button 
-                                    onclick="toggleVoiceRecording('elaborationInput')"
-                                    class="absolute right-2 top-2 p-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all"
-                                    title="Dictar con voz">
-                                    🎤
-                                </button>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">
-                                📋 Este campo es necesario para generar el recetario oficial para Sanidad
-                            </p>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">📝 Proceso de Elaboración <span class="text-xs text-gray-500">(para recetario)</span></label>
+                            <textarea 
+                                id="elaborationInput"
+                                rows="4"
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none resize-none"
+                                placeholder="1. Sofreír el ajo y la cebolla...&#10;2. Añadir el arroz...&#10;3. Incorporar el caldo..."
+                            ></textarea>
                         </div>
 
-                        <!-- Chef y botón analizar -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div class="md:col-span-2">
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                    👨‍🍳 Chef Responsable
-                                </label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">👨‍🍳 Chef Responsable</label>
                                 <input 
                                     type="text"
                                     id="chefInput"
                                     value="Chef Principal"
-                                    class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg transition-all"
+                                    class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
                                 >
                             </div>
                             <div class="flex items-end">
@@ -86,113 +95,50 @@
                     <!-- Loading -->
                     <div id="loading" class="hidden mt-4 flex items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg">
                         <div class="spinner w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                        <span class="text-blue-700 font-medium text-sm">Analizando con IA...</span>
+                        <span class="text-blue-700 font-medium text-sm">Analizando...</span>
                     </div>
-                </div>
-
-                <!-- Entrada por Ingredientes (oculto por defecto) -->
-                <div id="ingredientsMode" class="main-card p-6 hidden">
-                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <span>🥘</span>
-                        Selecciona Ingredientes
-                    </h2>
-                    <div id="ingredientsList" class="space-y-4">
-                        <!-- Se llenará dinámicamente -->
-                    </div>
-                    <button 
-                        onclick="analyzeByIngredients()"
-                        class="analyze-btn w-full mt-4 text-white font-bold py-3 px-4 rounded-lg shadow">
-                        🔍 Analizar por Ingredientes
-                    </button>
                 </div>
 
                 <!-- Resultados -->
                 <div id="results" class="hidden space-y-6">
                     
                     <!-- Plato Creado -->
-                    <div class="main-card p-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-6">
                         <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 rounded-lg p-4">
-                            <h3 class="text-lg font-bold text-green-800 mb-2 flex items-center gap-2">
-                                <span>✅</span>
-                                Análisis Completado
-                            </h3>
+                            <h3 class="text-lg font-bold text-green-800 mb-2">✅ Análisis Completado</h3>
                             <div id="dishName" class="text-2xl font-bold text-gray-800 mb-1"></div>
                             <div id="dishMeta" class="text-sm text-gray-600"></div>
                         </div>
                     </div>
 
-                    <!-- Alérgenos Detectados -->
-                    <div class="main-card p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                                <span>⚠️</span>
-                                Alérgenos Detectados
-                            </h4>
+                    <!-- Alérgenos -->
+                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">⚠️ Alérgenos Detectados</h4>
+                        <div id="allergensList"></div>
+                    </div>
+
+                    <!-- Documentos -->
+                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                        <h4 class="text-lg font-bold text-gray-800 mb-4">📄 Generar Documentos</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <button 
-                                onclick="toggleAllergenEditor()"
-                                class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all">
-                                ✏️ Editar
+                                onclick="generateLabel()"
+                                class="p-4 border-2 border-gray-200 rounded-lg hover:border-yellow-500 transition-all">
+                                <div class="text-3xl mb-2">🏷️</div>
+                                <h5 class="font-bold text-gray-800">Etiqueta para Buffet</h5>
+                                <p class="text-xs text-gray-600 mt-1">Etiqueta simple con alérgenos</p>
+                            </button>
+
+                            <button 
+                                onclick="generateRecipeDocument()"
+                                class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-all">
+                                <div class="text-3xl mb-2">📋</div>
+                                <h5 class="font-bold text-gray-800">Recetario Oficial</h5>
+                                <p class="text-xs text-gray-600 mt-1">Documento para Sanidad</p>
                             </button>
                         </div>
-                        <div id="allergensList" class="mb-4"></div>
-
-                        <!-- Editor de Alérgenos -->
-                        <div id="allergenEditor" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-3">
-                                <strong>Selecciona o deselecciona alérgenos:</strong>
-                            </p>
-                            <div id="allergenSelector" class="allergen-selector"></div>
-                        </div>
                     </div>
 
-                    <!-- Botones de Documentos -->
-                    <div class="main-card p-6">
-                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <span>📄</span>
-                            Generar Documentos
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Etiqueta Buffet -->
-                            <div class="p-4 border-2 border-gray-200 rounded-lg hover:border-yellow-500 transition-all">
-                                <div class="flex items-start gap-3">
-                                    <span class="text-3xl">🏷️</span>
-                                    <div class="flex-1">
-                                        <h5 class="font-bold text-gray-800">Etiqueta para Buffet</h5>
-                                        <p class="text-xs text-gray-600 mt-1">
-                                            Etiqueta simple con alérgenos para colocar junto al plato
-                                        </p>
-                                        <button 
-                                            onclick="generateLabel()"
-                                            class="document-btn mt-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
-                                            <span>✨</span>
-                                            <span>Generar Etiqueta</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Recetario Sanidad -->
-                            <div class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-all">
-                                <div class="flex items-start gap-3">
-                                    <span class="text-3xl">📋</span>
-                                    <div class="flex-1">
-                                        <h5 class="font-bold text-gray-800">Recetario Oficial</h5>
-                                        <p class="text-xs text-gray-600 mt-1">
-                                            Documento completo para presentar a Sanidad con ingredientes y proceso
-                                        </p>
-                                        <button 
-                                            onclick="generateRecipeDocument()"
-                                            class="document-btn mt-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-                                            <span>📄</span>
-                                            <span>Generar Recetario</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Botón Reset -->
                     <button 
                         onclick="reset()"
                         class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg shadow transition-all">
@@ -203,17 +149,12 @@
 
             <!-- Sidebar -->
             <div class="space-y-6">
-                
-                <!-- Platos de Hoy -->
-                <div class="main-card p-5">
+                <div class="bg-white rounded-2xl shadow-sm p-5">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                            <span>📋</span>
-                            Platos de Hoy
-                        </h3>
+                        <h3 class="text-lg font-bold text-gray-800">📋 Platos de Hoy</h3>
                         <span id="dishCount" class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-semibold">0</span>
                     </div>
-                    <div id="dishesList" class="space-y-2 max-h-80 overflow-y-auto">
+                    <div id="dishesList" class="space-y-2">
                         <div class="text-center py-8 text-gray-400">
                             <div class="text-4xl mb-2">🍽️</div>
                             <p class="text-sm">Sin platos registrados</p>
@@ -221,37 +162,13 @@
                     </div>
                 </div>
 
-                <!-- Información -->
-                <div class="main-card p-5">
-                    <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                        <span>ℹ️</span>
-                        Información
-                    </h3>
+                <div class="bg-white rounded-2xl shadow-sm p-5">
+                    <h3 class="text-lg font-bold text-gray-800 mb-3">ℹ️ Información</h3>
                     <div class="space-y-2 text-sm text-gray-600">
-                        <div class="flex items-start gap-2">
-                            <span>🤖</span>
-                            <p>Detección con IA inteligente</p>
-                        </div>
-                        <div class="flex items-start gap-2">
-                            <span>🎤</span>
-                            <p>Entrada por voz disponible</p>
-                        </div>
-                        <div class="flex items-start gap-2">
-                            <span>⚠️</span>
-                            <p>14 alérgenos UE 1169/2011</p>
-                        </div>
-                        <div class="flex items-start gap-2">
-                            <span>📄</span>
-                            <p>Recetario para Sanidad</p>
-                        </div>
-                        <div class="flex items-start gap-2">
-                            <span>🏷️</span>
-                            <p>Etiquetas para buffet</p>
-                        </div>
-                        <div class="flex items-start gap-2">
-                            <span>✅</span>
-                            <p>Cumple normativa europea</p>
-                        </div>
+                        <div class="flex items-start gap-2"><span>⚠️</span><p>14 alérgenos UE 1169/2011</p></div>
+                        <div class="flex items-start gap-2"><span>📄</span><p>Recetario para Sanidad</p></div>
+                        <div class="flex items-start gap-2"><span>🏷️</span><p>Etiquetas para buffet</p></div>
+                        <div class="flex items-start gap-2"><span>✅</span><p>Cumple normativa europea</p></div>
                     </div>
                 </div>
             </div>
@@ -259,7 +176,6 @@
     </div>
 
     <script>
-        // ====== CONFIGURACIÓN ======
         const ALLERGENS_DATA = {
             'gluten': { name: 'Cereales con Gluten', icon: '🌾' },
             'crustaceos': { name: 'Crustáceos', icon: '🦐' },
@@ -277,156 +193,12 @@
             'moluscos': { name: 'Moluscos', icon: '🐚' }
         };
 
-        // ====== VARIABLES GLOBALES ======
         let currentDish = null;
-        let selectedAllergens = new Set();
-        let editorVisible = false;
-        let currentInputMode = 'text';
-        let recognition = null;
-        let isRecording = false;
-        let currentRecordingField = null;
 
-        // ====== INICIALIZACIÓN ======
         document.addEventListener('DOMContentLoaded', () => {
             loadDishes();
-            checkSystemStatus();
-            initializeSpeechRecognition();
         });
 
-        // ====== RECONOCIMIENTO DE VOZ ======
-        function initializeSpeechRecognition() {
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                recognition = new SpeechRecognition();
-                recognition.lang = 'es-ES';
-                recognition.continuous = true;
-                recognition.interimResults = true;
-
-                recognition.onstart = () => {
-                    isRecording = true;
-                    updateVoiceButton(true);
-                    showToast('🎤 Escuchando...', 'info');
-                };
-
-                recognition.onend = () => {
-                    isRecording = false;
-                    updateVoiceButton(false);
-                };
-
-                recognition.onresult = (event) => {
-                    let finalTranscript = '';
-                    let interimTranscript = '';
-
-                    for (let i = event.resultIndex; i < event.results.length; i++) {
-                        const transcript = event.results[i][0].transcript;
-                        if (event.results[i].isFinal) {
-                            finalTranscript += transcript + ' ';
-                        } else {
-                            interimTranscript += transcript;
-                        }
-                    }
-
-                    if (currentRecordingField && finalTranscript) {
-                        const field = document.getElementById(currentRecordingField);
-                        field.value += finalTranscript;
-                    }
-                };
-
-                recognition.onerror = (event) => {
-                    console.error('Error de reconocimiento:', event.error);
-                    showToast('❌ Error en reconocimiento de voz', 'error');
-                    isRecording = false;
-                    updateVoiceButton(false);
-                };
-            } else {
-                console.log('Reconocimiento de voz no disponible');
-            }
-        }
-
-        function toggleVoiceRecording(fieldId) {
-            if (!recognition) {
-                showToast('⚠️ Tu navegador no soporta reconocimiento de voz', 'warning');
-                return;
-            }
-
-            if (isRecording && currentRecordingField === fieldId) {
-                // Detener grabación
-                recognition.stop();
-                currentRecordingField = null;
-            } else {
-                // Iniciar grabación
-                if (isRecording) {
-                    recognition.stop();
-                }
-                currentRecordingField = fieldId;
-                recognition.start();
-            }
-        }
-
-        function updateVoiceButton(recording) {
-            const buttons = document.querySelectorAll('[id^="voice"]');
-            buttons.forEach(btn => {
-                if (recording) {
-                    btn.classList.add('recording');
-                    btn.textContent = '⏹️';
-                } else {
-                    btn.classList.remove('recording');
-                    btn.textContent = '🎤';
-                }
-            });
-        }
-
-        // ====== CAMBIO DE MODO ======
-        function setInputMode(mode) {
-            currentInputMode = mode;
-            
-            // Actualizar tabs
-            document.getElementById('textTab').classList.toggle('active', mode === 'text');
-            document.getElementById('ingredientsTab').classList.toggle('active', mode === 'ingredients');
-            
-            // Mostrar/ocultar paneles
-            document.getElementById('textMode').classList.toggle('hidden', mode !== 'text');
-            document.getElementById('ingredientsMode').classList.toggle('hidden', mode !== 'ingredients');
-            
-            // Cargar ingredientes si es necesario
-            if (mode === 'ingredients') {
-                loadIngredientsList();
-            }
-        }
-
-        // ====== CARGAR LISTA DE INGREDIENTES ======
-        async function loadIngredientsList() {
-            try {
-                const response = await fetch('/api/ingredients');
-                const data = await response.json();
-                
-                if (data.success) {
-                    const container = document.getElementById('ingredientsList');
-                    container.innerHTML = '';
-                    
-                    Object.entries(data.categorized).forEach(([category, ingredients]) => {
-                        const categoryDiv = document.createElement('div');
-                        categoryDiv.className = 'mb-4';
-                        categoryDiv.innerHTML = `
-                            <h4 class="font-bold text-gray-700 mb-2">${category}</h4>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                ${ingredients.map(ing => `
-                                    <label class="flex items-center gap-2 p-2 border rounded hover:bg-gray-50 cursor-pointer">
-                                        <input type="checkbox" value="${ing.code}" class="ingredient-checkbox">
-                                        <span class="text-sm">${ing.name}</span>
-                                    </label>
-                                `).join('')}
-                            </div>
-                        `;
-                        container.appendChild(categoryDiv);
-                    });
-                }
-            } catch (error) {
-                console.error('Error cargando ingredientes:', error);
-            }
-        }
-
-        // ====== ANALIZAR PLATO (TEXTO) ======
         async function analyzeDish() {
             const description = document.getElementById('dishInput').value.trim();
             const chef = document.getElementById('chefInput').value.trim();
@@ -444,20 +216,13 @@
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        description, 
-                        chef,
-                        elaboration,
-                        ingredients_list: description
-                    })
+                    body: JSON.stringify({ description, chef, elaboration })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
                     currentDish = data.dish;
-                    currentDish.elaboration = elaboration; // Guardar elaboración
-                    selectedAllergens = new Set(data.dish.allergens);
                     displayResults(data);
                     loadDishes();
                     showToast('✅ Análisis completado', 'success');
@@ -473,129 +238,39 @@
             }
         }
 
-        // ====== ANALIZAR POR INGREDIENTES ======
-        async function analyzeByIngredients() {
-            const checkboxes = document.querySelectorAll('.ingredient-checkbox:checked');
-            const ingredients = Array.from(checkboxes).map(cb => cb.value);
-            
-            if (ingredients.length === 0) {
-                showToast('⚠️ Selecciona al menos un ingrediente', 'warning');
-                return;
-            }
-
-            // Implementar lógica similar a analyzeDish pero usando endpoint de ingredientes
-            showToast('🔍 Analizando por ingredientes...', 'info');
-        }
-
-        // ====== MOSTRAR RESULTADOS ======
         function displayResults(data) {
             document.getElementById('dishName').textContent = data.dish.name;
-            document.getElementById('dishMeta').innerHTML = `
-                <strong>Chef:</strong> ${data.dish.chef} | 
-                <strong>Fecha:</strong> ${data.dish.date} |
-                <strong>Modo:</strong> ${data.dish.analysis_mode === 'AI' ? '🤖 IA' : '📝 Keywords'}
-            `;
-
-            renderAllergensList();
-            renderAllergenSelector();
+            document.getElementById('dishMeta').innerHTML = `<strong>Chef:</strong> ${data.dish.chef} | <strong>Fecha:</strong> ${data.dish.date}`;
             
-            document.getElementById('results').classList.remove('hidden');
-            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        // ====== RENDERIZAR ALÉRGENOS ======
-        function renderAllergensList() {
-            const container = document.getElementById('allergensList');
+            const allergensList = document.getElementById('allergensList');
             
-            if (selectedAllergens.size === 0) {
-                container.innerHTML = `
+            if (data.dish.allergens.length === 0) {
+                allergensList.innerHTML = `
                     <div class="bg-green-50 border-2 border-green-400 rounded-lg p-6 text-center">
                         <div class="text-4xl mb-2">✅</div>
                         <div class="text-green-800 font-bold text-lg">Sin Alérgenos</div>
                         <p class="text-green-600 text-sm mt-1">Este plato no contiene alérgenos detectados</p>
                     </div>
                 `;
-                return;
-            }
-
-            container.innerHTML = Array.from(selectedAllergens).map(code => {
-                const allergen = ALLERGENS_DATA[code];
-                if (!allergen) return '';
-                return `
-                    <div class="allergen-badge selected">
-                        <span class="text-2xl">${allergen.icon}</span>
-                        <div class="flex-1">
-                            <div class="font-bold text-sm">${allergen.name}</div>
-                        </div>
-                        <div class="remove-btn" onclick="removeAllergen('${code}')">✕</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderAllergenSelector() {
-            const container = document.getElementById('allergenSelector');
-            
-            container.innerHTML = Object.entries(ALLERGENS_DATA).map(([code, allergen]) => {
-                const isSelected = selectedAllergens.has(code);
-                return `
-                    <div class="allergen-option ${isSelected ? 'active' : ''}" onclick="toggleAllergen('${code}')">
-                        <div class="text-xl mb-1">${allergen.icon}</div>
-                        <div class="text-xs font-semibold">${allergen.name}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // ====== EDITAR ALÉRGENOS ======
-        function toggleAllergenEditor() {
-            editorVisible = !editorVisible;
-            const editor = document.getElementById('allergenEditor');
-            editor.classList.toggle('hidden', !editorVisible);
-        }
-
-        function toggleAllergen(code) {
-            if (selectedAllergens.has(code)) {
-                selectedAllergens.delete(code);
-                showToast(`➖ ${ALLERGENS_DATA[code].name} eliminado`, 'info');
             } else {
-                selectedAllergens.add(code);
-                showToast(`➕ ${ALLERGENS_DATA[code].name} añadido`, 'success');
+                allergensList.innerHTML = data.dish.allergens.map(code => {
+                    const allergen = ALLERGENS_DATA[code];
+                    if (!allergen) return '';
+                    return `
+                        <div class="allergen-badge">
+                            <span class="text-2xl">${allergen.icon}</span>
+                            <div class="flex-1">
+                                <div class="font-bold text-sm">${allergen.name}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             }
-            renderAllergensList();
-            renderAllergenSelector();
-            updateCurrentDish();
+            
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        function removeAllergen(code) {
-            selectedAllergens.delete(code);
-            showToast(`✅ ${ALLERGENS_DATA[code].name} eliminado`, 'info');
-            renderAllergensList();
-            renderAllergenSelector();
-            updateCurrentDish();
-        }
-
-        async function updateCurrentDish() {
-            if (currentDish) {
-                currentDish.allergens = Array.from(selectedAllergens);
-                
-                // Actualizar en el servidor
-                try {
-                    await fetch('/api/update-allergens', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            dishId: currentDish.id,
-                            allergens: currentDish.allergens
-                        })
-                    });
-                } catch (error) {
-                    console.error('Error actualizando alérgenos:', error);
-                }
-            }
-        }
-
-        // ====== GENERAR DOCUMENTOS ======
         async function generateLabel() {
             if (!currentDish) {
                 showToast('⚠️ No hay plato para generar etiqueta', 'warning');
@@ -631,12 +306,6 @@
                 return;
             }
 
-            if (!currentDish.elaboration) {
-                showToast('⚠️ Añade el proceso de elaboración para generar el recetario', 'warning');
-                document.getElementById('elaborationInput').focus();
-                return;
-            }
-
             try {
                 const response = await fetch('/api/generate-recipe-document', {
                     method: 'POST',
@@ -660,19 +329,14 @@
             }
         }
 
-        // ====== RESET ======
         function reset() {
             document.getElementById('dishInput').value = '';
             document.getElementById('elaborationInput').value = '';
             document.getElementById('results').classList.add('hidden');
-            document.getElementById('allergenEditor').classList.add('hidden');
-            editorVisible = false;
             currentDish = null;
-            selectedAllergens.clear();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // ====== CARGAR PLATOS ======
         async function loadDishes() {
             try {
                 const response = await fetch('/api/dishes/today');
@@ -681,7 +345,7 @@
                 const dishesList = document.getElementById('dishesList');
                 const dishCount = document.getElementById('dishCount');
 
-                dishCount.textContent = data.count || data.dishes?.length || 0;
+                dishCount.textContent = data.count || 0;
 
                 if (!data.dishes || data.dishes.length === 0) {
                     dishesList.innerHTML = `
@@ -694,11 +358,9 @@
                 }
 
                 dishesList.innerHTML = data.dishes.map(dish => `
-                    <div class="dish-card">
-                        <div class="font-bold text-gray-800 mb-1 text-sm">${dish.name}</div>
-                        <div class="text-xs text-gray-500 mb-2">
-                            👨‍🍳 ${dish.chef}
-                        </div>
+                    <div class="p-3 bg-gray-50 rounded-lg border-l-4 border-yellow-500">
+                        <div class="font-bold text-gray-800 text-sm mb-1">${dish.name}</div>
+                        <div class="text-xs text-gray-500 mb-2">👨‍🍳 ${dish.chef}</div>
                         ${dish.allergens.length > 0 ? `
                             <div class="text-xs">
                                 <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full font-medium">
@@ -716,28 +378,6 @@
             }
         }
 
-        // ====== VERIFICAR ESTADO DEL SISTEMA ======
-        async function checkSystemStatus() {
-            try {
-                const response = await fetch('/api/system-status');
-                const data = await response.json();
-                
-                if (data.success) {
-                    const aiIndicator = document.getElementById('aiStatus');
-                    if (data.ai_enabled) {
-                        aiIndicator.innerHTML = '<span>🤖</span><span>IA Activa</span>';
-                        aiIndicator.classList.remove('inactive');
-                    } else {
-                        aiIndicator.innerHTML = '<span>📝</span><span>Modo Keywords</span>';
-                        aiIndicator.classList.add('inactive');
-                    }
-                }
-            } catch (error) {
-                console.error('Error verificando estado:', error);
-            }
-        }
-
-        // ====== UTILIDADES ======
         function showToast(message, type = 'info') {
             const colors = {
                 success: 'bg-green-500',
@@ -748,306 +388,15 @@
 
             const toast = document.createElement('div');
             toast.className = `fixed top-4 right-4 ${colors[type]} text-white px-5 py-3 rounded-lg shadow-lg z-50 text-sm font-medium`;
-            toast.style.animation = 'slideIn 0.3s ease-out';
             toast.textContent = message;
 
             document.body.appendChild(toast);
 
             setTimeout(() => {
-                toast.style.animation = 'slideOut 0.3s ease-out';
-                setTimeout(() => toast.remove(), 300);
+                toast.remove();
             }, 3000);
         }
-
-        // ====== ATAJOS DE TECLADO ======
-        document.addEventListener('keydown', (e) => {
-            // Ctrl+Enter para analizar
-            if (e.key === 'Enter' && e.ctrlKey) {
-                if (currentInputMode === 'text') {
-                    analyzeDish();
-                } else {
-                    analyzeByIngredients();
-                }
-            }
-            
-            // Ctrl+M para activar micrófono en campo actual
-            if (e.key === 'm' && e.ctrlKey) {
-                e.preventDefault();
-                const activeElement = document.activeElement;
-                if (activeElement && (activeElement.id === 'dishInput' || activeElement.id === 'elaborationInput')) {
-                    toggleVoiceRecording(activeElement.id);
-                }
-            }
-            
-            // Ctrl+R para reset
-            if (e.key === 'r' && e.ctrlKey && currentDish) {
-                e.preventDefault();
-                reset();
-            }
-        });
     </script>
 
 </body>
 </html>
-                    <!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Alérgenos - Buffet</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --color-primary: #D4AF37;
-            --color-primary-dark: #B8860B;
-        }
-
-        body {
-            background: #f8fafc;
-            min-height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-
-        .main-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .gradient-header {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-        }
-
-        .analyze-btn {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-            transition: all 0.2s ease;
-        }
-
-        .analyze-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
-        }
-
-        .voice-btn {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            transition: all 0.2s ease;
-        }
-
-        .voice-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
-        }
-
-        .voice-btn.recording {
-            animation: pulse 1.5s infinite;
-            background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
-        }
-
-        .allergen-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            background: #fef2f2;
-            border: 2px solid #fecaca;
-            border-radius: 12px;
-            margin: 0.25rem;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .allergen-badge:hover {
-            border-color: #ef4444;
-            background: #fee2e2;
-        }
-
-        .allergen-badge.selected {
-            border-color: #ef4444;
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-        }
-
-        .allergen-badge .remove-btn {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            width: 20px;
-            height: 20px;
-            background: #ef4444;
-            color: white;
-            border-radius: 50%;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .allergen-badge:hover .remove-btn {
-            display: flex;
-        }
-
-        .allergen-selector {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 0.5rem;
-        }
-
-        .allergen-option {
-            padding: 0.75rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-align: center;
-        }
-
-        .allergen-option:hover {
-            border-color: var(--color-primary);
-            background: #fef3c7;
-        }
-
-        .allergen-option.active {
-            border-color: #ef4444;
-            background: #fee2e2;
-        }
-
-        .dish-card {
-            background: white;
-            border-radius: 10px;
-            padding: 1rem;
-            border-left: 4px solid var(--color-primary);
-            transition: all 0.2s ease;
-        }
-
-        .dish-card:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .spinner {
-            animation: spin 1s linear infinite;
-        }
-
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: var(--color-primary);
-            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(100px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        @keyframes slideOut {
-            from {
-                opacity: 1;
-                transform: translateX(0);
-            }
-            to {
-                opacity: 0;
-                transform: translateX(100px);
-            }
-        }
-
-        .tab-button {
-            padding: 0.5rem 1rem;
-            border-radius: 8px 8px 0 0;
-            background: #e5e7eb;
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-
-        .tab-button.active {
-            background: white;
-            font-weight: bold;
-            box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
-        }
-
-        .document-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: bold;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .document-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-
-        .ai-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.25rem 0.75rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-
-        .ai-indicator.inactive {
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-        }
-    </style>
-</head>
-<body>
-    
-    <!-- Header -->
-    <div class="gradient-header text-white py-6 mb-6 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl">🍽️</span>
-                    <div>
-                        <h1 class="text-2xl font-bold">Sistema de Alérgenos</h1>
-                        <p class="text-sm opacity-90">Control Sanitario de Buffet</p>
-                    </div>
-                </div>
-                <div id="aiStatus" class="ai-indicator">
-                    <span>🤖</span>
-                    <span>IA Activa</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Contenido Principal -->
-    <div class="max-w-7xl mx-auto px-4 pb-8">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- Panel Principal -->
-            <div class="lg:col-span-2 space-y-6">
-                
-                <!-- Tabs para modo de entrada -->
-                <div class="flex gap-2 mb-4">
-                    <button onclick="setInputMode('text')" id="textTab" class="tab-button active">
-                        📝 Descripción
-                    </button>
-                    <button onclick="setInputMode('ingredients')" id="ingredientsTab" class="tab-button">
-                        🥘 Por Ingredientes
