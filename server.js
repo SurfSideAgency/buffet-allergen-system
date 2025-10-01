@@ -1,10 +1,18 @@
-// server.js - Sistema de Alérgenos CORREGIDO
+// server.js - Sistema de Alérgenos CON BASE DE DATOS
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Configurar Supabase
+const supabase = createClient(
+    process.env.SUPABASE_URL || '',
+    process.env.SUPABASE_KEY || ''
+);
 
 // Middleware
 app.use(cors());
@@ -12,11 +20,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Base de datos en memoria
-let dishes = [];
-let dishId = 1;
-
-// Alérgenos UE 1169/2011
+// Alérgenos UE
 const ALLERGENS = {
     'gluten': { name: 'Cereales con Gluten', icon: '🌾', description: 'Trigo, centeno, cebada, avena' },
     'crustaceos': { name: 'Crustáceos', icon: '🦐', description: 'Gambas, langostinos, cangrejos' },
@@ -34,180 +38,383 @@ const ALLERGENS = {
     'moluscos': { name: 'Moluscos', icon: '🐚', description: 'Mejillones, almejas, caracoles' }
 };
 
-// Detección de alérgenos por keywords
-function detectAllergens(description) {
-    const keywords = {
-        'gluten': ['trigo', 'harina', 'pan', 'pasta', 'centeno', 'cebada', 'avena', 'gluten'],
-        'crustaceos': ['gambas', 'langostinos', 'cangrejo', 'camarón', 'bogavante'],
-        'huevos': ['huevo', 'huevos', 'clara', 'yema', 'mayonesa', 'tortilla'],
-        'pescado': ['pescado', 'salmón', 'atún', 'merluza', 'bacalao', 'anchoa', 'sardina'],
-        'cacahuetes': ['cacahuete', 'cacahuetes', 'maní'],
-        'soja': ['soja', 'salsa de soja', 'tofu', 'edamame'],
-        'lacteos': ['leche', 'queso', 'mantequilla', 'nata', 'yogur', 'crema', 'lácteo'],
-        'frutos_secos': ['almendra', 'nuez', 'avellana', 'pistacho', 'anacardo'],
-        'apio': ['apio'],
-        'mostaza': ['mostaza'],
-        'sesamo': ['sésamo', 'sesamo', 'ajonjolí', 'tahini'],
-        'sulfitos': ['vino', 'sulfito', 'conserva', 'vinagre'],
-        'altramuces': ['altramuz', 'altramuces', 'lupino'],
-        'moluscos': ['mejillón', 'almeja', 'calamar', 'pulpo', 'sepia', 'caracol']
-    };
+// ============= ENDPOINTS INGREDIENTES =============
 
-    const detectedAllergens = new Set();
-    const lowerDesc = description.toLowerCase();
-    
-    Object.entries(keywords).forEach(([allergen, words]) => {
-        words.forEach(word => {
-            if (lowerDesc.includes(word.toLowerCase())) {
-                detectedAllergens.add(allergen);
+// Obtener todos los ingredientes
+app.get('/api/ingredients', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('ingredients')
+            .select('*')
+            .order('name');
+
+        if (error) throw error;
+
+        res.json({
+            success: true,
+            ingredients: data
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Buscar ingredientes
+app.get('/api/ingredients/search', async (req, res) => {
+    try {
+        const { q } = req.query;
+        
+        const { data, error } = await supabase
+            .from('ingredients')
+            .select('*')
+            .ilike('name', `%${q}%`)
+            .order('name')
+            .limit(20);
+
+        if (error) throw error;
+
+        res.json({
+            success: true,
+            ingredients: data
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Añadir ingrediente nuevo
+app.post('/api/ingredients', async (req, res) => {
+    try {
+        const { name, category, allergens, traces } = req.body;
+
+        const { data, error } = await supabase
+            .from('ingredients')
+            .insert([{ name, category, allergens, traces }])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.json({
+            success: true,
+            ingredient: data
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ============= ENDPOINTS PLATOS =============
+
+// Crear plato con ingredientes
+app.post('/api/dishes', async (req, res) => {
+    try {
+        const { name, description, elaboration, chef, ingredients } = req.body;
+
+        // 1. Crear el plato
+        const { data: dish, error: dishError } = await supabase
+            .from('dishes')
+            .insert([{ name, description, elaboration, chef }])
+            .select()
+            .single();
+
+        if (dishError) throw dishError;
+
+        // 2. Añadir ingredientes al plato
+        if (ingredients && ingredients.length > 0) {
+            const dishIngredients = ingredients.map(ing => ({
+                dish_id: dish.id,
+                ingredient_id: ing.id,
+                quantity: ing.quantity || ''
+            }));
+
+            const { error: ingredientsError } = await supabase
+                .from('dish_ingredients')
+                .insert(dishIngredients);
+
+            if (ingredientsError) throw ingredientsError;
+        }
+
+        // 3. Obtener alérgenos del plato
+        const { data: allergensData } = await supabase
+            .rpc('get_dish_allergens', { dish_id_param: dish.id });
+
+        const allergens = allergensData || [];
+
+        res.json({
+            success: true,
+            dish: {
+                ...dish,
+                allergens: allergens,
+                ingredients: ingredients
             }
         });
-    });
-    
-    return Array.from(detectedAllergens);
-}
 
-// ENDPOINTS
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
-// Analizar plato
-app.post('/api/analyze', async (req, res) => {
+// Obtener platos guardados
+app.get('/api/dishes', async (req, res) => {
     try {
-        const { description, chef, elaboration } = req.body;
-        
-        if (!description) {
-            return res.status(400).json({
-                success: false,
-                error: 'Descripción del plato requerida'
-            });
-        }
-        
-        const detectedAllergens = detectAllergens(description);
-        
-        let dishName = description.split('con')[0].trim();
-        if (!dishName || dishName.length > 100) {
-            dishName = description.substring(0, 50);
-        }
-        
-        const dish = {
-            id: dishId++,
-            name: dishName,
-            description: description,
-            chef: chef || 'Chef Principal',
-            elaboration: elaboration || '',
-            date: new Date().toLocaleDateString('es-ES'),
-            timestamp: new Date().toISOString(),
-            allergens: detectedAllergens,
-            analysis_mode: 'keywords'
-        };
-        
-        dishes.push(dish);
-        
-        console.log(`✅ Plato creado: ${dish.name}`);
-        
+        const { data, error } = await supabase
+            .from('dishes')
+            .select(`
+                *,
+                dish_ingredients (
+                    quantity,
+                    ingredient:ingredients (*)
+                )
+            `)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error) throw error;
+
+        // Obtener alérgenos para cada plato
+        const dishesWithAllergens = await Promise.all(
+            data.map(async (dish) => {
+                const { data: allergens } = await supabase
+                    .rpc('get_dish_allergens', { dish_id_param: dish.id });
+
+                return {
+                    ...dish,
+                    allergens: allergens || []
+                };
+            })
+        );
+
         res.json({
             success: true,
-            dish: dish,
-            allergens_info: detectedAllergens.map(code => ({
-                code: code,
-                name: ALLERGENS[code]?.name || code,
-                icon: ALLERGENS[code]?.icon || '⚠️'
-            }))
+            dishes: dishesWithAllergens
         });
-        
+
     } catch (error) {
-        console.error('❌ Error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Error procesando el análisis'
-        });
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Actualizar alérgenos
-app.post('/api/update-allergens', (req, res) => {
+// Buscar platos
+app.get('/api/dishes/search', async (req, res) => {
     try {
-        const { dishId, allergens } = req.body;
-        const dish = dishes.find(d => d.id === dishId);
+        const { q } = req.query;
         
-        if (!dish) {
-            return res.status(404).json({ success: false, error: 'Plato no encontrado' });
-        }
-        
-        dish.allergens = allergens;
-        res.json({ success: true, dish: dish });
-        
-    } catch (error) {
-        res.status(500).json({ success: false, error: 'Error actualizando' });
-    }
-});
+        const { data, error } = await supabase
+            .from('dishes')
+            .select(`
+                *,
+                dish_ingredients (
+                    quantity,
+                    ingredient:ingredients (*)
+                )
+            `)
+            .ilike('name', `%${q}%`)
+            .order('created_at', { ascending: false })
+            .limit(20);
 
-// Generar etiqueta
-app.post('/api/generate-label', (req, res) => {
-    try {
-        const { dishId } = req.body;
-        const dish = dishes.find(d => d.id === dishId);
-        
-        if (!dish) {
-            return res.status(404).json({ success: false, error: 'Plato no encontrado' });
-        }
-        
-        const html = generateLabelHTML(dish);
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(html);
-        
-    } catch (error) {
-        res.status(500).json({ success: false, error: 'Error generando etiqueta' });
-    }
-});
+        if (error) throw error;
 
-// Generar recetario
-app.post('/api/generate-recipe-document', (req, res) => {
-    try {
-        const { dishId } = req.body;
-        const dish = dishes.find(d => d.id === dishId);
-        
-        if (!dish) {
-            return res.status(404).json({ success: false, error: 'Plato no encontrado' });
-        }
-        
-        const html = generateRecipeHTML(dish);
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(html);
-        
-    } catch (error) {
-        res.status(500).json({ success: false, error: 'Error generando recetario' });
-    }
-});
+        const dishesWithAllergens = await Promise.all(
+            data.map(async (dish) => {
+                const { data: allergens } = await supabase
+                    .rpc('get_dish_allergens', { dish_id_param: dish.id });
+                return { ...dish, allergens: allergens || [] };
+            })
+        );
 
-// Obtener platos de hoy
-app.get('/api/dishes/today', (req, res) => {
-    try {
-        const today = new Date().toLocaleDateString('es-ES');
-        const todayDishes = dishes
-            .filter(dish => dish.date === today)
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        
         res.json({
             success: true,
-            dishes: todayDishes,
-            count: todayDishes.length
+            dishes: dishesWithAllergens
         });
+
     } catch (error) {
-        res.status(500).json({ success: false, error: 'Error obteniendo platos' });
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Obtener plato por ID
+app.get('/api/dishes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const { data, error } = await supabase
+            .from('dishes')
+            .select(`
+                *,
+                dish_ingredients (
+                    quantity,
+                    ingredient:ingredients (*)
+                )
+            `)
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+
+        const { data: allergens } = await supabase
+            .rpc('get_dish_allergens', { dish_id_param: parseInt(id) });
+
+        res.json({
+            success: true,
+            dish: {
+                ...data,
+                allergens: allergens || []
+            }
+        });
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Platos de hoy
+app.get('/api/dishes/today', async (req, res) => {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+
+        const { data, error } = await supabase
+            .from('dishes')
+            .select(`
+                *,
+                dish_ingredients (
+                    quantity,
+                    ingredient:ingredients (*)
+                )
+            `)
+            .eq('date', today)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const dishesWithAllergens = await Promise.all(
+            data.map(async (dish) => {
+                const { data: allergens } = await supabase
+                    .rpc('get_dish_allergens', { dish_id_param: dish.id });
+                return { ...dish, allergens: allergens || [] };
+            })
+        );
+
+        res.json({
+            success: true,
+            dishes: dishesWithAllergens,
+            count: dishesWithAllergens.length
+        });
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ============= GENERAR DOCUMENTOS =============
+
+app.post('/api/generate-label', async (req, res) => {
+    try {
+        const { dishId } = req.body;
+
+        const { data: dish, error } = await supabase
+            .from('dishes')
+            .select(`
+                *,
+                dish_ingredients (
+                    quantity,
+                    ingredient:ingredients (*)
+                )
+            `)
+            .eq('id', dishId)
+            .single();
+
+        if (error) throw error;
+
+        const { data: allergens } = await supabase
+            .rpc('get_dish_allergens', { dish_id_param: dishId });
+
+        const html = generateLabelHTML({
+            ...dish,
+            allergens: allergens || []
+        });
+
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.send(html);
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/generate-recipe-document', async (req, res) => {
+    try {
+        const { dishId } = req.body;
+
+        const { data: dish, error } = await supabase
+            .from('dishes')
+            .select(`
+                *,
+                dish_ingredients (
+                    quantity,
+                    ingredient:ingredients (*)
+                )
+            `)
+            .eq('id', dishId)
+            .single();
+
+        if (error) throw error;
+
+        const { data: allergens } = await supabase
+            .rpc('get_dish_allergens', { dish_id_param: dishId });
+
+        const html = generateRecipeHTML({
+            ...dish,
+            allergens: allergens || []
+        });
+
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.send(html);
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
 // Estado del sistema
-app.get('/api/system-status', (req, res) => {
-    res.json({
-        success: true,
-        status: 'online',
-        dishes_count: dishes.length,
-        allergens_count: Object.keys(ALLERGENS).length,
-        ai_enabled: false,
-        timestamp: new Date().toISOString(),
-        version: '5.0.0'
-    });
+app.get('/api/system-status', async (req, res) => {
+    try {
+        const { count: dishCount } = await supabase
+            .from('dishes')
+            .select('*', { count: 'exact', head: true });
+
+        const { count: ingredientCount } = await supabase
+            .from('ingredients')
+            .select('*', { count: 'exact', head: true });
+
+        res.json({
+            success: true,
+            status: 'online',
+            database: 'connected',
+            dishes_count: dishCount || 0,
+            ingredients_count: ingredientCount || 0,
+            allergens_count: Object.keys(ALLERGENS).length,
+            timestamp: new Date().toISOString(),
+            version: '6.0.0'
+        });
+    } catch (error) {
+        res.json({
+            success: false,
+            status: 'error',
+            database: 'disconnected',
+            error: error.message
+        });
+    }
 });
 
 // Página principal
@@ -215,9 +422,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Funciones auxiliares
+// ============= FUNCIONES AUXILIARES =============
+
 function generateLabelHTML(dish) {
     const hasAllergens = dish.allergens && dish.allergens.length > 0;
+    const date = dish.date ? new Date(dish.date).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES');
     
     return `<!DOCTYPE html>
 <html lang="es">
@@ -243,7 +452,7 @@ function generateLabelHTML(dish) {
         </div>
         <div class="content">
             <div class="dish-name">${dish.name}</div>
-            <p><strong>Chef:</strong> ${dish.chef} | <strong>Fecha:</strong> ${dish.date}</p>
+            <p><strong>Chef:</strong> ${dish.chef} | <strong>Fecha:</strong> ${date}</p>
             <hr>
             ${hasAllergens ? `
                 <h3>⚠️ CONTIENE ALÉRGENOS:</h3>
@@ -264,6 +473,8 @@ function generateLabelHTML(dish) {
 }
 
 function generateRecipeHTML(dish) {
+    const date = dish.date ? new Date(dish.date).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES');
+    
     return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -282,7 +493,7 @@ function generateRecipeHTML(dish) {
 <body>
     <div class="header">
         <h1>📋 RECETARIO OFICIAL - CONTROL SANITARIO</h1>
-        <p><strong>Fecha:</strong> ${dish.date} | <strong>Código:</strong> #${String(dish.id).padStart(5, '0')}</p>
+        <p><strong>Fecha:</strong> ${date} | <strong>Código:</strong> #${String(dish.id).padStart(5, '0')}</p>
     </div>
     
     <div class="section">
@@ -293,7 +504,13 @@ function generateRecipeHTML(dish) {
     
     <div class="section">
         <h3>📝 INGREDIENTES</h3>
-        <p>${dish.description}</p>
+        ${dish.dish_ingredients ? `
+            <ul>
+                ${dish.dish_ingredients.map(di => 
+                    `<li>${di.ingredient.name}${di.quantity ? ` (${di.quantity})` : ''}</li>`
+                ).join('')}
+            </ul>
+        ` : `<p>${dish.description || 'No especificado'}</p>`}
     </div>
     
     ${dish.elaboration ? `
@@ -305,7 +522,7 @@ function generateRecipeHTML(dish) {
     
     <div class="section">
         <h3>⚠️ ALÉRGENOS (Reglamento UE 1169/2011)</h3>
-        ${dish.allergens.length > 0 ? `
+        ${dish.allergens && dish.allergens.length > 0 ? `
             <p><strong>Este plato contiene:</strong></p>
             <ul>
                 ${dish.allergens.map(code => {
@@ -327,7 +544,8 @@ function generateRecipeHTML(dish) {
 // Iniciar servidor
 app.listen(port, () => {
     console.log(`🚀 Servidor corriendo en puerto ${port}`);
-    console.log('✅ Sistema de Alérgenos v5.0.0');
+    console.log('✅ Sistema de Alérgenos v6.0.0 CON BASE DE DATOS');
+    console.log(`📊 Supabase: ${process.env.SUPABASE_URL ? 'Configurado' : '❌ NO CONFIGURADO'}`);
 });
 
 module.exports = app;
