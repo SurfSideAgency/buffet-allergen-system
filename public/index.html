@@ -338,6 +338,77 @@
 
     </div>
 
+    <!-- MODAL: Crear Ingrediente Rápido -->
+    <div id="quickIngredientModal" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">➕ Crear Ingrediente Rápido</h3>
+                <button onclick="closeQuickIngredientModal()" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">✕</button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
+                    <input 
+                        type="text" 
+                        id="quickIngName" 
+                        class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
+                        placeholder="Ej: Aguacate"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
+                    <select id="quickIngCategory" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none">
+                        <option value="verduras">Verduras</option>
+                        <option value="carnes">Carnes</option>
+                        <option value="pescados">Pescados</option>
+                        <option value="mariscos">Mariscos</option>
+                        <option value="lacteos">Lácteos</option>
+                        <option value="cereales">Cereales</option>
+                        <option value="frutos_secos">Frutos Secos</option>
+                        <option value="salsas">Salsas</option>
+                        <option value="condimentos">Condimentos</option>
+                        <option value="otros">Otros</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">¿Contiene alérgenos?</label>
+                    <select id="quickIngAllergens" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none" size="4">
+                        <option value="gluten">🌾 Gluten</option>
+                        <option value="crustaceos">🦐 Crustáceos</option>
+                        <option value="huevos">🥚 Huevos</option>
+                        <option value="pescado">🐟 Pescado</option>
+                        <option value="cacahuetes">🥜 Cacahuetes</option>
+                        <option value="soja">🌱 Soja</option>
+                        <option value="lacteos">🥛 Lácteos</option>
+                        <option value="frutos_secos">🌰 Frutos Secos</option>
+                        <option value="apio">🥬 Apio</option>
+                        <option value="mostaza">🟡 Mostaza</option>
+                        <option value="sesamo">🫘 Sésamo</option>
+                        <option value="sulfitos">🍷 Sulfitos</option>
+                        <option value="moluscos">🐚 Moluscos</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Mantén Ctrl/Cmd para seleccionar varios</p>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button 
+                        onclick="closeQuickIngredientModal()" 
+                        class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-lg transition-all">
+                        Cancelar
+                    </button>
+                    <button 
+                        onclick="saveQuickIngredient()" 
+                        class="flex-1 btn-primary text-white font-bold py-3 px-4 rounded-lg">
+                        ✅ Crear y Añadir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const ALLERGENS = {
             'gluten': { name: 'Cereales con Gluten', icon: '🌾' },
@@ -360,6 +431,7 @@
         let currentDish = null;
         let allIngredients = [];
         let searchTimeout = null;
+        let currentSearchQuery = ''; // Para recordar qué buscaba el chef
 
         // Inicializar
         document.addEventListener('DOMContentLoaded', async () => {
@@ -436,6 +508,8 @@
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(async () => {
                 const query = document.getElementById('ingredientSearch').value.trim();
+                currentSearchQuery = query; // Guardar búsqueda actual
+                
                 if (query.length < 2) {
                     document.getElementById('ingredientResults').innerHTML = '';
                     return;
@@ -444,28 +518,52 @@
                 try {
                     const response = await fetch(`/api/ingredients/search?q=${encodeURIComponent(query)}`);
                     const data = await response.json();
-                    displayIngredientResults(data.ingredients || []);
+                    displayIngredientResults(data.ingredients || [], query);
                 } catch (error) {
                     console.error('Error:', error);
                 }
             }, 300);
         }
 
-        function displayIngredientResults(ingredients) {
+        function displayIngredientResults(ingredients, searchQuery) {
             const container = document.getElementById('ingredientResults');
             
             if (ingredients.length === 0) {
-                container.innerHTML = '<p class="text-gray-400 text-sm p-2">No se encontraron ingredientes</p>';
+                // No se encontró nada - mostrar botón para crear
+                container.innerHTML = `
+                    <div class="p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <p class="text-gray-600 text-sm mb-3 text-center">
+                            No se encontraron ingredientes
+                        </p>
+                        <button 
+                            onclick="openQuickIngredientModal('${searchQuery.replace(/'/g, "\\'")}')"
+                            class="create-ingredient-btn w-full text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2">
+                            <span class="text-xl">➕</span>
+                            <span>Añadir "${searchQuery}" a la base de datos</span>
+                        </button>
+                    </div>
+                `;
                 return;
             }
 
-            container.innerHTML = ingredients.map(ing => `
-                <div onclick="addIngredient(${ing.id}, '${ing.name.replace(/'/g, "\\'")}')" 
-                     class="ingredient-item p-3 border rounded-lg hover:bg-blue-50 cursor-pointer flex justify-between items-center">
-                    <span class="font-medium">${ing.name}</span>
-                    <span class="text-xs text-gray-500">${ing.category}</span>
+            // Mostrar resultados + botón para crear al final
+            container.innerHTML = `
+                ${ingredients.map(ing => `
+                    <div onclick="addIngredient(${ing.id}, '${ing.name.replace(/'/g, "\\'")}')" 
+                         class="ingredient-item p-3 border rounded-lg hover:bg-blue-50 cursor-pointer flex justify-between items-center mb-2">
+                        <span class="font-medium">${ing.name}</span>
+                        <span class="text-xs text-gray-500">${ing.category}</span>
+                    </div>
+                `).join('')}
+                <div class="mt-2 pt-2 border-t-2 border-gray-200">
+                    <button 
+                        onclick="openQuickIngredientModal('${searchQuery.replace(/'/g, "\\'")}')"
+                        class="create-ingredient-btn w-full text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-sm">
+                        <span>➕</span>
+                        <span>Crear nuevo ingrediente</span>
+                    </button>
                 </div>
-            `).join('');
+            `;
         }
 
         function addIngredient(id, name) {
@@ -485,6 +583,73 @@
         function removeIngredient(id) {
             selectedIngredients = selectedIngredients.filter(i => i.id !== id);
             updateSelectedIngredients();
+        }
+
+        // MODAL: Crear Ingrediente Rápido
+        function openQuickIngredientModal(suggestedName = '') {
+            document.getElementById('quickIngredientModal').classList.remove('hidden');
+            document.getElementById('quickIngName').value = suggestedName;
+            document.getElementById('quickIngName').focus();
+            document.getElementById('quickIngAllergens').selectedIndex = -1;
+        }
+
+        function closeQuickIngredientModal() {
+            document.getElementById('quickIngredientModal').classList.add('hidden');
+            document.getElementById('quickIngName').value = '';
+            document.getElementById('quickIngAllergens').selectedIndex = -1;
+        }
+
+        async function saveQuickIngredient() {
+            const name = document.getElementById('quickIngName').value.trim();
+            const category = document.getElementById('quickIngCategory').value;
+            const allergensSelect = document.getElementById('quickIngAllergens');
+            const allergens = Array.from(allergensSelect.selectedOptions).map(opt => opt.value);
+
+            if (!name) {
+                showToast('⚠️ Escribe el nombre del ingrediente', 'warning');
+                return;
+            }
+
+            try {
+                showToast('⏳ Creando ingrediente...', 'info');
+                
+                const response = await fetch('/api/ingredients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        category,
+                        allergens,
+                        traces: []
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('✅ Ingrediente creado', 'success');
+                    
+                    // Recargar lista de ingredientes
+                    await loadAllIngredients();
+                    
+                    // Añadir automáticamente el ingrediente recién creado al plato
+                    addIngredient(data.ingredient.id, data.ingredient.name);
+                    
+                    // Cerrar modal
+                    closeQuickIngredientModal();
+                    
+                    // Limpiar búsqueda
+                    document.getElementById('ingredientSearch').value = '';
+                    document.getElementById('ingredientResults').innerHTML = '';
+                    
+                } else {
+                    showToast('❌ Error: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('❌ Error de conexión', 'error');
+            }
         }
 
         function updateSelectedIngredients() {
@@ -874,9 +1039,6 @@
             }, 3000);
         }
     </script>
-
-</body>
-</html>
 
 </body>
 </html>
