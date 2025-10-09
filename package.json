@@ -1,7 +1,7 @@
 {
   "name": "buffet-allergen-system",
-  "version": "6.0.0",
-  "description": "Sistema de detección de alérgenos con Base de Datos",
+  "version": "7.0.0",
+  "description": "Sistema de detección de alérgenos con Traducción Multiidioma Gratuita",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
