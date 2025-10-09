@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Alérgenos - Con Base de Datos</title>
+    <title>Sistema de Alérgenos - Con Trazas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #f8fafc; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
@@ -13,10 +13,12 @@
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .allergen-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: #fef2f2; border: 2px solid #fecaca; border-radius: 8px; margin: 0.25rem; font-size: 0.875rem; }
+        .trace-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: #fefce8; border: 2px solid #fde047; border-radius: 8px; margin: 0.25rem; font-size: 0.875rem; }
         .tab-active { border-bottom: 3px solid #D4AF37; color: #D4AF37; font-weight: bold; }
         .ingredient-item { cursor: pointer; transition: all 0.2s; }
         .ingredient-item:hover { background: #f0f9ff; transform: translateX(5px); }
         .ingredient-selected { background: #dbeafe !important; border-left: 4px solid #3b82f6; }
+        .trace-checkbox { width: 20px; height: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -29,7 +31,7 @@
                     <span class="text-3xl">🍽️</span>
                     <div>
                         <h1 class="text-2xl font-bold">Sistema de Alérgenos PRO</h1>
-                        <p class="text-sm opacity-90">Con Base de Datos y Gestión Completa</p>
+                        <p class="text-sm opacity-90">Con Trazas y Traducción Multiidioma</p>
                     </div>
                 </div>
                 <div id="dbStatus" class="text-sm bg-white/20 px-4 py-2 rounded-lg">
@@ -107,6 +109,18 @@
                                 ></textarea>
                             </div>
 
+                            <div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+                                <label class="block text-sm font-bold text-yellow-800 mb-3">
+                                    ⚡ Trazas (Contaminación Cruzada)
+                                </label>
+                                <p class="text-xs text-yellow-700 mb-3">
+                                    Selecciona los alérgenos que PUEDEN estar presentes por elaboración en cocina compartida
+                                </p>
+                                <div class="grid grid-cols-2 gap-2" id="tracesCheckboxes">
+                                    <!-- Se generará dinámicamente con JavaScript -->
+                                </div>
+                            </div>
+
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">👨‍🍳 Chef Responsable</label>
                                 <input 
@@ -126,7 +140,7 @@
 
                         <div id="loading" class="hidden mt-4 flex items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg">
                             <div class="spinner w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                            <span class="text-blue-700 font-medium text-sm">Guardando...</span>
+                            <span class="text-blue-700 font-medium text-sm">Guardando y traduciendo...</span>
                         </div>
                     </div>
 
@@ -146,6 +160,11 @@
                             <div id="resultAllergens"></div>
                         </div>
 
+                        <div class="bg-white rounded-2xl shadow-sm p-6" id="resultTracesSection" style="display:none;">
+                            <h4 class="text-lg font-bold text-gray-800 mb-4">⚡ Trazas (Puede Contener)</h4>
+                            <div id="resultTraces"></div>
+                        </div>
+
                         <div class="bg-white rounded-2xl shadow-sm p-6">
                             <h4 class="text-lg font-bold text-gray-800 mb-4">📄 Generar Documentos</h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -153,13 +172,15 @@
                                     onclick="generateLabelFromResult()"
                                     class="p-4 border-2 border-gray-200 rounded-lg hover:border-yellow-500 transition-all">
                                     <div class="text-3xl mb-2">🏷️</div>
-                                    <h5 class="font-bold text-gray-800">Etiqueta para Buffet</h5>
+                                    <h5 class="font-bold text-gray-800">Etiqueta Multiidioma</h5>
+                                    <p class="text-xs text-gray-500 mt-1">Con alérgenos y trazas</p>
                                 </button>
                                 <button 
                                     onclick="generateRecipeFromResult()"
                                     class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-all">
                                     <div class="text-3xl mb-2">📋</div>
                                     <h5 class="font-bold text-gray-800">Recetario Oficial</h5>
+                                    <p class="text-xs text-gray-500 mt-1">Control sanitario</p>
                                 </button>
                             </div>
                         </div>
@@ -255,8 +276,8 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Alérgenos (selecciona múltiples)</label>
-                            <select id="newIngAllergens" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none" size="8">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Alérgenos (contiene directamente)</label>
+                            <select id="newIngAllergens" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none" size="6">
                                 <option value="gluten">🌾 Gluten</option>
                                 <option value="crustaceos">🦐 Crustáceos</option>
                                 <option value="huevos">🥚 Huevos</option>
@@ -272,6 +293,25 @@
                                 <option value="moluscos">🐚 Moluscos</option>
                             </select>
                             <p class="text-xs text-gray-500 mt-1">Mantén Ctrl/Cmd para seleccionar varios</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Trazas (puede contener)</label>
+                            <select id="newIngTraces" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none" size="6">
+                                <option value="gluten">🌾 Gluten</option>
+                                <option value="crustaceos">🦐 Crustáceos</option>
+                                <option value="huevos">🥚 Huevos</option>
+                                <option value="pescado">🐟 Pescado</option>
+                                <option value="cacahuetes">🥜 Cacahuetes</option>
+                                <option value="soja">🌱 Soja</option>
+                                <option value="lacteos">🥛 Lácteos</option>
+                                <option value="frutos_secos">🌰 Frutos Secos</option>
+                                <option value="apio">🥬 Apio</option>
+                                <option value="mostaza">🟡 Mostaza</option>
+                                <option value="sesamo">🫘 Sésamo</option>
+                                <option value="sulfitos">🍷 Sulfitos</option>
+                                <option value="moluscos">🐚 Moluscos</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Por contaminación cruzada</p>
                         </div>
                         <button onclick="addNewIngredient()" class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg shadow">
                             ➕ Añadir Ingrediente
@@ -311,7 +351,25 @@
             await checkSystemStatus();
             await loadAllIngredients();
             await loadTodayDishes();
+            generateTracesCheckboxes();
         });
+
+        // Generar checkboxes de trazas
+        function generateTracesCheckboxes() {
+            const container = document.getElementById('tracesCheckboxes');
+            container.innerHTML = Object.entries(ALLERGENS).map(([code, data]) => `
+                <label class="flex items-center gap-2 p-2 hover:bg-yellow-100 rounded cursor-pointer">
+                    <input type="checkbox" name="trace" value="${code}" class="trace-checkbox">
+                    <span class="text-sm">${data.icon} ${data.name}</span>
+                </label>
+            `).join('');
+        }
+
+        // Obtener trazas seleccionadas
+        function getSelectedTraces() {
+            const checkboxes = document.querySelectorAll('input[name="trace"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
 
         // Sistema
         async function checkSystemStatus() {
@@ -321,15 +379,15 @@
                 const statusEl = document.getElementById('dbStatus');
                 
                 if (data.success && data.database === 'connected') {
-                    statusEl.innerHTML = '✅ Base de Datos Conectada';
+                    statusEl.innerHTML = '✅ Sistema Activo';
                     statusEl.className = 'text-sm bg-green-500/90 px-4 py-2 rounded-lg';
                 } else {
-                    statusEl.innerHTML = '❌ Base de Datos Desconectada';
+                    statusEl.innerHTML = '❌ Sistema Desconectado';
                     statusEl.className = 'text-sm bg-red-500/90 px-4 py-2 rounded-lg';
                 }
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('dbStatus').innerHTML = '⚠️ Error de Conexión';
+                document.getElementById('dbStatus').innerHTML = '⚠️ Error';
             }
         }
 
@@ -435,6 +493,7 @@
             const name = document.getElementById('dishName').value.trim();
             const elaboration = document.getElementById('elaboration').value.trim();
             const chef = document.getElementById('chef').value.trim();
+            const manualTraces = getSelectedTraces();
 
             if (!name) {
                 showToast('⚠️ Escribe el nombre del plato', 'warning');
@@ -457,7 +516,8 @@
                         description: name,
                         elaboration,
                         chef,
-                        ingredients: selectedIngredients
+                        ingredients: selectedIngredients,
+                        manualTraces: manualTraces
                     })
                 });
 
@@ -504,6 +564,25 @@
                     ` : '';
                 }).join('');
             }
+
+            // Mostrar trazas si existen
+            const tracesSection = document.getElementById('resultTracesSection');
+            const tracesEl = document.getElementById('resultTraces');
+            
+            if (dish.traces && dish.traces.length > 0) {
+                tracesSection.style.display = 'block';
+                tracesEl.innerHTML = dish.traces.map(code => {
+                    const a = ALLERGENS[code];
+                    return a ? `
+                        <div class="trace-badge">
+                            <span class="text-xl">${a.icon}</span>
+                            <span class="font-bold">${a.name}</span>
+                        </div>
+                    ` : '';
+                }).join('');
+            } else {
+                tracesSection.style.display = 'none';
+            }
             
             document.getElementById('results').classList.remove('hidden');
             document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
@@ -514,6 +593,7 @@
             document.getElementById('elaboration').value = '';
             selectedIngredients = [];
             updateSelectedIngredients();
+            document.querySelectorAll('input[name="trace"]').forEach(cb => cb.checked = false);
             document.getElementById('results').classList.add('hidden');
             currentDish = null;
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -601,14 +681,20 @@
                     </p>
                     
                     ${dish.allergens && dish.allergens.length > 0 ? `
-                        <div class="mb-3">
+                        <div class="mb-2">
                             <span class="text-xs font-semibold text-red-700">⚠️ ${dish.allergens.length} alérgeno${dish.allergens.length > 1 ? 's' : ''}</span>
                         </div>
                     ` : `
-                        <div class="mb-3">
+                        <div class="mb-2">
                             <span class="text-xs font-semibold text-green-700">✅ Sin alérgenos</span>
                         </div>
                     `}
+
+                    ${dish.traces && dish.traces.length > 0 ? `
+                        <div class="mb-3">
+                            <span class="text-xs font-semibold text-yellow-700">⚡ ${dish.traces.length} traza${dish.traces.length > 1 ? 's' : ''}</span>
+                        </div>
+                    ` : ''}
                     
                     <div class="flex gap-2">
                         <button onclick="generateDocument(${dish.id}, 'label')" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-bold py-2 px-3 rounded">
@@ -645,14 +731,19 @@
                         <div class="font-bold text-gray-800 text-sm mb-1">${dish.name}</div>
                         <div class="text-xs text-gray-500 mb-2">👨‍🍳 ${dish.chef}</div>
                         ${dish.allergens && dish.allergens.length > 0 ? `
-                            <div class="text-xs">
+                            <div class="text-xs mb-1">
                                 <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full font-medium">
-                                    ⚠️ ${dish.allergens.length} alérgeno${dish.allergens.length > 1 ? 's' : ''}
+                                    ⚠️ ${dish.allergens.length}
                                 </span>
                             </div>
-                        ` : `
-                            <div class="text-xs text-green-600 font-medium">✅ Sin alérgenos</div>
-                        `}
+                        ` : ''}
+                        ${dish.traces && dish.traces.length > 0 ? `
+                            <div class="text-xs">
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full font-medium">
+                                    ⚡ ${dish.traces.length}
+                                </span>
+                            </div>
+                        ` : ''}
                     </div>
                 `).join('');
 
@@ -690,7 +781,12 @@
                             <div class="font-medium text-sm">${ing.name}</div>
                             ${ing.allergens && ing.allergens.length > 0 ? `
                                 <div class="text-xs text-red-600 mt-1">
-                                    ${ing.allergens.map(a => ALLERGENS[a]?.icon || '⚠️').join(' ')}
+                                    ⚠️ ${ing.allergens.map(a => ALLERGENS[a]?.icon || '⚠️').join(' ')}
+                                </div>
+                            ` : ''}
+                            ${ing.traces && ing.traces.length > 0 ? `
+                                <div class="text-xs text-yellow-600 mt-1">
+                                    ⚡ ${ing.traces.map(a => ALLERGENS[a]?.icon || '⚡').join(' ')}
                                 </div>
                             ` : ''}
                         </div>
@@ -703,7 +799,9 @@
             const name = document.getElementById('newIngName').value.trim();
             const category = document.getElementById('newIngCategory').value;
             const allergensSelect = document.getElementById('newIngAllergens');
+            const tracesSelect = document.getElementById('newIngTraces');
             const allergens = Array.from(allergensSelect.selectedOptions).map(opt => opt.value);
+            const traces = Array.from(tracesSelect.selectedOptions).map(opt => opt.value);
 
             if (!name) {
                 showToast('⚠️ Escribe el nombre del ingrediente', 'warning');
@@ -718,7 +816,7 @@
                         name,
                         category,
                         allergens,
-                        traces: []
+                        traces
                     })
                 });
 
@@ -728,6 +826,7 @@
                     showToast('✅ Ingrediente añadido', 'success');
                     document.getElementById('newIngName').value = '';
                     allergensSelect.selectedIndex = -1;
+                    tracesSelect.selectedIndex = -1;
                     await loadAllIngredients();
                     filterIngredients();
                 } else {
