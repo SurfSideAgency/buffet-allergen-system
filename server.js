@@ -1,4 +1,4 @@
-// server.js - Sistema de Alérgenos CON TRADUCCIÓN GRATUITA
+// server.js - Sistema de Alérgenos CON TRADUCCIÓN GRATUITA Y TRAZAS
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -67,7 +67,6 @@ async function translateDishName(dishName) {
 
     } catch (error) {
         console.error('❌ Error en traducción:', error);
-        // Fallback en caso de error - devolver el nombre original
         return {
             english: dishName,
             french: dishName
@@ -75,9 +74,29 @@ async function translateDishName(dishName) {
     }
 }
 
+// ============= FUNCIÓN PARA OBTENER TRAZAS =============
+
+async function getTraces(ingredients) {
+    // Obtener todas las trazas únicas de los ingredientes
+    const allTraces = new Set();
+    
+    for (const ing of ingredients) {
+        const { data } = await supabase
+            .from('ingredients')
+            .select('traces')
+            .eq('id', ing.id)
+            .single();
+        
+        if (data && data.traces && Array.isArray(data.traces)) {
+            data.traces.forEach(trace => allTraces.add(trace));
+        }
+    }
+    
+    return Array.from(allTraces);
+}
+
 // ============= ENDPOINTS INGREDIENTES =============
 
-// Obtener todos los ingredientes
 app.get('/api/ingredients', async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -97,7 +116,6 @@ app.get('/api/ingredients', async (req, res) => {
     }
 });
 
-// Buscar ingredientes
 app.get('/api/ingredients/search', async (req, res) => {
     try {
         const { q } = req.query;
@@ -121,7 +139,6 @@ app.get('/api/ingredients/search', async (req, res) => {
     }
 });
 
-// Añadir ingrediente nuevo
 app.post('/api/ingredients', async (req, res) => {
     try {
         const { name, category, allergens, traces } = req.body;
@@ -146,10 +163,9 @@ app.post('/api/ingredients', async (req, res) => {
 
 // ============= ENDPOINTS PLATOS =============
 
-// Crear plato con ingredientes
 app.post('/api/dishes', async (req, res) => {
     try {
-        const { name, description, elaboration, chef, ingredients } = req.body;
+        const { name, description, elaboration, chef, ingredients, manualTraces } = req.body;
 
         // 1. Crear el plato
         const { data: dish, error: dishError } = await supabase
@@ -181,11 +197,27 @@ app.post('/api/dishes', async (req, res) => {
 
         const allergens = allergensData || [];
 
+        // 4. Obtener trazas automáticas + manuales
+        const autoTraces = await getTraces(ingredients || []);
+        const traces = manualTraces && manualTraces.length > 0 ? manualTraces : autoTraces;
+        
+        // Filtrar trazas que ya están en alérgenos
+        const filteredTraces = traces.filter(trace => !allergens.includes(trace));
+
+        // 5. Guardar trazas en el plato
+        if (filteredTraces.length > 0) {
+            await supabase
+                .from('dishes')
+                .update({ traces: filteredTraces })
+                .eq('id', dish.id);
+        }
+
         res.json({
             success: true,
             dish: {
                 ...dish,
                 allergens: allergens,
+                traces: filteredTraces,
                 ingredients: ingredients
             }
         });
@@ -196,7 +228,6 @@ app.post('/api/dishes', async (req, res) => {
     }
 });
 
-// Obtener platos guardados
 app.get('/api/dishes', async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -213,7 +244,6 @@ app.get('/api/dishes', async (req, res) => {
 
         if (error) throw error;
 
-        // Obtener alérgenos para cada plato
         const dishesWithAllergens = await Promise.all(
             data.map(async (dish) => {
                 const { data: allergens } = await supabase
@@ -221,7 +251,8 @@ app.get('/api/dishes', async (req, res) => {
 
                 return {
                     ...dish,
-                    allergens: allergens || []
+                    allergens: allergens || [],
+                    traces: dish.traces || []
                 };
             })
         );
@@ -237,7 +268,6 @@ app.get('/api/dishes', async (req, res) => {
     }
 });
 
-// Buscar platos
 app.get('/api/dishes/search', async (req, res) => {
     try {
         const { q } = req.query;
@@ -261,7 +291,11 @@ app.get('/api/dishes/search', async (req, res) => {
             data.map(async (dish) => {
                 const { data: allergens } = await supabase
                     .rpc('get_dish_allergens', { dish_id_param: dish.id });
-                return { ...dish, allergens: allergens || [] };
+                return { 
+                    ...dish, 
+                    allergens: allergens || [],
+                    traces: dish.traces || []
+                };
             })
         );
 
@@ -276,7 +310,6 @@ app.get('/api/dishes/search', async (req, res) => {
     }
 });
 
-// Obtener plato por ID
 app.get('/api/dishes/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -302,7 +335,8 @@ app.get('/api/dishes/:id', async (req, res) => {
             success: true,
             dish: {
                 ...data,
-                allergens: allergens || []
+                allergens: allergens || [],
+                traces: data.traces || []
             }
         });
 
@@ -312,7 +346,6 @@ app.get('/api/dishes/:id', async (req, res) => {
     }
 });
 
-// Platos de hoy
 app.get('/api/dishes/today', async (req, res) => {
     try {
         const today = new Date().toISOString().split('T')[0];
@@ -335,7 +368,11 @@ app.get('/api/dishes/today', async (req, res) => {
             data.map(async (dish) => {
                 const { data: allergens } = await supabase
                     .rpc('get_dish_allergens', { dish_id_param: dish.id });
-                return { ...dish, allergens: allergens || [] };
+                return { 
+                    ...dish, 
+                    allergens: allergens || [],
+                    traces: dish.traces || []
+                };
             })
         );
 
@@ -351,7 +388,7 @@ app.get('/api/dishes/today', async (req, res) => {
     }
 });
 
-// ============= GENERAR DOCUMENTOS CON TRADUCCIÓN =============
+// ============= GENERAR DOCUMENTOS CON TRADUCCIÓN Y TRAZAS =============
 
 app.post('/api/generate-label', async (req, res) => {
     try {
@@ -374,12 +411,13 @@ app.post('/api/generate-label', async (req, res) => {
         const { data: allergens } = await supabase
             .rpc('get_dish_allergens', { dish_id_param: dishId });
 
-        // ⭐ TRADUCIR EL NOMBRE DEL PLATO (GRATIS)
+        // Traducir el nombre del plato
         const translations = await translateDishName(dish.name);
 
         const html = generateLabelHTML({
             ...dish,
             allergens: allergens || [],
+            traces: dish.traces || [],
             translations
         });
 
@@ -415,7 +453,8 @@ app.post('/api/generate-recipe-document', async (req, res) => {
 
         const html = generateRecipeHTML({
             ...dish,
-            allergens: allergens || []
+            allergens: allergens || [],
+            traces: dish.traces || []
         });
 
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -427,7 +466,6 @@ app.post('/api/generate-recipe-document', async (req, res) => {
     }
 });
 
-// Estado del sistema
 app.get('/api/system-status', async (req, res) => {
     try {
         const { count: dishCount } = await supabase
@@ -443,11 +481,12 @@ app.get('/api/system-status', async (req, res) => {
             status: 'online',
             database: 'connected',
             translation: 'enabled (MyMemory API - FREE)',
+            traces: 'enabled',
             dishes_count: dishCount || 0,
             ingredients_count: ingredientCount || 0,
             allergens_count: Object.keys(ALLERGENS).length,
             timestamp: new Date().toISOString(),
-            version: '7.0.0'
+            version: '8.0.0'
         });
     } catch (error) {
         res.json({
@@ -459,7 +498,6 @@ app.get('/api/system-status', async (req, res) => {
     }
 });
 
-// Página principal
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -468,6 +506,7 @@ app.get('/', (req, res) => {
 
 function generateLabelHTML(dish) {
     const hasAllergens = dish.allergens && dish.allergens.length > 0;
+    const hasTraces = dish.traces && dish.traces.length > 0;
     const date = dish.date ? new Date(dish.date).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES');
     
     return `<!DOCTYPE html>
@@ -538,11 +577,6 @@ function generateLabelHTML(dish) {
             display: flex;
             align-items: center;
             gap: 12px;
-            transition: all 0.2s;
-        }
-        .translation-item:hover {
-            border-color: #D4AF37;
-            transform: translateX(3px);
         }
         .flag {
             font-size: 1.8rem;
@@ -577,6 +611,9 @@ function generateLabelHTML(dish) {
             margin-bottom: 18px;
             font-size: 1.25rem;
             font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .allergen { 
             display: flex; 
@@ -605,6 +642,33 @@ function generateLabelHTML(dish) {
             font-size: 0.85rem;
             color: #7f1d1d;
         }
+        .trace { 
+            display: flex; 
+            align-items: center; 
+            gap: 14px; 
+            padding: 14px; 
+            background: #fff3cd; 
+            border-radius: 10px; 
+            margin: 10px 0;
+            border-left: 5px solid #ffc107;
+        }
+        .trace-icon {
+            font-size: 2rem;
+            line-height: 1;
+        }
+        .trace-info {
+            flex: 1;
+        }
+        .trace-name {
+            font-weight: 700;
+            color: #856404;
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+        .trace-desc {
+            font-size: 0.85rem;
+            color: #856404;
+        }
         .safe { 
             background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
             padding: 30px; 
@@ -617,11 +681,15 @@ function generateLabelHTML(dish) {
             margin: 0 0 12px 0;
             font-size: 1.6rem;
             color: #155724;
+            justify-content: center;
         }
         .safe p {
             margin: 0;
             font-size: 0.95rem;
             line-height: 1.5;
+        }
+        .section {
+            margin-bottom: 25px;
         }
         @media print { 
             body { 
@@ -669,23 +737,45 @@ function generateLabelHTML(dish) {
                 <strong>📅 Fecha:</strong> ${date}
             </div>
             
-            ${hasAllergens ? `
-                <h3>⚠️ CONTIENE ALÉRGENOS</h3>
-                ${dish.allergens.map(code => {
-                    const a = ALLERGENS[code];
-                    return a ? `
-                        <div class="allergen">
-                            <span class="allergen-icon">${a.icon}</span>
-                            <div class="allergen-info">
-                                <div class="allergen-name">${a.name}</div>
-                                <div class="allergen-desc">${a.description}</div>
-                            </div>
-                        </div>
-                    ` : '';
-                }).join('')}
+            ${hasAllergens || hasTraces ? `
+                ${hasAllergens ? `
+                    <div class="section">
+                        <h3><span>⚠️</span> CONTIENE ALÉRGENOS</h3>
+                        ${dish.allergens.map(code => {
+                            const a = ALLERGENS[code];
+                            return a ? `
+                                <div class="allergen">
+                                    <span class="allergen-icon">${a.icon}</span>
+                                    <div class="allergen-info">
+                                        <div class="allergen-name">${a.name}</div>
+                                        <div class="allergen-desc">${a.description}</div>
+                                    </div>
+                                </div>
+                            ` : '';
+                        }).join('')}
+                    </div>
+                ` : ''}
+                
+                ${hasTraces ? `
+                    <div class="section">
+                        <h3><span>⚡</span> PUEDE CONTENER TRAZAS</h3>
+                        ${dish.traces.map(code => {
+                            const a = ALLERGENS[code];
+                            return a ? `
+                                <div class="trace">
+                                    <span class="trace-icon">${a.icon}</span>
+                                    <div class="trace-info">
+                                        <div class="trace-name">${a.name}</div>
+                                        <div class="trace-desc">${a.description}</div>
+                                    </div>
+                                </div>
+                            ` : '';
+                        }).join('')}
+                    </div>
+                ` : ''}
             ` : `
                 <div class="safe">
-                    <h3>✅ SIN ALÉRGENOS</h3>
+                    <h3>✅ SIN ALÉRGENOS NI TRAZAS</h3>
                     <p>Este plato no contiene ninguno de los 14 alérgenos principales declarados por la UE</p>
                 </div>
             `}
@@ -697,6 +787,7 @@ function generateLabelHTML(dish) {
 
 function generateRecipeHTML(dish) {
     const date = dish.date ? new Date(dish.date).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES');
+    const hasTraces = dish.traces && dish.traces.length > 0;
     
     return `<!DOCTYPE html>
 <html lang="es">
@@ -710,6 +801,7 @@ function generateRecipeHTML(dish) {
         .section { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; }
         h1 { color: #2c3e50; }
         h3 { color: #2c3e50; border-bottom: 2px solid #D4AF37; padding-bottom: 5px; }
+        .warning-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 10px 0; border-radius: 4px; }
         @media print { body { padding: 10px; } }
     </style>
 </head>
@@ -746,14 +838,27 @@ function generateRecipeHTML(dish) {
     <div class="section">
         <h3>⚠️ ALÉRGENOS (Reglamento UE 1169/2011)</h3>
         ${dish.allergens && dish.allergens.length > 0 ? `
-            <p><strong>Este plato contiene:</strong></p>
+            <p><strong>Este plato CONTIENE:</strong></p>
             <ul>
                 ${dish.allergens.map(code => {
                     const a = ALLERGENS[code];
-                    return a ? `<li>${a.icon} ${a.name} - ${a.description}</li>` : '';
+                    return a ? `<li>${a.icon} <strong>${a.name}</strong> - ${a.description}</li>` : '';
                 }).join('')}
             </ul>
         ` : '<p>✅ Sin alérgenos declarados</p>'}
+        
+        ${hasTraces ? `
+            <div class="warning-box">
+                <p><strong>⚡ PUEDE CONTENER TRAZAS DE:</strong></p>
+                <ul>
+                    ${dish.traces.map(code => {
+                        const a = ALLERGENS[code];
+                        return a ? `<li>${a.icon} ${a.name}</li>` : '';
+                    }).join('')}
+                </ul>
+                <p style="font-size: 0.85rem; margin-top: 10px;"><em>Debido a elaboración en cocina compartida o contaminación cruzada</em></p>
+            </div>
+        ` : ''}
     </div>
     
     <div style="margin-top: 50px; border-top: 1px solid #ccc; padding-top: 20px;">
@@ -767,13 +872,16 @@ function generateRecipeHTML(dish) {
 // Iniciar servidor
 app.listen(port, () => {
     console.log(`\n🚀 ════════════════════════════════════════════════════`);
-    console.log(`   Sistema de Alérgenos v7.0.0 - TRADUCCIÓN GRATUITA`);
+    console.log(`   Sistema de Alérgenos v8.0.0 - CON TRAZAS`);
     console.log(`🚀 ════════════════════════════════════════════════════\n`);
     console.log(`📡 Servidor: http://localhost:${port}`);
     console.log(`📊 Supabase: ${process.env.SUPABASE_URL ? '✅ Conectado' : '❌ NO CONFIGURADO'}`);
     console.log(`🌐 Traducción: ✅ MyMemory API (GRATIS - 10k/día)`);
     console.log(`   - Español → Inglés`);
-    console.log(`   - Español → Francés\n`);
+    console.log(`   - Español → Francés`);
+    console.log(`⚡ Trazas: ✅ Habilitadas`);
+    console.log(`   - Detección automática`);
+    console.log(`   - Configuración manual\n`);
 });
 
 module.exports = app;
