@@ -19,6 +19,21 @@
         .ingredient-item:hover { background: #f0f9ff; transform: translateX(5px); }
         .ingredient-selected { background: #dbeafe !important; border-left: 4px solid #3b82f6; }
         .trace-checkbox { width: 20px; height: 20px; cursor: pointer; }
+        .modal-overlay { background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); }
+        .modal-content { animation: modalSlideIn 0.3s ease-out; }
+        @keyframes modalSlideIn { 
+            from { transform: translateY(-20px); opacity: 0; } 
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .create-ingredient-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .create-ingredient-btn:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -859,6 +874,9 @@
             }, 3000);
         }
     </script>
+
+</body>
+</html>
 
 </body>
 </html>
