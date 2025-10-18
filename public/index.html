@@ -46,12 +46,12 @@
                     <span class="text-3xl">🍽️</span>
                     <div>
                         <h1 class="text-2xl font-bold">Sistema de Alérgenos PRO</h1>
-                        <p class="text-sm opacity-90">Con Trazas y Traducción Multiidioma</p>
+                        <p class="text-sm opacity-90" id="establishmentName">Cargando...</p>
                     </div>
                 </div>
-                <div id="dbStatus" class="text-sm bg-white/20 px-4 py-2 rounded-lg">
+                <div id="licenseInfo" class="text-sm bg-white/20 px-4 py-2 rounded-lg">
                     <span class="spinner w-4 h-4 border-2 border-white border-t-transparent rounded-full inline-block mr-2"></span>
-                    Conectando...
+                    Verificando licencia...
                 </div>
             </div>
         </div>
@@ -72,340 +72,10 @@
         </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 pb-8">
-        
-        <!-- TAB: NUEVO PLATO -->
-        <div id="content-new-dish" class="tab-content">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <!-- Panel Principal -->
-                <div class="lg:col-span-2 space-y-6">
-                    
-                    <div class="bg-white rounded-2xl shadow-sm p-6">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4">📝 Crear Nuevo Plato</h2>
-
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">🥘 Nombre del Plato</label>
-                                <input 
-                                    type="text"
-                                    id="dishName"
-                                    placeholder="Ej: Paella Valenciana"
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
-                                >
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">🔍 Buscar y Añadir Ingredientes</label>
-                                <input 
-                                    type="text"
-                                    id="ingredientSearch"
-                                    placeholder="Buscar ingrediente..."
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
-                                    oninput="searchIngredients()"
-                                >
-                                <div id="ingredientResults" class="mt-2 max-h-60 overflow-y-auto"></div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">✅ Ingredientes Seleccionados</label>
-                                <div id="selectedIngredients" class="min-h-20 p-4 border-2 border-dashed border-gray-300 rounded-lg">
-                                    <p class="text-gray-400 text-sm text-center">Busca y añade ingredientes arriba</p>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">📝 Proceso de Elaboración</label>
-                                <textarea 
-                                    id="elaboration"
-                                    rows="4"
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none resize-none"
-                                    placeholder="1. Sofreír el ajo y la cebolla...&#10;2. Añadir el arroz...&#10;3. Incorporar el caldo..."
-                                ></textarea>
-                            </div>
-
-                            <div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
-                                <label class="block text-sm font-bold text-yellow-800 mb-3">
-                                    ⚡ Trazas (Contaminación Cruzada)
-                                </label>
-                                <p class="text-xs text-yellow-700 mb-3">
-                                    Selecciona los alérgenos que PUEDEN estar presentes por elaboración en cocina compartida
-                                </p>
-                                <div class="grid grid-cols-2 gap-2" id="tracesCheckboxes">
-                                    <!-- Se generará dinámicamente con JavaScript -->
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">👨‍🍳 Chef Responsable</label>
-                                <input 
-                                    type="text"
-                                    id="chef"
-                                    value="Chef Principal"
-                                    class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
-                                >
-                            </div>
-
-                            <button 
-                                onclick="createDish()"
-                                class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg shadow">
-                                💾 Guardar Plato
-                            </button>
-                        </div>
-
-                        <div id="loading" class="hidden mt-4 flex items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg">
-                            <div class="spinner w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                            <span class="text-blue-700 font-medium text-sm">Guardando y traduciendo...</span>
-                        </div>
-                    </div>
-
-                    <!-- Resultados -->
-                    <div id="results" class="hidden space-y-6">
-                        
-                        <div class="bg-white rounded-2xl shadow-sm p-6">
-                            <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 rounded-lg p-4">
-                                <h3 class="text-lg font-bold text-green-800 mb-2">✅ Plato Guardado</h3>
-                                <div id="resultDishName" class="text-2xl font-bold text-gray-800 mb-1"></div>
-                                <div id="resultMeta" class="text-sm text-gray-600"></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded-2xl shadow-sm p-6">
-                            <h4 class="text-lg font-bold text-gray-800 mb-4">⚠️ Alérgenos Detectados</h4>
-                            <div id="resultAllergens"></div>
-                        </div>
-
-                        <div class="bg-white rounded-2xl shadow-sm p-6" id="resultTracesSection" style="display:none;">
-                            <h4 class="text-lg font-bold text-gray-800 mb-4">⚡ Trazas (Puede Contener)</h4>
-                            <div id="resultTraces"></div>
-                        </div>
-
-                        <div class="bg-white rounded-2xl shadow-sm p-6">
-                            <h4 class="text-lg font-bold text-gray-800 mb-4">📄 Generar Documentos</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <button 
-                                    onclick="generateLabelFromResult()"
-                                    class="p-4 border-2 border-gray-200 rounded-lg hover:border-yellow-500 transition-all">
-                                    <div class="text-3xl mb-2">🏷️</div>
-                                    <h5 class="font-bold text-gray-800">Etiqueta Multiidioma</h5>
-                                    <p class="text-xs text-gray-500 mt-1">Con alérgenos y trazas</p>
-                                </button>
-                                <button 
-                                    onclick="generateRecipeFromResult()"
-                                    class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-all">
-                                    <div class="text-3xl mb-2">📋</div>
-                                    <h5 class="font-bold text-gray-800">Recetario Oficial</h5>
-                                    <p class="text-xs text-gray-500 mt-1">Control sanitario</p>
-                                </button>
-                            </div>
-                        </div>
-
-                        <button 
-                            onclick="resetForm()"
-                            class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg shadow transition-all">
-                            🔄 Crear Otro Plato
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Sidebar -->
-                <div class="space-y-6">
-                    <div class="bg-white rounded-2xl shadow-sm p-5">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">📋 Platos de Hoy</h3>
-                        <div id="todayDishes" class="space-y-2">
-                            <div class="text-center py-8 text-gray-400">
-                                <div class="text-4xl mb-2">🍽️</div>
-                                <p class="text-sm">Cargando...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB: PLATOS GUARDADOS -->
-        <div id="content-saved-dishes" class="tab-content hidden">
-            <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-                <div class="flex gap-4 items-center">
-                    <input 
-                        type="text"
-                        id="dishSearchInput"
-                        placeholder="🔍 Buscar plato guardado..."
-                        class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
-                        oninput="searchDishes()"
-                    >
-                    <button onclick="loadAllDishes()" class="btn-primary text-white px-6 py-3 rounded-lg font-bold">
-                        🔄 Recargar
-                    </button>
-                </div>
-            </div>
-
-            <div id="savedDishesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="col-span-full text-center py-12 text-gray-400">
-                    <div class="text-5xl mb-3">📚</div>
-                    <p>Cargando platos guardados...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB: INGREDIENTES -->
-        <div id="content-ingredients" class="tab-content hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
-                <!-- Lista de Ingredientes -->
-                <div class="bg-white rounded-2xl shadow-sm p-6">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">📦 Base de Ingredientes</h3>
-                    <input 
-                        type="text"
-                        id="ingredientFilterInput"
-                        placeholder="🔍 Filtrar ingredientes..."
-                        class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none mb-4"
-                        oninput="filterIngredients()"
-                    >
-                    <div id="ingredientsList" class="space-y-2 max-h-96 overflow-y-auto">
-                        <p class="text-gray-400 text-center py-8">Cargando ingredientes...</p>
-                    </div>
-                </div>
-
-                <!-- Añadir Ingrediente -->
-                <div class="bg-white rounded-2xl shadow-sm p-6">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">➕ Añadir Ingrediente</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
-                            <input type="text" id="newIngName" placeholder="Ej: Tomate" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
-                            <select id="newIngCategory" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none">
-                                <option value="verduras">Verduras</option>
-                                <option value="carnes">Carnes</option>
-                                <option value="pescados">Pescados</option>
-                                <option value="mariscos">Mariscos</option>
-                                <option value="lacteos">Lácteos</option>
-                                <option value="cereales">Cereales</option>
-                                <option value="frutos_secos">Frutos Secos</option>
-                                <option value="salsas">Salsas</option>
-                                <option value="condimentos">Condimentos</option>
-                                <option value="otros">Otros</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Alérgenos (contiene directamente)</label>
-                            <select id="newIngAllergens" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none" size="6">
-                                <option value="gluten">🌾 Gluten</option>
-                                <option value="crustaceos">🦐 Crustáceos</option>
-                                <option value="huevos">🥚 Huevos</option>
-                                <option value="pescado">🐟 Pescado</option>
-                                <option value="cacahuetes">🥜 Cacahuetes</option>
-                                <option value="soja">🌱 Soja</option>
-                                <option value="lacteos">🥛 Lácteos</option>
-                                <option value="frutos_secos">🌰 Frutos Secos</option>
-                                <option value="apio">🥬 Apio</option>
-                                <option value="mostaza">🟡 Mostaza</option>
-                                <option value="sesamo">🫘 Sésamo</option>
-                                <option value="sulfitos">🍷 Sulfitos</option>
-                                <option value="moluscos">🐚 Moluscos</option>
-                            </select>
-                            <p class="text-xs text-gray-500 mt-1">Mantén Ctrl/Cmd para seleccionar varios</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Trazas (puede contener)</label>
-                            <select id="newIngTraces" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none" size="6">
-                                <option value="gluten">🌾 Gluten</option>
-                                <option value="crustaceos">🦐 Crustáceos</option>
-                                <option value="huevos">🥚 Huevos</option>
-                                <option value="pescado">🐟 Pescado</option>
-                                <option value="cacahuetes">🥜 Cacahuetes</option>
-                                <option value="soja">🌱 Soja</option>
-                                <option value="lacteos">🥛 Lácteos</option>
-                                <option value="frutos_secos">🌰 Frutos Secos</option>
-                                <option value="apio">🥬 Apio</option>
-                                <option value="mostaza">🟡 Mostaza</option>
-                                <option value="sesamo">🫘 Sésamo</option>
-                                <option value="sulfitos">🍷 Sulfitos</option>
-                                <option value="moluscos">🐚 Moluscos</option>
-                            </select>
-                            <p class="text-xs text-gray-500 mt-1">Por contaminación cruzada</p>
-                        </div>
-                        <button onclick="addNewIngredient()" class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg shadow">
-                            ➕ Añadir Ingrediente
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- MODAL: Crear Ingrediente Rápido -->
-    <div id="quickIngredientModal" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center p-4">
-        <div class="modal-content bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-xl font-bold text-gray-800">➕ Crear Ingrediente Rápido</h3>
-                <button onclick="closeQuickIngredientModal()" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">✕</button>
-            </div>
-
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
-                    <input 
-                        type="text" 
-                        id="quickIngName" 
-                        class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
-                        placeholder="Ej: Aguacate"
-                    >
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
-                    <select id="quickIngCategory" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none">
-                        <option value="verduras">Verduras</option>
-                        <option value="carnes">Carnes</option>
-                        <option value="pescados">Pescados</option>
-                        <option value="mariscos">Mariscos</option>
-                        <option value="lacteos">Lácteos</option>
-                        <option value="cereales">Cereales</option>
-                        <option value="frutos_secos">Frutos Secos</option>
-                        <option value="salsas">Salsas</option>
-                        <option value="condimentos">Condimentos</option>
-                        <option value="otros">Otros</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">¿Contiene alérgenos?</label>
-                    <select id="quickIngAllergens" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none" size="4">
-                        <option value="gluten">🌾 Gluten</option>
-                        <option value="crustaceos">🦐 Crustáceos</option>
-                        <option value="huevos">🥚 Huevos</option>
-                        <option value="pescado">🐟 Pescado</option>
-                        <option value="cacahuetes">🥜 Cacahuetes</option>
-                        <option value="soja">🌱 Soja</option>
-                        <option value="lacteos">🥛 Lácteos</option>
-                        <option value="frutos_secos">🌰 Frutos Secos</option>
-                        <option value="apio">🥬 Apio</option>
-                        <option value="mostaza">🟡 Mostaza</option>
-                        <option value="sesamo">🫘 Sésamo</option>
-                        <option value="sulfitos">🍷 Sulfitos</option>
-                        <option value="moluscos">🐚 Moluscos</option>
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">Mantén Ctrl/Cmd para seleccionar varios</p>
-                </div>
-
-                <div class="flex gap-3 mt-6">
-                    <button 
-                        onclick="closeQuickIngredientModal()" 
-                        class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-lg transition-all">
-                        Cancelar
-                    </button>
-                    <button 
-                        onclick="saveQuickIngredient()" 
-                        class="flex-1 btn-primary text-white font-bold py-3 px-4 rounded-lg">
-                        ✅ Crear y Añadir
-                    </button>
-                </div>
-            </div>
+    <div class="max-w-7xl mx-auto px-4 pb-8" id="mainContent">
+        <div class="text-center py-20">
+            <div class="spinner w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full inline-block mb-4"></div>
+            <p class="text-gray-600">Verificando licencia...</p>
         </div>
     </div>
 
@@ -427,21 +97,316 @@
             'moluscos': { name: 'Moluscos', icon: '🐚' }
         };
 
+        let licenseKey = localStorage.getItem('licenseKey');
+        let establishment = null;
         let selectedIngredients = [];
         let currentDish = null;
         let allIngredients = [];
         let searchTimeout = null;
-        let currentSearchQuery = ''; // Para recordar qué buscaba el chef
 
-        // Inicializar
+        // Verificar licencia al cargar
         document.addEventListener('DOMContentLoaded', async () => {
-            await checkSystemStatus();
-            await loadAllIngredients();
-            await loadTodayDishes();
-            generateTracesCheckboxes();
+            if (!licenseKey) {
+                window.location.href = '/activation';
+                return;
+            }
+
+            const valid = await checkLicense();
+            if (valid) {
+                await initializeApp();
+            } else {
+                window.location.href = '/activation';
+            }
         });
 
-        // Generar checkboxes de trazas
+        async function checkLicense() {
+            try {
+                const response = await fetch('/api/license/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ licenseKey })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    establishment = data.establishment;
+                    document.getElementById('establishmentName').textContent = establishment.name;
+                    
+                    const licenseInfo = document.getElementById('licenseInfo');
+                    const daysRemaining = establishment.daysRemaining;
+                    
+                    if (daysRemaining <= 7) {
+                        licenseInfo.innerHTML = `⚠️ ${daysRemaining} días restantes`;
+                        licenseInfo.className = 'text-sm bg-yellow-500 px-4 py-2 rounded-lg font-bold';
+                    } else {
+                        licenseInfo.innerHTML = '✅ Licencia Activa';
+                        licenseInfo.className = 'text-sm bg-green-500 px-4 py-2 rounded-lg';
+                    }
+                    
+                    return true;
+                } else {
+                    showToast('❌ ' + data.error, 'error');
+                    localStorage.removeItem('licenseKey');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('❌ Error de conexión', 'error');
+                return false;
+            }
+        }
+
+        async function initializeApp() {
+            document.getElementById('mainContent').innerHTML = `
+                <!-- TAB: NUEVO PLATO -->
+                <div id="content-new-dish" class="tab-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- Panel Principal -->
+                        <div class="lg:col-span-2 space-y-6">
+                            
+                            <div class="bg-white rounded-2xl shadow-sm p-6">
+                                <h2 class="text-xl font-bold text-gray-800 mb-4">📝 Crear Nuevo Plato</h2>
+
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">🥘 Nombre del Plato</label>
+                                        <input 
+                                            type="text"
+                                            id="dishName"
+                                            placeholder="Ej: Paella Valenciana"
+                                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
+                                        >
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">🔍 Buscar y Añadir Ingredientes</label>
+                                        <input 
+                                            type="text"
+                                            id="ingredientSearch"
+                                            placeholder="Buscar ingrediente..."
+                                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
+                                            oninput="searchIngredients()"
+                                        >
+                                        <div id="ingredientResults" class="mt-2 max-h-60 overflow-y-auto"></div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">✅ Ingredientes Seleccionados</label>
+                                        <div id="selectedIngredients" class="min-h-20 p-4 border-2 border-dashed border-gray-300 rounded-lg">
+                                            <p class="text-gray-400 text-sm text-center">Busca y añade ingredientes arriba</p>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">📝 Proceso de Elaboración</label>
+                                        <textarea 
+                                            id="elaboration"
+                                            rows="4"
+                                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none resize-none"
+                                            placeholder="1. Sofreír el ajo y la cebolla...&#10;2. Añadir el arroz...&#10;3. Incorporar el caldo..."
+                                        ></textarea>
+                                    </div>
+
+                                    <div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+                                        <label class="block text-sm font-bold text-yellow-800 mb-3">
+                                            ⚡ Trazas (Contaminación Cruzada)
+                                        </label>
+                                        <p class="text-xs text-yellow-700 mb-3">
+                                            Selecciona los alérgenos que PUEDEN estar presentes por elaboración en cocina compartida
+                                        </p>
+                                        <div class="grid grid-cols-2 gap-2" id="tracesCheckboxes">
+                                            <!-- Se generará dinámicamente -->
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">👨‍🍳 Chef Responsable</label>
+                                        <input 
+                                            type="text"
+                                            id="chef"
+                                            value="Chef Principal"
+                                            class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
+                                        >
+                                    </div>
+
+                                    <button 
+                                        onclick="createDish()"
+                                        class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg shadow">
+                                        💾 Guardar Plato
+                                    </button>
+                                </div>
+
+                                <div id="loading" class="hidden mt-4 flex items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg">
+                                    <div class="spinner w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                                    <span class="text-blue-700 font-medium text-sm">Guardando...</span>
+                                </div>
+                            </div>
+
+                            <!-- Resultados -->
+                            <div id="results" class="hidden space-y-6">
+                                
+                                <div class="bg-white rounded-2xl shadow-sm p-6">
+                                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 rounded-lg p-4">
+                                        <h3 class="text-lg font-bold text-green-800 mb-2">✅ Plato Guardado</h3>
+                                        <div id="resultDishName" class="text-2xl font-bold text-gray-800 mb-1"></div>
+                                        <div id="resultMeta" class="text-sm text-gray-600"></div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white rounded-2xl shadow-sm p-6">
+                                    <h4 class="text-lg font-bold text-gray-800 mb-4">⚠️ Alérgenos Detectados</h4>
+                                    <div id="resultAllergens"></div>
+                                </div>
+
+                                <div class="bg-white rounded-2xl shadow-sm p-6" id="resultTracesSection" style="display:none;">
+                                    <h4 class="text-lg font-bold text-gray-800 mb-4">⚡ Trazas (Puede Contener)</h4>
+                                    <div id="resultTraces"></div>
+                                </div>
+
+                                <div class="bg-white rounded-2xl shadow-sm p-6">
+                                    <h4 class="text-lg font-bold text-gray-800 mb-4">📄 Generar Documentos</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button 
+                                            onclick="generateLabelFromResult()"
+                                            class="p-4 border-2 border-gray-200 rounded-lg hover:border-yellow-500 transition-all">
+                                            <div class="text-3xl mb-2">🏷️</div>
+                                            <h5 class="font-bold text-gray-800">Etiqueta Multiidioma</h5>
+                                            <p class="text-xs text-gray-500 mt-1">Con alérgenos y trazas</p>
+                                        </button>
+                                        <button 
+                                            onclick="generateRecipeFromResult()"
+                                            class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-all">
+                                            <div class="text-3xl mb-2">📋</div>
+                                            <h5 class="font-bold text-gray-800">Recetario Oficial</h5>
+                                            <p class="text-xs text-gray-500 mt-1">Control sanitario</p>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onclick="resetForm()"
+                                    class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg shadow transition-all">
+                                    🔄 Crear Otro Plato
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar -->
+                        <div class="space-y-6">
+                            <div class="bg-white rounded-2xl shadow-sm p-5">
+                                <h3 class="text-lg font-bold text-gray-800 mb-4">📋 Platos de Hoy</h3>
+                                <div id="todayDishes" class="space-y-2">
+                                    <div class="text-center py-8 text-gray-400">
+                                        <div class="text-4xl mb-2">🍽️</div>
+                                        <p class="text-sm">Cargando...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: PLATOS GUARDADOS -->
+                <div id="content-saved-dishes" class="tab-content hidden">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
+                        <div class="flex gap-4 items-center">
+                            <input 
+                                type="text"
+                                id="dishSearchInput"
+                                placeholder="🔍 Buscar plato guardado..."
+                                class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
+                                oninput="searchDishes()"
+                            >
+                            <button onclick="loadAllDishes()" class="btn-primary text-white px-6 py-3 rounded-lg font-bold">
+                                🔄 Recargar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="savedDishesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="col-span-full text-center py-12 text-gray-400">
+                            <div class="text-5xl mb-3">📚</div>
+                            <p>Cargando platos guardados...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: INGREDIENTES -->
+                <div id="content-ingredients" class="tab-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        <!-- Lista de Ingredientes -->
+                        <div class="bg-white rounded-2xl shadow-sm p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">📦 Base de Ingredientes</h3>
+                            <input 
+                                type="text"
+                                id="ingredientFilterInput"
+                                placeholder="🔍 Filtrar ingredientes..."
+                                class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none mb-4"
+                                oninput="filterIngredients()"
+                            >
+                            <div id="ingredientsList" class="space-y-2 max-h-96 overflow-y-auto">
+                                <p class="text-gray-400 text-center py-8">Cargando ingredientes...</p>
+                            </div>
+                        </div>
+
+                        <!-- Añadir Ingrediente -->
+                        <div class="bg-white rounded-2xl shadow-sm p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">➕ Añadir Ingrediente</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
+                                    <input type="text" id="newIngName" placeholder="Ej: Tomate" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
+                                    <select id="newIngCategory" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none">
+                                        <option value="verduras">Verduras</option>
+                                        <option value="carnes">Carnes</option>
+                                        <option value="pescados">Pescados</option>
+                                        <option value="mariscos">Mariscos</option>
+                                        <option value="lacteos">Lácteos</option>
+                                        <option value="cereales">Cereales</option>
+                                        <option value="frutos_secos">Frutos Secos</option>
+                                        <option value="salsas">Salsas</option>
+                                        <option value="condimentos">Condimentos</option>
+                                        <option value="otros">Otros</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Alérgenos (contiene)</label>
+                                    <select id="newIngAllergens" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none" size="6">
+                                        ${Object.entries(ALLERGENS).map(([code, data]) => 
+                                            `<option value="${code}">${data.icon} ${data.name}</option>`
+                                        ).join('')}
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">Mantén Ctrl/Cmd para seleccionar varios</p>
+                                </div>
+                                <button onclick="addNewIngredient()" class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg shadow">
+                                    ➕ Añadir Ingrediente
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            generateTracesCheckboxes();
+            await loadAllIngredients();
+            await loadTodayDishes();
+        }
+
+        // Función auxiliar para fetch con licencia
+        async function fetchWithLicense(url, options = {}) {
+            if (!options.headers) {
+                options.headers = {};
+            }
+            options.headers['X-License-Key'] = licenseKey;
+            return fetch(url, options);
+        }
+
         function generateTracesCheckboxes() {
             const container = document.getElementById('tracesCheckboxes');
             container.innerHTML = Object.entries(ALLERGENS).map(([code, data]) => `
@@ -452,33 +417,11 @@
             `).join('');
         }
 
-        // Obtener trazas seleccionadas
         function getSelectedTraces() {
             const checkboxes = document.querySelectorAll('input[name="trace"]:checked');
             return Array.from(checkboxes).map(cb => cb.value);
         }
 
-        // Sistema
-        async function checkSystemStatus() {
-            try {
-                const response = await fetch('/api/system-status');
-                const data = await response.json();
-                const statusEl = document.getElementById('dbStatus');
-                
-                if (data.success && data.database === 'connected') {
-                    statusEl.innerHTML = '✅ Sistema Activo';
-                    statusEl.className = 'text-sm bg-green-500/90 px-4 py-2 rounded-lg';
-                } else {
-                    statusEl.innerHTML = '❌ Sistema Desconectado';
-                    statusEl.className = 'text-sm bg-red-500/90 px-4 py-2 rounded-lg';
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('dbStatus').innerHTML = '⚠️ Error';
-            }
-        }
-
-        // Tabs
         function showTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.remove('tab-active'));
@@ -493,11 +436,16 @@
             }
         }
 
-        // Ingredientes
         async function loadAllIngredients() {
             try {
-                const response = await fetch('/api/ingredients');
+                const response = await fetchWithLicense('/api/ingredients');
                 const data = await response.json();
+                
+                if (!data.success && data.requiresActivation) {
+                    window.location.href = '/activation';
+                    return;
+                }
+                
                 allIngredients = data.ingredients || [];
             } catch (error) {
                 console.error('Error:', error);
@@ -508,7 +456,6 @@
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(async () => {
                 const query = document.getElementById('ingredientSearch').value.trim();
-                currentSearchQuery = query; // Guardar búsqueda actual
                 
                 if (query.length < 2) {
                     document.getElementById('ingredientResults').innerHTML = '';
@@ -516,7 +463,7 @@
                 }
 
                 try {
-                    const response = await fetch(`/api/ingredients/search?q=${encodeURIComponent(query)}`);
+                    const response = await fetchWithLicense(`/api/ingredients/search?q=${encodeURIComponent(query)}`);
                     const data = await response.json();
                     displayIngredientResults(data.ingredients || [], query);
                 } catch (error) {
@@ -529,41 +476,26 @@
             const container = document.getElementById('ingredientResults');
             
             if (ingredients.length === 0) {
-                // No se encontró nada - mostrar botón para crear
                 container.innerHTML = `
                     <div class="p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                         <p class="text-gray-600 text-sm mb-3 text-center">
-                            No se encontraron ingredientes
+                            No se encontraron ingredientes con "${searchQuery}"
                         </p>
-                        <button 
-                            onclick="openQuickIngredientModal('${searchQuery.replace(/'/g, "\\'")}')"
-                            class="create-ingredient-btn w-full text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2">
-                            <span class="text-xl">➕</span>
-                            <span>Añadir "${searchQuery}" a la base de datos</span>
-                        </button>
+                        <p class="text-xs text-gray-500 text-center">
+                            Ve a la pestaña "Ingredientes" para añadirlo a la base de datos
+                        </p>
                     </div>
                 `;
                 return;
             }
 
-            // Mostrar resultados + botón para crear al final
-            container.innerHTML = `
-                ${ingredients.map(ing => `
-                    <div onclick="addIngredient(${ing.id}, '${ing.name.replace(/'/g, "\\'")}')" 
-                         class="ingredient-item p-3 border rounded-lg hover:bg-blue-50 cursor-pointer flex justify-between items-center mb-2">
-                        <span class="font-medium">${ing.name}</span>
-                        <span class="text-xs text-gray-500">${ing.category}</span>
-                    </div>
-                `).join('')}
-                <div class="mt-2 pt-2 border-t-2 border-gray-200">
-                    <button 
-                        onclick="openQuickIngredientModal('${searchQuery.replace(/'/g, "\\'")}')"
-                        class="create-ingredient-btn w-full text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-sm">
-                        <span>➕</span>
-                        <span>Crear nuevo ingrediente</span>
-                    </button>
+            container.innerHTML = ingredients.map(ing => `
+                <div onclick="addIngredient(${ing.id}, '${ing.name.replace(/'/g, "\\'")}')" 
+                     class="ingredient-item p-3 border rounded-lg hover:bg-blue-50 cursor-pointer flex justify-between items-center mb-2">
+                    <span class="font-medium">${ing.name}</span>
+                    <span class="text-xs text-gray-500">${ing.category}</span>
                 </div>
-            `;
+            `).join('');
         }
 
         function addIngredient(id, name) {
@@ -585,73 +517,6 @@
             updateSelectedIngredients();
         }
 
-        // MODAL: Crear Ingrediente Rápido
-        function openQuickIngredientModal(suggestedName = '') {
-            document.getElementById('quickIngredientModal').classList.remove('hidden');
-            document.getElementById('quickIngName').value = suggestedName;
-            document.getElementById('quickIngName').focus();
-            document.getElementById('quickIngAllergens').selectedIndex = -1;
-        }
-
-        function closeQuickIngredientModal() {
-            document.getElementById('quickIngredientModal').classList.add('hidden');
-            document.getElementById('quickIngName').value = '';
-            document.getElementById('quickIngAllergens').selectedIndex = -1;
-        }
-
-        async function saveQuickIngredient() {
-            const name = document.getElementById('quickIngName').value.trim();
-            const category = document.getElementById('quickIngCategory').value;
-            const allergensSelect = document.getElementById('quickIngAllergens');
-            const allergens = Array.from(allergensSelect.selectedOptions).map(opt => opt.value);
-
-            if (!name) {
-                showToast('⚠️ Escribe el nombre del ingrediente', 'warning');
-                return;
-            }
-
-            try {
-                showToast('⏳ Creando ingrediente...', 'info');
-                
-                const response = await fetch('/api/ingredients', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name,
-                        category,
-                        allergens,
-                        traces: []
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showToast('✅ Ingrediente creado', 'success');
-                    
-                    // Recargar lista de ingredientes
-                    await loadAllIngredients();
-                    
-                    // Añadir automáticamente el ingrediente recién creado al plato
-                    addIngredient(data.ingredient.id, data.ingredient.name);
-                    
-                    // Cerrar modal
-                    closeQuickIngredientModal();
-                    
-                    // Limpiar búsqueda
-                    document.getElementById('ingredientSearch').value = '';
-                    document.getElementById('ingredientResults').innerHTML = '';
-                    
-                } else {
-                    showToast('❌ Error: ' + data.error, 'error');
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                showToast('❌ Error de conexión', 'error');
-            }
-        }
-
         function updateSelectedIngredients() {
             const container = document.getElementById('selectedIngredients');
             
@@ -668,7 +533,6 @@
             `).join('');
         }
 
-        // Crear plato
         async function createDish() {
             const name = document.getElementById('dishName').value.trim();
             const elaboration = document.getElementById('elaboration').value.trim();
@@ -688,7 +552,7 @@
             document.getElementById('loading').classList.remove('hidden');
 
             try {
-                const response = await fetch('/api/dishes', {
+                const response = await fetchWithLicense('/api/dishes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -745,7 +609,6 @@
                 }).join('');
             }
 
-            // Mostrar trazas si existen
             const tracesSection = document.getElementById('resultTracesSection');
             const tracesEl = document.getElementById('resultTraces');
             
@@ -779,7 +642,6 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Documentos
         async function generateLabelFromResult() {
             if (!currentDish) return;
             await generateDocument(currentDish.id, 'label');
@@ -793,7 +655,7 @@
         async function generateDocument(dishId, type) {
             try {
                 const endpoint = type === 'label' ? '/api/generate-label' : '/api/generate-recipe-document';
-                const response = await fetch(endpoint, {
+                const response = await fetchWithLicense(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ dishId })
@@ -812,10 +674,9 @@
             }
         }
 
-        // Platos guardados
         async function loadAllDishes() {
             try {
-                const response = await fetch('/api/dishes');
+                const response = await fetchWithLicense('/api/dishes');
                 const data = await response.json();
                 displaySavedDishes(data.dishes || []);
             } catch (error) {
@@ -831,7 +692,7 @@
             }
 
             try {
-                const response = await fetch(`/api/dishes/search?q=${encodeURIComponent(query)}`);
+                const response = await fetchWithLicense(`/api/dishes/search?q=${encodeURIComponent(query)}`);
                 const data = await response.json();
                 displaySavedDishes(data.dishes || []);
             } catch (error) {
@@ -857,7 +718,7 @@
                     <h3 class="font-bold text-lg mb-2">${dish.name}</h3>
                     <p class="text-sm text-gray-600 mb-3">
                         <strong>Chef:</strong> ${dish.chef}<br>
-                        <strong>Fecha:</strong> ${new Date(dish.date).toLocaleDateString('es-ES')}
+                        <strong>Fecha:</strong> ${new Date(dish.created_at || dish.date).toLocaleDateString('es-ES')}
                     </p>
                     
                     ${dish.allergens && dish.allergens.length > 0 ? `
@@ -888,10 +749,9 @@
             `).join('');
         }
 
-        // Platos de hoy
         async function loadTodayDishes() {
             try {
-                const response = await fetch('/api/dishes/today');
+                const response = await fetchWithLicense('/api/dishes/today');
                 const data = await response.json();
                 
                 const container = document.getElementById('todayDishes');
@@ -932,7 +792,6 @@
             }
         }
 
-        // Gestión de ingredientes
         function filterIngredients() {
             const query = document.getElementById('ingredientFilterInput').value.toLowerCase();
             const filtered = allIngredients.filter(ing => 
@@ -979,9 +838,7 @@
             const name = document.getElementById('newIngName').value.trim();
             const category = document.getElementById('newIngCategory').value;
             const allergensSelect = document.getElementById('newIngAllergens');
-            const tracesSelect = document.getElementById('newIngTraces');
             const allergens = Array.from(allergensSelect.selectedOptions).map(opt => opt.value);
-            const traces = Array.from(tracesSelect.selectedOptions).map(opt => opt.value);
 
             if (!name) {
                 showToast('⚠️ Escribe el nombre del ingrediente', 'warning');
@@ -989,14 +846,14 @@
             }
 
             try {
-                const response = await fetch('/api/ingredients', {
+                const response = await fetchWithLicense('/api/ingredients', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         name,
                         category,
                         allergens,
-                        traces
+                        traces: []
                     })
                 });
 
@@ -1006,7 +863,6 @@
                     showToast('✅ Ingrediente añadido', 'success');
                     document.getElementById('newIngName').value = '';
                     allergensSelect.selectedIndex = -1;
-                    tracesSelect.selectedIndex = -1;
                     await loadAllIngredients();
                     filterIngredients();
                 } else {
@@ -1019,7 +875,6 @@
             }
         }
 
-        // Toast
         function showToast(message, type = 'info') {
             const colors = {
                 success: 'bg-green-500',
