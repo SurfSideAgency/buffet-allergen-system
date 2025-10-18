@@ -33,14 +33,12 @@
     <div class="activation-card max-w-md w-full mx-4">
         <div class="bg-white rounded-2xl shadow-2xl p-8">
             
-            <!-- Header -->
             <div class="text-center mb-8">
                 <div class="text-6xl mb-4">🍽️</div>
                 <h1 class="text-3xl font-bold text-gray-800 mb-2">Sistema de Alérgenos</h1>
                 <p class="text-gray-600">Activación de Licencia</p>
             </div>
 
-            <!-- Form -->
             <div class="space-y-6">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -50,7 +48,7 @@
                         type="text" 
                         id="licenseKey"
                         placeholder="BUFF-XXXX-XXXX-XXXX"
-                        maxlength="19"
+                        maxlength="50"
                         class="license-input w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-center text-lg"
                     >
                     <p class="text-xs text-gray-500 mt-2 text-center">
@@ -68,7 +66,6 @@
                 <div id="message" class="hidden p-4 rounded-lg text-center text-sm font-medium"></div>
             </div>
 
-            <!-- Footer -->
             <div class="mt-8 pt-6 border-t border-gray-200 text-center">
                 <p class="text-xs text-gray-500">
                     ¿No tienes una licencia? 
@@ -80,7 +77,6 @@
 
         </div>
 
-        <!-- Info adicional -->
         <div class="mt-6 text-center text-white text-sm">
             <p class="opacity-90">
                 🔒 Conexión segura | 🌐 Sistema basado en la nube
@@ -89,27 +85,54 @@
     </div>
 
     <script>
-        // Auto-formatear el código mientras se escribe
-        document.getElementById('licenseKey').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-            let formatted = '';
+        // Generar fingerprint del dispositivo
+        function generateDeviceFingerprint() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.textBaseline = 'top';
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#f60';
+            ctx.fillRect(125, 1, 62, 20);
+            ctx.fillStyle = '#069';
+            ctx.fillText('Buffet System', 2, 15);
             
-            for (let i = 0; i < value.length && i < 16; i++) {
-                if (i > 0 && i % 4 === 0) {
-                    formatted += '-';
-                }
-                formatted += value[i];
+            const canvasData = canvas.toDataURL();
+            
+            const fingerprint = {
+                canvas: hashCode(canvasData),
+                screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                language: navigator.language,
+                platform: navigator.platform,
+                hardwareConcurrency: navigator.hardwareConcurrency || 0,
+                deviceMemory: navigator.deviceMemory || 0
+            };
+            
+            return 'FP-' + hashCode(JSON.stringify(fingerprint));
+        }
+
+        function hashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
             }
-            
-            e.target.value = 'BUFF-' + formatted;
-        });
+            return Math.abs(hash).toString(36).toUpperCase();
+        }
+
+        let deviceFingerprint = localStorage.getItem('deviceFingerprint');
+        if (!deviceFingerprint) {
+            deviceFingerprint = generateDeviceFingerprint();
+            localStorage.setItem('deviceFingerprint', deviceFingerprint);
+        }
 
         async function activateLicense() {
             const licenseKey = document.getElementById('licenseKey').value.trim();
             const messageEl = document.getElementById('message');
             const btnEl = document.getElementById('activateBtn');
 
-            if (!licenseKey || licenseKey.length < 19) {
+            if (!licenseKey || licenseKey.length < 10) {
                 showMessage('⚠️ Introduce un código de licencia válido', 'warning');
                 return;
             }
@@ -118,16 +141,18 @@
             btnEl.innerHTML = '<span class="animate-spin inline-block mr-2">⏳</span> Verificando...';
 
             try {
-                const response = await fetch('/api/license/verify', {
+                const response = await fetch('/api/license/verify-with-device', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ licenseKey })
+                    body: JSON.stringify({ 
+                        licenseKey,
+                        deviceFingerprint
+                    })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    // Guardar licencia en localStorage
                     localStorage.setItem('licenseKey', licenseKey);
                     localStorage.setItem('establishment', JSON.stringify(data.establishment));
 
@@ -138,7 +163,11 @@
                     }, 1500);
 
                 } else {
-                    showMessage('❌ ' + data.error, 'error');
+                    if (data.code === 'MAX_DEVICES_REACHED') {
+                        showMessage(`❌ Límite de ${data.maxDevices} dispositivos alcanzado (${data.activeDevices} activos)`, 'error');
+                    } else {
+                        showMessage('❌ ' + data.error, 'error');
+                    }
                     btnEl.disabled = false;
                     btnEl.innerHTML = '✅ Activar Licencia';
                 }
@@ -165,14 +194,12 @@
             messageEl.textContent = text;
         }
 
-        // Permitir activar con Enter
         document.getElementById('licenseKey').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 activateLicense();
             }
         });
 
-        // Focus automático al cargar
         window.addEventListener('load', () => {
             document.getElementById('licenseKey').focus();
         });
