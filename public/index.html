@@ -4,6 +4,209 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Alérgenos - Con Trazas</title>
+    // ============================================
+// AÑADIR ESTO AL PRINCIPIO DEL <script> EN index.html
+// ANTES de cualquier otra variable o función
+// ============================================
+
+// ========== DEVICE FINGERPRINTING ==========
+
+function generateDeviceFingerprint() {
+    // Canvas fingerprint
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#f60';
+    ctx.fillRect(125, 1, 62, 20);
+    ctx.fillStyle = '#069';
+    ctx.fillText('Buffet Allergen System', 2, 15);
+    
+    const canvasData = canvas.toDataURL();
+    
+    const fingerprint = {
+        canvas: hashCode(canvasData),
+        screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        language: navigator.language,
+        platform: navigator.platform,
+        hardwareConcurrency: navigator.hardwareConcurrency || 0,
+        deviceMemory: navigator.deviceMemory || 0,
+        cookieEnabled: navigator.cookieEnabled,
+        doNotTrack: navigator.doNotTrack || 'unknown'
+    };
+    
+    const fingerprintString = JSON.stringify(fingerprint);
+    return 'FP-' + hashCode(fingerprintString);
+}
+
+function hashCode(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36).toUpperCase();
+}
+
+// Generar o recuperar fingerprint
+let deviceFingerprint = localStorage.getItem('deviceFingerprint');
+if (!deviceFingerprint) {
+    deviceFingerprint = generateDeviceFingerprint();
+    localStorage.setItem('deviceFingerprint', deviceFingerprint);
+    console.log('🆕 Nuevo dispositivo registrado:', deviceFingerprint);
+} else {
+    console.log('🔐 Dispositivo conocido:', deviceFingerprint);
+}
+
+// ========== MODIFICAR fetchWithLicense ==========
+
+// REEMPLAZA la función fetchWithLicense existente por esta:
+async function fetchWithLicense(url, options = {}) {
+    if (!options.headers) {
+        options.headers = {};
+    }
+    options.headers['X-License-Key'] = licenseKey;
+    options.headers['X-Device-Fingerprint'] = deviceFingerprint; // ← NUEVO
+    return fetch(url, options);
+}
+
+// ========== MODIFICAR checkLicense ==========
+
+// REEMPLAZA la función checkLicense existente por esta:
+async function checkLicense() {
+    try {
+        const response = await fetch('/api/license/verify-with-device', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                licenseKey,
+                deviceFingerprint
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            establishment = data.establishment;
+            document.getElementById('establishmentName').textContent = establishment.name;
+            
+            const licenseInfo = document.getElementById('licenseInfo');
+            const daysRemaining = establishment.daysRemaining;
+            
+            if (daysRemaining <= 7) {
+                licenseInfo.innerHTML = `⚠️ ${daysRemaining} días | ${establishment.maxDevices} dispositivos`;
+                licenseInfo.className = 'text-sm bg-yellow-500 px-4 py-2 rounded-lg font-bold';
+            } else {
+                licenseInfo.innerHTML = `✅ Activa | ${establishment.maxDevices} dispositivos`;
+                licenseInfo.className = 'text-sm bg-green-500 px-4 py-2 rounded-lg';
+            }
+            
+            return true;
+        } else {
+            if (data.code === 'MAX_DEVICES_REACHED') {
+                showDeviceLimitModal(data);
+            } else {
+                showToast('❌ ' + data.error, 'error');
+            }
+            localStorage.removeItem('licenseKey');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('❌ Error de conexión', 'error');
+        return false;
+    }
+}
+
+// ========== MODAL LÍMITE DE DISPOSITIVOS ==========
+
+// AÑADIR esta nueva función:
+function showDeviceLimitModal(data) {
+    const modal = document.createElement('div');
+    modal.id = 'deviceLimitModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-slide-up">
+            <div class="text-center mb-6">
+                <div class="text-6xl mb-4">⚠️</div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Límite de Dispositivos Alcanzado</h2>
+                <p class="text-gray-600 mb-4">
+                    Esta licencia ya está activa en <strong>${data.activeDevices} de ${data.maxDevices}</strong> dispositivos permitidos.
+                </p>
+            </div>
+
+            <div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mb-6">
+                <p class="text-sm font-bold text-yellow-800 mb-2">💡 ¿Qué puedo hacer?</p>
+                <ul class="text-xs text-yellow-700 space-y-2">
+                    <li class="flex items-start gap-2">
+                        <span>•</span>
+                        <span>Desactiva un dispositivo antiguo desde otro dispositivo activo</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span>•</span>
+                        <span>Contacta con soporte para aumentar el límite</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span>•</span>
+                        <span>Los dispositivos inactivos >30 días se liberan automáticamente</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-blue-50 border-2 border-blue-300 rounded-lg p-4 mb-6">
+                <p class="text-xs text-blue-800">
+                    <strong>ID de este dispositivo:</strong><br>
+                    <code class="text-xs bg-blue-100 px-2 py-1 rounded mt-1 inline-block">${deviceFingerprint}</code>
+                </p>
+            </div>
+
+            <div class="space-y-3">
+                <button 
+                    onclick="window.location.href='/activation'"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all">
+                    🔄 Probar Otra Licencia
+                </button>
+                <button 
+                    onclick="document.getElementById('deviceLimitModal').remove()"
+                    class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-lg transition-all">
+                    Cerrar
+                </button>
+            </div>
+
+            <p class="text-xs text-center text-gray-500 mt-4">
+                ¿Necesitas ayuda? Contacta con soporte
+            </p>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// ========== ESTILOS ADICIONALES ==========
+
+// AÑADIR este estilo en el <style> del HTML:
+const additionalStyles = `
+    @keyframes slideUp {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    .animate-slide-up {
+        animation: slideUp 0.3s ease-out;
+    }
+`;
+
+// Inyectar estilos
+const styleSheet = document.createElement("style");
+styleSheet.textContent = additionalStyles;
+document.head.appendChild(styleSheet);
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #f8fafc; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
