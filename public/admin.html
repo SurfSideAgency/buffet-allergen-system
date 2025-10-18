@@ -1,520 +1,359 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Sistema de Licencias</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-        .gradient-header { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
-        .status-active { background: #d1fae5; color: #065f46; }
-        .status-expired { background: #fee2e2; color: #991b1b; }
-        .status-suspended { background: #fef3c7; color: #92400e; }
-    </style>
-</head>
-<body>
+// ============================================
+// AÑADIR ESTAS FUNCIONES AL admin.html
+// ============================================
 
-    <!-- Login Screen -->
-    <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
-            <div class="text-center mb-8">
-                <div class="text-6xl mb-4">👨‍💼</div>
-                <h1 class="text-3xl font-bold text-gray-800 mb-2">Panel de Administración</h1>
-                <p class="text-gray-600">Sistema de Licencias</p>
-            </div>
+// 1. MODIFICAR displayEstablishments para mostrar dispositivos activos
 
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Usuario</label>
-                    <input 
-                        type="text" 
-                        id="username"
-                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                        placeholder="admin"
-                    >
-                </div>
+function displayEstablishments(establishments) {
+    const tbody = document.getElementById('establishmentsTable');
+    
+    if (establishments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-gray-400">No hay establecimientos creados</td></tr>';
+        return;
+    }
 
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Contraseña</label>
-                    <input 
-                        type="password" 
-                        id="password"
-                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                        placeholder="••••••••"
-                    >
-                </div>
-
-                <button 
-                    onclick="login()"
-                    class="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all">
-                    🔐 Iniciar Sesión
-                </button>
-
-                <div id="loginMessage" class="hidden p-4 rounded-lg text-center text-sm font-medium"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Admin Dashboard -->
-    <div id="dashboardScreen" class="hidden">
+    tbody.innerHTML = establishments.map(est => {
+        const statusClass = est.status === 'active' ? 'status-active' : 
+                            est.isExpired ? 'status-expired' : 'status-suspended';
         
-        <!-- Header -->
-        <div class="gradient-header text-white py-6 shadow-lg">
-            <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-bold">Panel de Administración</h1>
-                    <p class="text-sm opacity-90">Gestión de Licencias</p>
-                </div>
-                <button onclick="logout()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-semibold transition-all">
-                    🚪 Cerrar Sesión
-                </button>
-            </div>
-        </div>
+        const statusText = est.status === 'active' && !est.isExpired ? '✅ Activa' : 
+                           est.isExpired ? '❌ Expirada' : '⚠️ Suspendida';
 
-        <div class="max-w-7xl mx-auto px-4 py-8">
-            
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <div class="text-3xl mb-2">🏪</div>
-                    <div class="text-2xl font-bold text-gray-800" id="totalEstablishments">0</div>
-                    <div class="text-sm text-gray-600">Total Establecimientos</div>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <div class="text-3xl mb-2">✅</div>
-                    <div class="text-2xl font-bold text-green-600" id="activeEstablishments">0</div>
-                    <div class="text-sm text-gray-600">Licencias Activas</div>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <div class="text-3xl mb-2">⚠️</div>
-                    <div class="text-2xl font-bold text-yellow-600" id="expiringEstablishments">0</div>
-                    <div class="text-sm text-gray-600">Por Expirar (7 días)</div>
-                </div>
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <div class="text-3xl mb-2">❌</div>
-                    <div class="text-2xl font-bold text-red-600" id="expiredEstablishments">0</div>
-                    <div class="text-sm text-gray-600">Expiradas</div>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
-                <button 
-                    onclick="showCreateModal()"
-                    class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all">
-                    ➕ Crear Nueva Licencia
-                </button>
-                <button 
-                    onclick="loadEstablishments()"
-                    class="ml-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-lg transition-all">
-                    🔄 Recargar
-                </button>
-            </div>
-
-            <!-- Establishments Table -->
-            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                <div class="p-6 border-b border-gray-200">
-                    <h2 class="text-xl font-bold text-gray-800">📋 Establecimientos</h2>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Establecimiento</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Código Licencia</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Estado</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Expira</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Días Restantes</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="establishmentsTable" class="divide-y divide-gray-200">
-                            <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-gray-400">
-                                    Cargando...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- Modal: Crear Licencia -->
-    <div id="createModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">➕ Crear Nueva Licencia</h2>
-                <button onclick="closeCreateModal()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
-            </div>
-
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre del Establecimiento *</label>
-                    <input type="text" id="newName" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="Ej: Buffet Central">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Email de Contacto *</label>
-                    <input type="email" id="newEmail" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="contacto@buffet.com">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Teléfono</label>
-                    <input type="tel" id="newPhone" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" placeholder="+34 600 000 000">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Dirección</label>
-                    <textarea id="newAddress" rows="2" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-none" placeholder="Calle Principal, 123"></textarea>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Duración (meses) *</label>
-                    <select id="newDuration" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
-                        <option value="1">1 mes ($49)</option>
-                        <option value="3">3 meses ($147)</option>
-                        <option value="6">6 meses ($294)</option>
-                        <option value="12" selected>12 meses ($490)</option>
-                    </select>
-                </div>
-
-                <div class="flex gap-4 mt-6">
-                    <button onclick="closeCreateModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-lg transition-all">
-                        Cancelar
+        return `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4">
+                    <div class="font-semibold text-gray-900">${est.name}</div>
+                    <div class="text-sm text-gray-500">${est.contact_email || '-'}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <code class="text-sm bg-gray-100 px-2 py-1 rounded">${est.license_key}</code>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusClass}">
+                        ${statusText}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-700">
+                    ${new Date(est.expires_at).toLocaleDateString('es-ES')}
+                </td>
+                <td class="px-6 py-4">
+                    <span class="${est.daysRemaining < 7 ? 'text-red-600 font-bold' : 'text-gray-700'}">
+                        ${est.daysRemaining} días
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+                        📱 ${est.activeDevices || 0}/${est.max_devices || 3}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <button onclick="showDevicesModal(${est.id}, '${est.name}')" class="text-blue-600 hover:text-blue-800 font-semibold text-sm mr-3">
+                        📱 Dispositivos
                     </button>
-                    <button onclick="createLicense()" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-3 px-4 rounded-lg transition-all">
-                        ✅ Crear Licencia
+                    <button onclick="showExtendModal(${est.id}, '${est.name}', '${est.license_key}')" class="text-purple-600 hover:text-purple-800 font-semibold text-sm mr-3">
+                        ⏰ Extender
+                    </button>
+                    <button onclick="toggleStatus(${est.id}, '${est.status}')" class="text-gray-600 hover:text-gray-800 font-semibold text-sm">
+                        ${est.status === 'active' ? '⏸️ Suspender' : '▶️ Activar'}
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// 2. AÑADIR columna de dispositivos en la tabla HTML
+// MODIFICAR el <thead> de la tabla en el HTML:
+/*
+<thead class="bg-gray-50">
+    <tr>
+        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Establecimiento</th>
+        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Código Licencia</th>
+        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Estado</th>
+        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Expira</th>
+        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Días Restantes</th>
+        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">📱 Dispositivos</th>
+        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Acciones</th>
+    </tr>
+</thead>
+*/
+
+// 3. MODAL para ver y gestionar dispositivos
+
+async function showDevicesModal(establishmentId, establishmentName) {
+    try {
+        const response = await fetch(`/api/admin/establishments/${establishmentId}/devices`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            alert('Error: ' + data.error);
+            return;
+        }
+
+        const devices = data.devices || [];
+        
+        const modal = document.createElement('div');
+        modal.id = 'devicesModal';
+        modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-8 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">📱 Dispositivos Activos</h2>
+                        <p class="text-sm text-gray-600">${establishmentName}</p>
+                    </div>
+                    <button onclick="closeDevicesModal()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+                </div>
+
+                ${devices.length === 0 ? `
+                    <div class="text-center py-12">
+                        <div class="text-6xl mb-4">📱</div>
+                        <p class="text-gray-500">No hay dispositivos activos</p>
+                    </div>
+                ` : `
+                    <div class="space-y-3">
+                        ${devices.map(device => `
+                            <div class="border-2 border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-all">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <span class="text-2xl">📱</span>
+                                            <code class="text-sm bg-gray-100 px-2 py-1 rounded font-mono">${device.device_fingerprint}</code>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                                            <div>
+                                                <strong>IP:</strong> ${device.ip_address || 'N/A'}
+                                            </div>
+                                            <div>
+                                                <strong>Última actividad:</strong> ${new Date(device.last_activity).toLocaleString('es-ES')}
+                                            </div>
+                                            <div class="col-span-2">
+                                                <strong>Primera conexión:</strong> ${new Date(device.first_seen).toLocaleString('es-ES')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onclick="deactivateDevice(${establishmentId}, '${device.device_fingerprint}', '${establishmentName}')"
+                                        class="ml-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+                                        🗑️ Desactivar
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="mt-6 bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                        <p class="text-sm text-blue-800">
+                            <strong>ℹ️ Información:</strong> Los dispositivos inactivos durante más de 30 días se desactivan automáticamente.
+                        </p>
+                    </div>
+                `}
+
+                <div class="mt-6 flex gap-3">
+                    <button onclick="closeDevicesModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-lg transition-all">
+                        Cerrar
                     </button>
                 </div>
             </div>
-        </div>
-    </div>
+        `;
+        
+        document.body.appendChild(modal);
 
-    <!-- Modal: Extender Licencia -->
-    <div id="extendModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">⏰ Extender Licencia</h2>
-                <button onclick="closeExtendModal()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
-            </div>
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error cargando dispositivos');
+    }
+}
 
-            <div class="mb-6">
-                <p class="text-gray-700 mb-2"><strong>Establecimiento:</strong> <span id="extendName"></span></p>
-                <p class="text-gray-700"><strong>Licencia:</strong> <span id="extendKey"></span></p>
-            </div>
+function closeDevicesModal() {
+    const modal = document.getElementById('devicesModal');
+    if (modal) modal.remove();
+}
 
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Extender por (meses)</label>
-                <select id="extendMonths" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
-                    <option value="1">1 mes</option>
-                    <option value="3">3 meses</option>
-                    <option value="6">6 meses</option>
-                    <option value="12" selected>12 meses</option>
-                </select>
-            </div>
+async function deactivateDevice(establishmentId, deviceFingerprint, establishmentName) {
+    if (!confirm(`¿Confirmas desactivar este dispositivo de "${establishmentName}"?\n\nEl usuario deberá volver a activar la licencia en ese dispositivo.`)) {
+        return;
+    }
 
-            <div class="flex gap-4">
-                <button onclick="closeExtendModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-lg transition-all">
-                    Cancelar
-                </button>
-                <button onclick="extendLicense()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all">
-                    ⏰ Extender
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let token = localStorage.getItem('adminToken');
-        let currentExtendId = null;
-
-        // Verificar si ya está logueado
-        if (token) {
-            showDashboard();
-            loadEstablishments();
-        }
-
-        async function login() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-
-            if (!username || !password) {
-                showLoginMessage('⚠️ Completa todos los campos', 'warning');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/admin/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    localStorage.setItem('adminToken', data.token);
-                    token = data.token;
-                    showDashboard();
-                    loadEstablishments();
-                } else {
-                    showLoginMessage('❌ ' + data.error, 'error');
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                showLoginMessage('❌ Error de conexión', 'error');
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem('adminToken');
-            token = null;
-            showLogin();
-        }
-
-        function showLogin() {
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('dashboardScreen').classList.add('hidden');
-        }
-
-        function showDashboard() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('dashboardScreen').classList.remove('hidden');
-        }
-
-        function showLoginMessage(text, type) {
-            const el = document.getElementById('loginMessage');
-            el.classList.remove('hidden');
-            const colors = {
-                success: 'bg-green-100 text-green-800',
-                error: 'bg-red-100 text-red-800',
-                warning: 'bg-yellow-100 text-yellow-800'
-            };
-            el.className = `p-4 rounded-lg text-center text-sm font-medium ${colors[type]}`;
-            el.textContent = text;
-        }
-
-        async function loadEstablishments() {
-            try {
-                const response = await fetch('/api/admin/establishments', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    displayEstablishments(data.establishments);
-                    updateStats(data.establishments);
-                } else {
-                    alert('Error: ' + data.error);
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error cargando datos');
-            }
-        }
-
-        function displayEstablishments(establishments) {
-            const tbody = document.getElementById('establishmentsTable');
-            
-            if (establishments.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-400">No hay establecimientos creados</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = establishments.map(est => {
-                const statusClass = est.status === 'active' ? 'status-active' : 
-                                    est.isExpired ? 'status-expired' : 'status-suspended';
-                
-                const statusText = est.status === 'active' && !est.isExpired ? '✅ Activa' : 
-                                   est.isExpired ? '❌ Expirada' : '⚠️ Suspendida';
-
-                return `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
-                            <div class="font-semibold text-gray-900">${est.name}</div>
-                            <div class="text-sm text-gray-500">${est.contact_email || '-'}</div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <code class="text-sm bg-gray-100 px-2 py-1 rounded">${est.license_key}</code>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusClass}">
-                                ${statusText}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-700">
-                            ${new Date(est.expires_at).toLocaleDateString('es-ES')}
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="${est.daysRemaining < 7 ? 'text-red-600 font-bold' : 'text-gray-700'}">
-                                ${est.daysRemaining} días
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <button onclick="showExtendModal(${est.id}, '${est.name}', '${est.license_key}')" class="text-blue-600 hover:text-blue-800 font-semibold text-sm mr-3">
-                                ⏰ Extender
-                            </button>
-                            <button onclick="toggleStatus(${est.id}, '${est.status}')" class="text-gray-600 hover:text-gray-800 font-semibold text-sm">
-                                ${est.status === 'active' ? '⏸️ Suspender' : '▶️ Activar'}
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function updateStats(establishments) {
-            const total = establishments.length;
-            const active = establishments.filter(e => e.status === 'active' && !e.isExpired).length;
-            const expiring = establishments.filter(e => e.daysRemaining > 0 && e.daysRemaining <= 7).length;
-            const expired = establishments.filter(e => e.isExpired).length;
-
-            document.getElementById('totalEstablishments').textContent = total;
-            document.getElementById('activeEstablishments').textContent = active;
-            document.getElementById('expiringEstablishments').textContent = expiring;
-            document.getElementById('expiredEstablishments').textContent = expired;
-        }
-
-        function showCreateModal() {
-            document.getElementById('createModal').classList.remove('hidden');
-        }
-
-        function closeCreateModal() {
-            document.getElementById('createModal').classList.add('hidden');
-        }
-
-        async function createLicense() {
-            const name = document.getElementById('newName').value.trim();
-            const contact_email = document.getElementById('newEmail').value.trim();
-            const contact_phone = document.getElementById('newPhone').value.trim();
-            const address = document.getElementById('newAddress').value.trim();
-            const durationMonths = document.getElementById('newDuration').value;
-
-            if (!name || !contact_email) {
-                alert('⚠️ Completa los campos obligatorios');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/admin/establishments', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        name,
-                        contact_email,
-                        contact_phone,
-                        address,
-                        durationMonths
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    alert(`✅ Licencia creada correctamente!\n\nCódigo: ${data.establishment.license_key}\n\nEnvía este código al cliente.`);
-                    closeCreateModal();
-                    loadEstablishments();
-                } else {
-                    alert('❌ Error: ' + data.error);
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                alert('❌ Error de conexión');
-            }
-        }
-
-        function showExtendModal(id, name, key) {
-            currentExtendId = id;
-            document.getElementById('extendName').textContent = name;
-            document.getElementById('extendKey').textContent = key;
-            document.getElementById('extendModal').classList.remove('hidden');
-        }
-
-        function closeExtendModal() {
-            document.getElementById('extendModal').classList.add('hidden');
-            currentExtendId = null;
-        }
-
-        async function extendLicense() {
-            const months = document.getElementById('extendMonths').value;
-
-            try {
-                const response = await fetch(`/api/admin/establishments/${currentExtendId}/extend`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ months })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    alert(`✅ Licencia extendida ${months} meses`);
-                    closeExtendModal();
-                    loadEstablishments();
-                } else {
-                    alert('❌ Error: ' + data.error);
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                alert('❌ Error de conexión');
-            }
-        }
-
-        async function toggleStatus(id, currentStatus) {
-            const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
-            const action = newStatus === 'active' ? 'activar' : 'suspender';
-
-            if (!confirm(`¿Confirmas ${action} esta licencia?`)) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/admin/establishments/${id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ status: newStatus })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    alert(`✅ Licencia ${action === 'activar' ? 'activada' : 'suspendida'}`);
-                    loadEstablishments();
-                } else {
-                    alert('❌ Error: ' + data.error);
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                alert('❌ Error de conexión');
-            }
-        }
-
-        // Permitir login con Enter
-        document.getElementById('password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                login();
+    try {
+        const response = await fetch(`/api/admin/establishments/${establishmentId}/devices/${encodeURIComponent(deviceFingerprint)}/deactivate`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
-    </script>
 
-</body>
-</html>
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ Dispositivo desactivado correctamente');
+            closeDevicesModal();
+            showDevicesModal(establishmentId, establishmentName); // Recargar
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error de conexión');
+    }
+}
+
+// 4. MODIFICAR createLicense para incluir límite de dispositivos
+
+async function createLicense() {
+    const name = document.getElementById('newName').value.trim();
+    const contact_email = document.getElementById('newEmail').value.trim();
+    const contact_phone = document.getElementById('newPhone').value.trim();
+    const address = document.getElementById('newAddress').value.trim();
+    const durationMonths = document.getElementById('newDuration').value;
+    const maxDevices = document.getElementById('newMaxDevices')?.value || 3; // NUEVO
+
+    if (!name || !contact_email) {
+        alert('⚠️ Completa los campos obligatorios');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/admin/establishments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                name,
+                contact_email,
+                contact_phone,
+                address,
+                durationMonths,
+                maxDevices: parseInt(maxDevices) // NUEVO
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(`✅ Licencia creada correctamente!\n\nCódigo: ${data.establishment.license_key}\nDispositivos permitidos: ${maxDevices}\n\nEnvía este código al cliente.`);
+            closeCreateModal();
+            loadEstablishments();
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error de conexión');
+    }
+}
+
+// 5. AÑADIR campo de dispositivos al modal de crear licencia
+// MODIFICAR el HTML del modal "createModal" para incluir:
+
+/*
+AÑADIR ESTE CAMPO DESPUÉS DEL CAMPO "Duración":
+
+<div>
+    <label class="block text-sm font-semibold text-gray-700 mb-2">Límite de Dispositivos *</label>
+    <select id="newMaxDevices" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
+        <option value="1">1 dispositivo (Básico)</option>
+        <option value="3" selected>3 dispositivos (Estándar)</option>
+        <option value="5">5 dispositivos (Profesional)</option>
+        <option value="10">10 dispositivos (Empresarial)</option>
+        <option value="999">Ilimitado (Premium)</option>
+    </select>
+    <p class="text-xs text-gray-500 mt-1">Número máximo de dispositivos que pueden usar esta licencia simultáneamente</p>
+</div>
+*/
+
+// 6. FUNCIÓN para actualizar límite de dispositivos de una licencia existente
+
+async function updateMaxDevices(establishmentId, establishmentName) {
+    const newLimit = prompt(`¿Cuántos dispositivos permitir para "${establishmentName}"?\n\nActual límite visible en la tabla.`);
+    
+    if (!newLimit || isNaN(newLimit)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/establishments/${establishmentId}/max-devices`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                maxDevices: parseInt(newLimit)
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(`✅ Límite actualizado a ${newLimit} dispositivos`);
+            loadEstablishments();
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error de conexión');
+    }
+}
+
+// 7. ACTUALIZAR updateStats para incluir info de dispositivos
+
+function updateStats(establishments) {
+    const total = establishments.length;
+    const active = establishments.filter(e => e.status === 'active' && !e.isExpired).length;
+    const expiring = establishments.filter(e => e.daysRemaining > 0 && e.daysRemaining <= 7).length;
+    const expired = establishments.filter(e => e.isExpired).length;
+    
+    // NUEVO: Estadísticas de dispositivos
+    const totalDevices = establishments.reduce((sum, e) => sum + (e.activeDevices || 0), 0);
+    const avgDevices = total > 0 ? (totalDevices / total).toFixed(1) : 0;
+
+    document.getElementById('totalEstablishments').textContent = total;
+    document.getElementById('activeEstablishments').textContent = active;
+    document.getElementById('expiringEstablishments').textContent = expiring;
+    document.getElementById('expiredEstablishments').textContent = expired;
+    
+    // Si quieres añadir una tarjeta nueva de estadísticas de dispositivos:
+    // Añade esto al HTML después de las 4 tarjetas existentes:
+    /*
+    <div class="bg-white rounded-xl shadow-sm p-6">
+        <div class="text-3xl mb-2">📱</div>
+        <div class="text-2xl font-bold text-blue-600" id="totalDevices">0</div>
+        <div class="text-sm text-gray-600">Dispositivos Activos</div>
+    </div>
+    */
+    
+    // Y actualiza aquí:
+    const totalDevicesEl = document.getElementById('totalDevices');
+    if (totalDevicesEl) {
+        totalDevicesEl.textContent = totalDevices;
+    }
+}
+
+// ============================================
+// RESUMEN DE CAMBIOS NECESARIOS EN EL HTML
+// ============================================
+
+/*
+1. MODIFICAR la tabla para incluir columna "Dispositivos":
+   - Añadir <th> en el <thead>
+   - Ya está incluido en displayEstablishments()
+
+2. AÑADIR campo "Límite de Dispositivos" en el modal de crear licencia:
+   - Copiar el <div> con <select id="newMaxDevices"> que está arriba
+
+3. OPCIONAL: Añadir tarjeta de estadísticas de dispositivos:
+   - Copiar el HTML de la tarjeta comentado arriba
+
+4. Las funciones JavaScript ya están todas aquí, solo copiarlas al final del <script>
+*/
