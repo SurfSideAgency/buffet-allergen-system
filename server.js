@@ -1,4 +1,4 @@
-// server.js - Sistema CORREGIDO con Licencias
+// server.js - FIXED v2 - Sin errores de sintaxis
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -126,7 +126,7 @@ async function checkAdmin(req, res, next) {
 
 // ============= RUTAS PÚBLICAS (SIN LICENCIA) =============
 
-// Servir páginas HTML - ANTES de cualquier middleware
+// Servir páginas HTML
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -139,7 +139,7 @@ app.get('/activation', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'activation.html'));
 });
 
-// Estado del sistema - PÚBLICO
+// Estado del sistema
 app.get('/api/system-status', async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -151,7 +151,7 @@ app.get('/api/system-status', async (req, res) => {
             success: true,
             status: 'online',
             database: error ? 'disconnected' : 'connected',
-            version: '9.0.0',
+            version: '9.0.1',
             features: {
                 translation: 'enabled',
                 traces: 'enabled',
@@ -230,33 +230,7 @@ app.post('/api/license/verify', async (req, res) => {
     }
 });
 
-app.get('/api/license/info', checkLicense, async (req, res) => {
-    try {
-        const establishment = req.establishment;
-        const now = new Date();
-        const expiresAt = new Date(establishment.expires_at);
-        const daysRemaining = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
-
-        res.json({
-            success: true,
-            establishment: {
-                id: establishment.id,
-                name: establishment.name,
-                licenseKey: establishment.license_key,
-                expiresAt: establishment.expires_at,
-                daysRemaining,
-                status: establishment.status,
-                showWarning: daysRemaining <= 7
-            }
-        });
-
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// ============= ENDPOINTS DE ADMIN (PÚBLICOS PARA LOGIN) =============
+// ============= ENDPOINTS DE ADMIN =============
 
 app.post('/api/admin/login', async (req, res) => {
     try {
@@ -323,8 +297,6 @@ app.post('/api/admin/login', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-
-// TODOS LOS ENDPOINTS DE ADMIN PROTEGIDOS
 
 app.get('/api/admin/establishments', checkAdmin, async (req, res) => {
     try {
@@ -795,6 +767,100 @@ app.post('/api/generate-label', checkLicense, async (req, res) => {
         const { data: allergens } = await supabase
             .rpc('get_dish_allergens', { dish_id_param: dishId });
 
+        const translations = await translateDishName(dish.name);
+
+        const allergensHTML = allergens && allergens.length > 0 
+            ? allergens.map(code => {
+                const a = ALLERGENS[code];
+                return a ? `<span class="allergen">${a.icon} ${a.name}</span>` : '';
+              }).join('')
+            : '<span class="no-allergens">✅ Sin Alérgenos</span>';
+
+        const tracesHTML = dish.traces && dish.traces.length > 0
+            ? `<div class="traces">
+                <strong>Puede contener trazas de:</strong><br>
+                ${dish.traces.map(code => {
+                    const a = ALLERGENS[code];
+                    return a ? `<span class="trace">${a.icon} ${a.name}</span>` : '';
+                }).join('')}
+               </div>`
+            : '';
+
+        const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Etiqueta - ${dish.name}</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+        .label { border: 3px solid #000; padding: 30px; background: white; }
+        .dish-name { font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 10px; }
+        .translations { text-align: center; color: #666; font-size: 18px; margin-bottom: 30px; }
+        .allergens-title { font-size: 20px; font-weight: bold; margin: 20px 0 10px; color: #d32f2f; }
+        .allergen { display: inline-block; background: #ffebee; border: 2px solid #e57373; padding: 8px 12px; margin: 5px; border-radius: 8px; font-size: 16px; }
+        .no-allergens { display: inline-block; background: #e8f5e9; border: 2px solid #81c784; padding: 10px 20px; border-radius: 8px; font-size: 18px; }
+        .traces { margin-top: 20px; padding: 15px; background: #fff3e0; border: 2px solid #ffb74d; border-radius: 8px; }
+        .trace { display: inline-block; background: #ffe082; padding: 5px 10px; margin: 3px; border-radius: 5px; font-size: 14px; }
+        @media print { body { margin: 0; } .label { border: none; } }
+    </style>
+</head>
+<body>
+    <div class="label">
+        <div class="dish-name">${dish.name}</div>
+        <div class="translations">
+            ${translations.english} | ${translations.french}
+        </div>
+        
+        <div class="allergens-title">⚠️ Alérgenos:</div>
+        <div>${allergensHTML}</div>
+        
+        ${tracesHTML}
+        
+        <div style="text-align: center; margin-top: 30px; color: #888; font-size: 12px;">
+            ${req.establishment.name} | ${new Date().toLocaleDateString('es-ES')}
+        </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 20px;">
+        <button onclick="window.print()" style="padding: 15px 30px; font-size: 16px; cursor: pointer; background: #2196F3; color: white; border: none; border-radius: 8px;">
+            🖨️ Imprimir Etiqueta
+        </button>
+    </div>
+</body>
+</html>`;
+
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.send(html);
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/generate-recipe-document', checkLicense, async (req, res) => {
+    try {
+        const { dishId } = req.body;
+
+        const { data: dish, error } = await supabase
+            .from('dishes')
+            .select(`
+                *,
+                dish_ingredients (
+                    quantity,
+                    ingredient:ingredients (*)
+                )
+            `)
+            .eq('id', dishId)
+            .eq('establishment_id', req.establishment.id)
+            .single();
+
+        if (error) throw error;
+
+        const { data: allergens } = await supabase
+            .rpc('get_dish_allergens', { dish_id_param: dishId });
+
         const ingredientsList = dish.dish_ingredients
             .map(di => `<li>${di.ingredient.name} ${di.quantity ? '(' + di.quantity + ')' : ''}</li>`)
             .join('');
@@ -895,11 +961,11 @@ app.post('/api/generate-label', checkLicense, async (req, res) => {
 
 app.listen(port, () => {
     console.log(`\n🚀 ════════════════════════════════════════════════════`);
-    console.log(`   Sistema de Alérgenos v9.0.1 - FIXED`);
+    console.log(`   Sistema de Alérgenos v9.0.2 - FIXED`);
     console.log(`🚀 ════════════════════════════════════════════════════\n`);
     console.log(`📡 Servidor: http://localhost:${port}`);
     console.log(`📊 Supabase: ${process.env.SUPABASE_URL ? '✅ Conectado' : '❌ NO CONFIGURADO'}`);
-    console.log(`🌐 Traducción: ✅ MyMemory API (GRATIS)`);
+    console.log(`🌐 Traducción: ✅ MyMemory API`);
     console.log(`⚡ Trazas: ✅ Habilitadas`);
     console.log(`🔐 Licencias: ✅ Sistema Activo`);
     console.log(`\n📄 Páginas disponibles:`);
@@ -908,98 +974,4 @@ app.listen(port, () => {
     console.log(`   - Activación: http://localhost:${port}/activation\n`);
 });
 
-module.exports = app;d_param: dishId });
-
-        const translations = await translateDishName(dish.name);
-
-        const allergensHTML = allergens && allergens.length > 0 
-            ? allergens.map(code => {
-                const a = ALLERGENS[code];
-                return a ? `<span class="allergen">${a.icon} ${a.name}</span>` : '';
-              }).join('')
-            : '<span class="no-allergens">✅ Sin Alérgenos</span>';
-
-        const tracesHTML = dish.traces && dish.traces.length > 0
-            ? `<div class="traces">
-                <strong>Puede contener trazas de:</strong><br>
-                ${dish.traces.map(code => {
-                    const a = ALLERGENS[code];
-                    return a ? `<span class="trace">${a.icon} ${a.name}</span>` : '';
-                }).join('')}
-               </div>`
-            : '';
-
-        const html = `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Etiqueta - ${dish.name}</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
-        .label { border: 3px solid #000; padding: 30px; background: white; }
-        .dish-name { font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 10px; }
-        .translations { text-align: center; color: #666; font-size: 18px; margin-bottom: 30px; }
-        .allergens-title { font-size: 20px; font-weight: bold; margin: 20px 0 10px; color: #d32f2f; }
-        .allergen { display: inline-block; background: #ffebee; border: 2px solid #e57373; padding: 8px 12px; margin: 5px; border-radius: 8px; font-size: 16px; }
-        .no-allergens { display: inline-block; background: #e8f5e9; border: 2px solid #81c784; padding: 10px 20px; border-radius: 8px; font-size: 18px; }
-        .traces { margin-top: 20px; padding: 15px; background: #fff3e0; border: 2px solid #ffb74d; border-radius: 8px; }
-        .trace { display: inline-block; background: #ffe082; padding: 5px 10px; margin: 3px; border-radius: 5px; font-size: 14px; }
-        @media print { body { margin: 0; } .label { border: none; } }
-    </style>
-</head>
-<body>
-    <div class="label">
-        <div class="dish-name">${dish.name}</div>
-        <div class="translations">
-            ${translations.english} | ${translations.french}
-        </div>
-        
-        <div class="allergens-title">⚠️ Alérgenos:</div>
-        <div>${allergensHTML}</div>
-        
-        ${tracesHTML}
-        
-        <div style="text-align: center; margin-top: 30px; color: #888; font-size: 12px;">
-            ${req.establishment.name} | ${new Date().toLocaleDateString('es-ES')}
-        </div>
-    </div>
-    
-    <div style="text-align: center; margin-top: 20px;">
-        <button onclick="window.print()" style="padding: 15px 30px; font-size: 16px; cursor: pointer; background: #2196F3; color: white; border: none; border-radius: 8px;">
-            🖨️ Imprimir Etiqueta
-        </button>
-    </div>
-</body>
-</html>`;
-
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(html);
-
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-app.post('/api/generate-recipe-document', checkLicense, async (req, res) => {
-    try {
-        const { dishId } = req.body;
-
-        const { data: dish, error } = await supabase
-            .from('dishes')
-            .select(`
-                *,
-                dish_ingredients (
-                    quantity,
-                    ingredient:ingredients (*)
-                )
-            `)
-            .eq('id', dishId)
-            .eq('establishment_id', req.establishment.id)
-            .single();
-
-        if (error) throw error;
-
-        const { data: allergens } = await supabase
-            .rpc('get_dish_allergens', { dish_i
+module.exports = app;
