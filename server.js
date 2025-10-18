@@ -1,4 +1,4 @@
-// server.js - FIXED v2 - Sin errores de sintaxis
+// server.js - Sistema COMPLETO con Control de Dispositivos
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -10,48 +10,55 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configurar Supabase
 const supabase = createClient(
     process.env.SUPABASE_URL || '',
     process.env.SUPABASE_KEY || ''
 );
 
-// Secret para JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-// Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Alérgenos UE
 const ALLERGENS = {
-    'gluten': { name: 'Cereales con Gluten', icon: '🌾', description: 'Trigo, centeno, cebada, avena' },
-    'crustaceos': { name: 'Crustáceos', icon: '🦐', description: 'Gambas, langostinos, cangrejos' },
-    'huevos': { name: 'Huevos', icon: '🥚', description: 'Huevos y productos derivados' },
-    'pescado': { name: 'Pescado', icon: '🐟', description: 'Pescado y productos derivados' },
-    'cacahuetes': { name: 'Cacahuetes', icon: '🥜', description: 'Cacahuetes y productos derivados' },
-    'soja': { name: 'Soja', icon: '🌱', description: 'Soja y productos derivados' },
-    'lacteos': { name: 'Leche y Lácteos', icon: '🥛', description: 'Leche y productos lácteos' },
-    'frutos_secos': { name: 'Frutos de Cáscara', icon: '🌰', description: 'Almendras, nueces, avellanas' },
-    'apio': { name: 'Apio', icon: '🥬', description: 'Apio y productos derivados' },
-    'mostaza': { name: 'Mostaza', icon: '🟡', description: 'Mostaza y productos derivados' },
-    'sesamo': { name: 'Granos de Sésamo', icon: '🫘', description: 'Sésamo y productos derivados' },
-    'sulfitos': { name: 'Sulfitos', icon: '🍷', description: 'Vino, conservas, frutos secos' },
-    'altramuces': { name: 'Altramuces', icon: '🫘', description: 'Altramuces y productos derivados' },
-    'moluscos': { name: 'Moluscos', icon: '🐚', description: 'Mejillones, almejas, caracoles' }
+    'gluten': { name: 'Cereales con Gluten', icon: '🌾' },
+    'crustaceos': { name: 'Crustáceos', icon: '🦐' },
+    'huevos': { name: 'Huevos', icon: '🥚' },
+    'pescado': { name: 'Pescado', icon: '🐟' },
+    'cacahuetes': { name: 'Cacahuetes', icon: '🥜' },
+    'soja': { name: 'Soja', icon: '🌱' },
+    'lacteos': { name: 'Lácteos', icon: '🥛' },
+    'frutos_secos': { name: 'Frutos Secos', icon: '🌰' },
+    'apio': { name: 'Apio', icon: '🥬' },
+    'mostaza': { name: 'Mostaza', icon: '🟡' },
+    'sesamo': { name: 'Sésamo', icon: '🫘' },
+    'sulfitos': { name: 'Sulfitos', icon: '🍷' },
+    'altramuces': { name: 'Altramuces', icon: '🫘' },
+    'moluscos': { name: 'Moluscos', icon: '🐚' }
 };
 
-// ============= MIDDLEWARE DE AUTENTICACIÓN =============
+// ============= MIDDLEWARE CON CONTROL DE DISPOSITIVOS =============
 
-async function checkLicense(req, res, next) {
+async function checkLicenseWithDevice(req, res, next) {
     const licenseKey = req.headers['x-license-key'];
+    const deviceFingerprint = req.headers['x-device-fingerprint'];
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'];
     
     if (!licenseKey) {
         return res.status(401).json({ 
             success: false, 
             error: 'No se proporcionó código de licencia',
+            requiresActivation: true
+        });
+    }
+
+    if (!deviceFingerprint) {
+        return res.status(401).json({ 
+            success: false, 
+            error: 'Dispositivo no identificado',
             requiresActivation: true
         });
     }
@@ -74,7 +81,7 @@ async function checkLicense(req, res, next) {
         if (establishment.status !== 'active') {
             return res.status(403).json({ 
                 success: false, 
-                error: 'Licencia suspendida. Contacte con soporte.',
+                error: 'Licencia suspendida',
                 licenseStatus: 'suspended'
             });
         }
@@ -85,8 +92,40 @@ async function checkLicense(req, res, next) {
         if (expiresAt < now) {
             return res.status(403).json({ 
                 success: false, 
-                error: 'Licencia expirada. Renueve su suscripción.',
+                error: 'Licencia expirada',
                 licenseStatus: 'expired'
+            });
+        }
+
+        const { data: canActivate, error: deviceError } = await supabase
+            .rpc('can_activate_device', {
+                p_establishment_id: establishment.id,
+                p_device_fingerprint: deviceFingerprint,
+                p_ip_address: ipAddress,
+                p_user_agent: userAgent
+            });
+
+        if (deviceError) {
+            console.error('Error checking device:', deviceError);
+            return res.status(500).json({ 
+                success: false, 
+                error: 'Error verificando dispositivo' 
+            });
+        }
+
+        if (!canActivate) {
+            const { data: activeDevices } = await supabase
+                .rpc('get_active_devices', {
+                    p_establishment_id: establishment.id
+                });
+
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Límite de dispositivos alcanzado',
+                maxDevices: establishment.max_devices || 3,
+                activeDevices: activeDevices?.length || 0,
+                devices: activeDevices,
+                code: 'MAX_DEVICES_REACHED'
             });
         }
 
@@ -124,9 +163,8 @@ async function checkAdmin(req, res, next) {
     }
 }
 
-// ============= RUTAS PÚBLICAS (SIN LICENCIA) =============
+// ============= RUTAS PÚBLICAS =============
 
-// Servir páginas HTML
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -139,7 +177,6 @@ app.get('/activation', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'activation.html'));
 });
 
-// Estado del sistema
 app.get('/api/system-status', async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -151,11 +188,12 @@ app.get('/api/system-status', async (req, res) => {
             success: true,
             status: 'online',
             database: error ? 'disconnected' : 'connected',
-            version: '9.0.1',
+            version: '10.0.0',
             features: {
                 translation: 'enabled',
                 traces: 'enabled',
-                licenses: 'enabled'
+                licenses: 'enabled',
+                deviceControl: 'enabled'
             }
         });
     } catch (error) {
@@ -168,16 +206,18 @@ app.get('/api/system-status', async (req, res) => {
     }
 });
 
-// ============= ENDPOINTS DE LICENCIAS (PÚBLICOS) =============
+// ============= ENDPOINTS DE LICENCIAS =============
 
-app.post('/api/license/verify', async (req, res) => {
+app.post('/api/license/verify-with-device', async (req, res) => {
     try {
-        const { licenseKey } = req.body;
+        const { licenseKey, deviceFingerprint } = req.body;
+        const ipAddress = req.ip || req.headers['x-forwarded-for'];
+        const userAgent = req.headers['user-agent'];
 
-        if (!licenseKey) {
+        if (!licenseKey || !deviceFingerprint) {
             return res.json({ 
                 success: false, 
-                error: 'Proporciona un código de licencia' 
+                error: 'Faltan datos requeridos' 
             });
         }
 
@@ -197,7 +237,7 @@ app.post('/api/license/verify', async (req, res) => {
         if (establishment.status === 'suspended') {
             return res.json({ 
                 success: false, 
-                error: 'Esta licencia está suspendida. Contacte con soporte.' 
+                error: 'Esta licencia está suspendida' 
             });
         }
 
@@ -208,7 +248,30 @@ app.post('/api/license/verify', async (req, res) => {
         if (expiresAt < now) {
             return res.json({ 
                 success: false, 
-                error: 'Esta licencia ha expirado. Renueve su suscripción.' 
+                error: 'Esta licencia ha expirado' 
+            });
+        }
+
+        const { data: canActivate } = await supabase
+            .rpc('can_activate_device', {
+                p_establishment_id: establishment.id,
+                p_device_fingerprint: deviceFingerprint,
+                p_ip_address: ipAddress,
+                p_user_agent: userAgent
+            });
+
+        if (!canActivate) {
+            const { data: activeDevices } = await supabase
+                .rpc('get_active_devices', {
+                    p_establishment_id: establishment.id
+                });
+
+            return res.json({ 
+                success: false, 
+                error: `Límite de ${establishment.max_devices || 3} dispositivos alcanzado`,
+                code: 'MAX_DEVICES_REACHED',
+                maxDevices: establishment.max_devices || 3,
+                activeDevices: activeDevices?.length || 0
             });
         }
 
@@ -220,7 +283,8 @@ app.post('/api/license/verify', async (req, res) => {
                 licenseKey: establishment.license_key,
                 expiresAt: establishment.expires_at,
                 daysRemaining,
-                status: establishment.status
+                status: establishment.status,
+                maxDevices: establishment.max_devices || 3
             }
         });
 
@@ -236,8 +300,6 @@ app.post('/api/admin/login', async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        console.log('🔐 Login attempt:', username);
-
         const { data: admin, error } = await supabase
             .from('admins')
             .select('*')
@@ -245,42 +307,31 @@ app.post('/api/admin/login', async (req, res) => {
             .single();
 
         if (error || !admin) {
-            console.log('❌ Admin not found');
             return res.json({ 
                 success: false, 
                 error: 'Credenciales incorrectas' 
             });
         }
 
-        console.log('✅ Admin found:', admin.username);
-        
-        // Verificar contraseña
         const validPassword = await bcrypt.compare(password, admin.password_hash);
         
         if (!validPassword) {
-            console.log('❌ Invalid password');
             return res.json({ 
                 success: false, 
                 error: 'Credenciales incorrectas' 
             });
         }
 
-        console.log('✅ Password valid');
-
-        // Generar token
         const token = jwt.sign(
             { id: admin.id, username: admin.username },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
 
-        // Actualizar último login
         await supabase
             .from('admins')
             .update({ last_login: new Date().toISOString() })
             .eq('id', admin.id);
-
-        console.log('✅ Login successful');
 
         res.json({
             success: true,
@@ -293,7 +344,7 @@ app.post('/api/admin/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('💥 Login error:', error);
+        console.error('Error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -307,17 +358,23 @@ app.get('/api/admin/establishments', checkAdmin, async (req, res) => {
 
         if (error) throw error;
 
-        const establishments = data.map(est => {
+        const establishments = await Promise.all(data.map(async est => {
             const now = new Date();
             const expiresAt = new Date(est.expires_at);
             const daysRemaining = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
             
+            const { data: devices } = await supabase
+                .rpc('get_active_devices', {
+                    p_establishment_id: est.id
+                });
+            
             return {
                 ...est,
                 daysRemaining,
-                isExpired: daysRemaining < 0
+                isExpired: daysRemaining < 0,
+                activeDevices: devices?.length || 0
             };
-        });
+        }));
 
         res.json({
             success: true,
@@ -332,9 +389,8 @@ app.get('/api/admin/establishments', checkAdmin, async (req, res) => {
 
 app.post('/api/admin/establishments', checkAdmin, async (req, res) => {
     try {
-        const { name, contact_email, contact_phone, address, durationMonths = 1 } = req.body;
+        const { name, contact_email, contact_phone, address, durationMonths = 12, maxDevices = 3 } = req.body;
 
-        // Generar código de licencia único
         const licenseKey = 'BUFF-' + Math.random().toString(36).substr(2, 4).toUpperCase() + 
                            '-' + Math.random().toString(36).substr(2, 4).toUpperCase() +
                            '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
@@ -351,7 +407,8 @@ app.post('/api/admin/establishments', checkAdmin, async (req, res) => {
                 contact_phone,
                 address,
                 expires_at: expiresAt.toISOString(),
-                status: 'active'
+                status: 'active',
+                max_devices: maxDevices
             }])
             .select()
             .single();
@@ -434,6 +491,79 @@ app.post('/api/admin/establishments/:id/extend', checkAdmin, async (req, res) =>
     }
 });
 
+// NUEVO: Obtener dispositivos de un establecimiento
+app.get('/api/admin/establishments/:id/devices', checkAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const { data, error } = await supabase
+            .rpc('get_active_devices', {
+                p_establishment_id: parseInt(id)
+            });
+
+        if (error) throw error;
+
+        res.json({
+            success: true,
+            devices: data || []
+        });
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// NUEVO: Desactivar dispositivo
+app.post('/api/admin/establishments/:id/devices/:fingerprint/deactivate', checkAdmin, async (req, res) => {
+    try {
+        const { id, fingerprint } = req.params;
+
+        const { data, error } = await supabase
+            .rpc('deactivate_device', {
+                p_establishment_id: parseInt(id),
+                p_device_fingerprint: decodeURIComponent(fingerprint)
+            });
+
+        if (error) throw error;
+
+        res.json({
+            success: true,
+            message: 'Dispositivo desactivado'
+        });
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// NUEVO: Actualizar límite de dispositivos
+app.put('/api/admin/establishments/:id/max-devices', checkAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { maxDevices } = req.body;
+
+        const { data, error } = await supabase
+            .from('establishments')
+            .update({ max_devices: maxDevices })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.json({
+            success: true,
+            establishment: data
+        });
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============= FUNCIONES AUXILIARES =============
 
 async function translateDishName(dishName) {
@@ -480,9 +610,9 @@ async function getTraces(ingredients) {
     return Array.from(allTraces);
 }
 
-// ============= ENDPOINTS PROTEGIDOS CON LICENCIA =============
+// ============= ENDPOINTS PROTEGIDOS CON CONTROL DE DISPOSITIVOS =============
 
-app.get('/api/ingredients', checkLicense, async (req, res) => {
+app.get('/api/ingredients', checkLicenseWithDevice, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('ingredients')
@@ -502,7 +632,7 @@ app.get('/api/ingredients', checkLicense, async (req, res) => {
     }
 });
 
-app.get('/api/ingredients/search', checkLicense, async (req, res) => {
+app.get('/api/ingredients/search', checkLicenseWithDevice, async (req, res) => {
     try {
         const { q } = req.query;
         
@@ -526,7 +656,7 @@ app.get('/api/ingredients/search', checkLicense, async (req, res) => {
     }
 });
 
-app.post('/api/ingredients', checkLicense, async (req, res) => {
+app.post('/api/ingredients', checkLicenseWithDevice, async (req, res) => {
     try {
         const { name, category, allergens, traces } = req.body;
 
@@ -554,7 +684,7 @@ app.post('/api/ingredients', checkLicense, async (req, res) => {
     }
 });
 
-app.post('/api/dishes', checkLicense, async (req, res) => {
+app.post('/api/dishes', checkLicenseWithDevice, async (req, res) => {
     try {
         const { name, description, elaboration, chef, ingredients, manualTraces } = req.body;
 
@@ -617,7 +747,7 @@ app.post('/api/dishes', checkLicense, async (req, res) => {
     }
 });
 
-app.get('/api/dishes', checkLicense, async (req, res) => {
+app.get('/api/dishes', checkLicenseWithDevice, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('dishes')
@@ -658,7 +788,7 @@ app.get('/api/dishes', checkLicense, async (req, res) => {
     }
 });
 
-app.get('/api/dishes/search', checkLicense, async (req, res) => {
+app.get('/api/dishes/search', checkLicenseWithDevice, async (req, res) => {
     try {
         const { q } = req.query;
         
@@ -702,7 +832,7 @@ app.get('/api/dishes/search', checkLicense, async (req, res) => {
     }
 });
 
-app.get('/api/dishes/today', checkLicense, async (req, res) => {
+app.get('/api/dishes/today', checkLicenseWithDevice, async (req, res) => {
     try {
         const today = new Date().toISOString().split('T')[0];
 
@@ -745,7 +875,7 @@ app.get('/api/dishes/today', checkLicense, async (req, res) => {
     }
 });
 
-app.post('/api/generate-label', checkLicense, async (req, res) => {
+app.post('/api/generate-label', checkLicenseWithDevice, async (req, res) => {
     try {
         const { dishId } = req.body;
 
@@ -839,7 +969,7 @@ app.post('/api/generate-label', checkLicense, async (req, res) => {
     }
 });
 
-app.post('/api/generate-recipe-document', checkLicense, async (req, res) => {
+app.post('/api/generate-recipe-document', checkLicenseWithDevice, async (req, res) => {
     try {
         const { dishId } = req.body;
 
@@ -961,13 +1091,14 @@ app.post('/api/generate-recipe-document', checkLicense, async (req, res) => {
 
 app.listen(port, () => {
     console.log(`\n🚀 ════════════════════════════════════════════════════`);
-    console.log(`   Sistema de Alérgenos v9.0.2 - FIXED`);
+    console.log(`   Sistema de Alérgenos v10.0.0 - CON CONTROL DE DISPOSITIVOS`);
     console.log(`🚀 ════════════════════════════════════════════════════\n`);
     console.log(`📡 Servidor: http://localhost:${port}`);
     console.log(`📊 Supabase: ${process.env.SUPABASE_URL ? '✅ Conectado' : '❌ NO CONFIGURADO'}`);
     console.log(`🌐 Traducción: ✅ MyMemory API`);
     console.log(`⚡ Trazas: ✅ Habilitadas`);
     console.log(`🔐 Licencias: ✅ Sistema Activo`);
+    console.log(`📱 Control Dispositivos: ✅ Activo`);
     console.log(`\n📄 Páginas disponibles:`);
     console.log(`   - Principal: http://localhost:${port}/`);
     console.log(`   - Admin: http://localhost:${port}/admin`);
