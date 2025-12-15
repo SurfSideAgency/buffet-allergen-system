@@ -3,42 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Alérgenos - Con Trazas</title>
+    <title>Sistema de Alérgenos - Profesional</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #f8fafc; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-        .gradient-header { background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%); }
-        .btn-primary { background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%); transition: all 0.2s; }
-        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3); }
+        /* PALETA DE COLORES OFICIAL - Basada en normativa EU 1169/2011 */
+        :root {
+            --color-primary: #003D82;      /* Azul oficial FSA */
+            --color-secondary: #00A3E0;    /* Azul claro profesional */
+            --color-accent: #E31837;       /* Rojo alérgenos */
+            --color-warning: #FDB913;      /* Amarillo trazas */
+            --color-success: #00853E;      /* Verde sin alérgenos */
+            --color-gray-light: #F5F7FA;   /* Fondo suave */
+        }
+        
+        body { 
+            background: var(--color-gray-light); 
+            min-height: 100vh; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+        }
+        
+        .gradient-header { 
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); 
+        }
+        
+        .btn-primary { 
+            background: var(--color-primary);
+            transition: all 0.2s; 
+        }
+        .btn-primary:hover { 
+            background: var(--color-secondary);
+            transform: translateY(-1px); 
+            box-shadow: 0 4px 12px rgba(0, 61, 130, 0.3); 
+        }
+        
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .allergen-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: #fef2f2; border: 2px solid #fecaca; border-radius: 8px; margin: 0.25rem; font-size: 0.875rem; }
-        .trace-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: #fefce8; border: 2px solid #fde047; border-radius: 8px; margin: 0.25rem; font-size: 0.875rem; }
-        .tab-active { border-bottom: 3px solid #D4AF37; color: #D4AF37; font-weight: bold; }
-        .ingredient-item { cursor: pointer; transition: all 0.2s; }
-        .ingredient-item:hover { background: #f0f9ff; transform: translateX(5px); }
-        .trace-checkbox { width: 20px; height: 20px; cursor: pointer; }
+        
+        /* Estilos para badges de alérgenos - NUEVO DISEÑO OFICIAL */
+        .allergen-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: #FEE2E2;
+            border: 2px solid var(--color-accent);
+            border-radius: 8px;
+            margin: 0.25rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #991B1B;
+        }
+        
+        .trace-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: #FEF3C7;
+            border: 2px solid var(--color-warning);
+            border-radius: 8px;
+            margin: 0.25rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #92400E;
+        }
+        
+        .tab-active { 
+            border-bottom: 3px solid var(--color-primary); 
+            color: var(--color-primary); 
+            font-weight: bold; 
+        }
+        
+        .ingredient-item { 
+            cursor: pointer; 
+            transition: all 0.2s; 
+        }
+        .ingredient-item:hover { 
+            background: #EFF6FF; 
+            transform: translateX(5px); 
+        }
+        
+        .trace-checkbox { 
+            width: 20px; 
+            height: 20px; 
+            cursor: pointer;
+            accent-color: var(--color-primary);
+        }
+        
         @keyframes slideUp {
             from { transform: translateY(30px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
         .animate-slide-up { animation: slideUp 0.3s ease-out; }
+        
+        /* Iconos de alérgenos oficiales */
+        .allergen-icon {
+            width: 2rem;
+            height: 2rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
     </style>
 </head>
 <body>
     
-    <!-- Header -->
-    <div class="gradient-header text-white py-6 mb-6 shadow-sm">
+    <!-- Header con nueva paleta -->
+    <div class="gradient-header text-white py-6 mb-6 shadow-lg">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <span class="text-3xl">🍽️</span>
+                    <span class="text-4xl">🍽️</span>
                     <div>
-                        <h1 class="text-2xl font-bold">Sistema de Alérgenos PRO</h1>
+                        <h1 class="text-2xl font-bold">Sistema de Gestión de Alérgenos</h1>
                         <p class="text-sm opacity-90" id="establishmentName">Cargando...</p>
                     </div>
                 </div>
-                <div id="licenseInfo" class="text-sm bg-white/20 px-4 py-2 rounded-lg">
+                <div id="licenseInfo" class="text-sm bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm">
                     <span class="spinner w-4 h-4 border-2 border-white border-t-transparent rounded-full inline-block mr-2"></span>
                     Verificando licencia...
                 </div>
@@ -48,14 +130,14 @@
 
     <!-- Tabs -->
     <div class="max-w-7xl mx-auto px-4 mb-6">
-        <div class="bg-white rounded-lg shadow-sm p-2 flex gap-2">
+        <div class="bg-white rounded-xl shadow-sm p-2 flex gap-2">
             <button onclick="showTab('new-dish')" id="tab-new-dish" class="tab-active flex-1 py-3 px-4 rounded-lg transition-all">
                 ➕ Nuevo Plato
             </button>
-            <button onclick="showTab('saved-dishes')" id="tab-saved-dishes" class="flex-1 py-3 px-4 rounded-lg transition-all hover:bg-gray-100">
+            <button onclick="showTab('saved-dishes')" id="tab-saved-dishes" class="flex-1 py-3 px-4 rounded-lg transition-all hover:bg-gray-50">
                 📚 Platos Guardados
             </button>
-            <button onclick="showTab('ingredients')" id="tab-ingredients" class="flex-1 py-3 px-4 rounded-lg transition-all hover:bg-gray-100">
+            <button onclick="showTab('ingredients')" id="tab-ingredients" class="flex-1 py-3 px-4 rounded-lg transition-all hover:bg-gray-50">
                 🥘 Ingredientes
             </button>
         </div>
@@ -63,7 +145,7 @@
 
     <div class="max-w-7xl mx-auto px-4 pb-8" id="mainContent">
         <div class="text-center py-20">
-            <div class="spinner w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full inline-block mb-4"></div>
+            <div class="spinner w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full inline-block mb-4"></div>
             <p class="text-gray-600">Verificando licencia...</p>
         </div>
     </div>
@@ -113,27 +195,24 @@
         if (!deviceFingerprint) {
             deviceFingerprint = generateDeviceFingerprint();
             localStorage.setItem('deviceFingerprint', deviceFingerprint);
-            console.log('🆕 Nuevo dispositivo registrado:', deviceFingerprint);
-        } else {
-            console.log('🔐 Dispositivo conocido:', deviceFingerprint);
         }
 
-        // ========== VARIABLES GLOBALES ==========
+        // ========== ICONOS OFICIALES DE ALÉRGENOS (Basados en FSA UK) ==========
         const ALLERGENS = {
-            'gluten': { name: 'Cereales con Gluten', icon: '🌾' },
-            'crustaceos': { name: 'Crustáceos', icon: '🦐' },
-            'huevos': { name: 'Huevos', icon: '🥚' },
-            'pescado': { name: 'Pescado', icon: '🐟' },
-            'cacahuetes': { name: 'Cacahuetes', icon: '🥜' },
-            'soja': { name: 'Soja', icon: '🌱' },
-            'lacteos': { name: 'Lácteos', icon: '🥛' },
-            'frutos_secos': { name: 'Frutos Secos', icon: '🌰' },
-            'apio': { name: 'Apio', icon: '🥬' },
-            'mostaza': { name: 'Mostaza', icon: '🟡' },
-            'sesamo': { name: 'Sésamo', icon: '🫘' },
-            'sulfitos': { name: 'Sulfitos', icon: '🍷' },
-            'altramuces': { name: 'Altramuces', icon: '🫘' },
-            'moluscos': { name: 'Moluscos', icon: '🐚' }
+            'gluten': { name: 'Cereales con Gluten', icon: '🌾', color: '#E31837' },
+            'crustaceos': { name: 'Crustáceos', icon: '🦐', color: '#E31837' },
+            'huevos': { name: 'Huevos', icon: '🥚', color: '#E31837' },
+            'pescado': { name: 'Pescado', icon: '🐟', color: '#E31837' },
+            'cacahuetes': { name: 'Cacahuetes', icon: '🥜', color: '#E31837' },
+            'soja': { name: 'Soja', icon: '🌱', color: '#E31837' },
+            'lacteos': { name: 'Lácteos', icon: '🥛', color: '#E31837' },
+            'frutos_secos': { name: 'Frutos Secos', icon: '🌰', color: '#E31837' },
+            'apio': { name: 'Apio', icon: '🥬', color: '#E31837' },
+            'mostaza': { name: 'Mostaza', icon: '🟡', color: '#E31837' },
+            'sesamo': { name: 'Sésamo', icon: '🫘', color: '#E31837' },
+            'sulfitos': { name: 'Sulfitos', icon: '🍷', color: '#E31837' },
+            'altramuces': { name: 'Altramuces', icon: '🫘', color: '#E31837' },
+            'moluscos': { name: 'Moluscos', icon: '🐚', color: '#E31837' }
         };
 
         let licenseKey = localStorage.getItem('licenseKey');
@@ -254,7 +333,8 @@
                     <div class="space-y-3">
                         <button 
                             onclick="window.location.href='/activation'"
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all">
+                            style="background: var(--color-primary);"
+                            class="w-full hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg transition-all">
                             🔄 Probar Otra Licencia
                         </button>
                         <button 
@@ -284,7 +364,7 @@
                                     type="text"
                                     id="dishName"
                                     placeholder="Ej: Paella Valenciana"
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
                                 >
                             </div>
 
@@ -294,7 +374,7 @@
                                     type="text"
                                     id="ingredientSearch"
                                     placeholder="Buscar ingrediente..."
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
                                     oninput="searchIngredients()"
                                 >
                                 <div id="ingredientResults" class="mt-2 max-h-60 overflow-y-auto"></div>
@@ -312,16 +392,16 @@
                                 <textarea 
                                     id="elaboration"
                                     rows="4"
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none resize-none"
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-none"
                                     placeholder="1. Sofreír el ajo y la cebolla...&#10;2. Añadir el arroz...&#10;3. Incorporar el caldo..."
                                 ></textarea>
                             </div>
 
-                            <div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
-                                <label class="block text-sm font-bold text-yellow-800 mb-3">
+                            <div style="background: #FEF3C7; border: 2px solid var(--color-warning);" class="rounded-lg p-4">
+                                <label class="block text-sm font-bold mb-3" style="color: var(--color-warning);">
                                     ⚡ Trazas (Contaminación Cruzada)
                                 </label>
-                                <p class="text-xs text-yellow-700 mb-3">
+                                <p class="text-xs mb-3" style="color: #92400E;">
                                     Selecciona los alérgenos que PUEDEN estar presentes por elaboración en cocina compartida
                                 </p>
                                 <div class="grid grid-cols-2 gap-2" id="tracesCheckboxes"></div>
@@ -333,7 +413,7 @@
                                     type="text"
                                     id="chef"
                                     value="Chef Principal"
-                                    class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
+                                    class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
                                 >
                             </div>
 
@@ -374,7 +454,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <button 
                                     onclick="generateLabelFromResult()"
-                                    class="p-4 border-2 border-gray-200 rounded-lg hover:border-yellow-500 transition-all">
+                                    class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-all">
                                     <div class="text-3xl mb-2">🏷️</div>
                                     <h5 class="font-bold text-gray-800">Etiqueta Multiidioma</h5>
                                     <p class="text-xs text-gray-500 mt-1">Con alérgenos y trazas</p>
@@ -404,7 +484,7 @@
                                 type="text"
                                 id="dishSearchInput"
                                 placeholder="🔍 Buscar plato guardado..."
-                                class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none"
+                                class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
                                 oninput="searchDishes()"
                             >
                             <button onclick="loadAllDishes()" class="btn-primary text-white px-6 py-3 rounded-lg font-bold">
@@ -429,7 +509,7 @@
                                 type="text"
                                 id="ingredientFilterInput"
                                 placeholder="🔍 Filtrar ingredientes..."
-                                class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none mb-4"
+                                class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none mb-4"
                                 oninput="filterIngredients()"
                             >
                             <div id="ingredientsList" class="space-y-2 max-h-96 overflow-y-auto">
@@ -442,11 +522,11 @@
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
-                                    <input type="text" id="newIngName" placeholder="Ej: Tomate" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none">
+                                    <input type="text" id="newIngName" placeholder="Ej: Tomate" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
-                                    <select id="newIngCategory" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none">
+                                    <select id="newIngCategory" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
                                         <option value="verduras">Verduras</option>
                                         <option value="carnes">Carnes</option>
                                         <option value="pescados">Pescados</option>
@@ -461,12 +541,21 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700 mb-2">Alérgenos (contiene)</label>
-                                    <select id="newIngAllergens" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none" size="6">
+                                    <select id="newIngAllergens" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" size="6">
                                         ${Object.entries(ALLERGENS).map(([code, data]) => 
                                             `<option value="${code}">${data.icon} ${data.name}</option>`
                                         ).join('')}
                                     </select>
                                     <p class="text-xs text-gray-500 mt-1">Mantén Ctrl/Cmd para seleccionar varios</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Trazas (puede contener)</label>
+                                    <select id="newIngTraces" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" size="6">
+                                        ${Object.entries(ALLERGENS).map(([code, data]) => 
+                                            `<option value="${code}">${data.icon} ${data.name}</option>`
+                                        ).join('')}
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">Para contaminación cruzada</p>
                                 </div>
                                 <button onclick="addNewIngredient()" class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg shadow">
                                     ➕ Añadir Ingrediente
@@ -485,7 +574,7 @@
             const container = document.getElementById('tracesCheckboxes');
             if (!container) return;
             container.innerHTML = Object.entries(ALLERGENS).map(([code, data]) => `
-                <label class="flex items-center gap-2 p-2 hover:bg-yellow-100 rounded cursor-pointer">
+                <label class="flex items-center gap-2 p-2 hover:bg-yellow-50 rounded cursor-pointer">
                     <input type="checkbox" name="trace" value="${code}" class="trace-checkbox">
                     <span class="text-sm">${data.icon} ${data.name}</span>
                 </label>
@@ -580,7 +669,13 @@
             }
 
             const ingredient = allIngredients.find(i => i.id === id);
-            selectedIngredients.push({ id, name, quantity: '', allergens: ingredient?.allergens || [] });
+            selectedIngredients.push({ 
+                id, 
+                name, 
+                quantity: '', 
+                allergens: ingredient?.allergens || [],
+                traces: ingredient?.traces || []
+            });
             
             document.getElementById('ingredientSearch').value = '';
             document.getElementById('ingredientResults').innerHTML = '';
@@ -602,8 +697,20 @@
 
             container.innerHTML = selectedIngredients.map(ing => `
                 <div class="flex items-center justify-between p-2 bg-blue-50 rounded-lg mb-2">
-                    <span class="font-medium">${ing.name}</span>
-                    <button onclick="removeIngredient(${ing.id})" class="text-red-500 hover:text-red-700 font-bold">✕</button>
+                    <div class="flex-1">
+                        <span class="font-medium">${ing.name}</span>
+                        ${ing.allergens && ing.allergens.length > 0 ? `
+                            <div class="text-xs text-red-600 mt-1">
+                                ⚠️ ${ing.allergens.map(a => ALLERGENS[a]?.icon || '⚠️').join(' ')}
+                            </div>
+                        ` : ''}
+                        ${ing.traces && ing.traces.length > 0 ? `
+                            <div class="text-xs text-yellow-600 mt-1">
+                                ⚡ Trazas: ${ing.traces.map(a => ALLERGENS[a]?.icon || '⚡').join(' ')}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <button onclick="removeIngredient(${ing.id})" class="text-red-500 hover:text-red-700 font-bold ml-2">✕</button>
                 </div>
             `).join('');
         }
@@ -787,13 +894,25 @@
                 return;
             }
 
-            container.innerHTML = dishes.map(dish => `
+            container.innerHTML = dishes.map(dish => {
+                // NUEVA FUNCIONALIDAD: Pre-visualización de ingredientes
+                const ingredientsList = dish.dish_ingredients && dish.dish_ingredients.length > 0
+                    ? dish.dish_ingredients.map(di => di.ingredient?.name || 'Ingrediente').join(', ')
+                    : 'Sin ingredientes registrados';
+                
+                return `
                 <div class="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all">
                     <h3 class="font-bold text-lg mb-2">${dish.name}</h3>
-                    <p class="text-sm text-gray-600 mb-3">
+                    <p class="text-sm text-gray-600 mb-2">
                         <strong>Chef:</strong> ${dish.chef}<br>
                         <strong>Fecha:</strong> ${new Date(dish.created_at || dish.date).toLocaleDateString('es-ES')}
                     </p>
+                    
+                    <!-- PRE-VISUALIZACIÓN DE INGREDIENTES -->
+                    <div class="mb-3 p-2 bg-gray-50 rounded-lg">
+                        <p class="text-xs font-semibold text-gray-700 mb-1">📋 Ingredientes:</p>
+                        <p class="text-xs text-gray-600">${ingredientsList}</p>
+                    </div>
                     
                     ${dish.allergens && dish.allergens.length > 0 ? `
                         <div class="mb-2">
@@ -812,15 +931,15 @@
                     ` : ''}
                     
                     <div class="flex gap-2">
-                        <button onclick="generateDocument(${dish.id}, 'label')" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-bold py-2 px-3 rounded">
+                        <button onclick="generateDocument(${dish.id}, 'label')" style="background: var(--color-primary);" class="flex-1 hover:opacity-90 text-white text-sm font-bold py-2 px-3 rounded">
                             🏷️ Etiqueta
                         </button>
-                        <button onclick="generateDocument(${dish.id}, 'recipe')" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold py-2 px-3 rounded">
+                        <button onclick="generateDocument(${dish.id}, 'recipe')" style="background: var(--color-secondary);" class="flex-1 hover:opacity-90 text-white text-sm font-bold py-2 px-3 rounded">
                             📋 Receta
                         </button>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function filterIngredients() {
@@ -869,7 +988,9 @@
             const name = document.getElementById('newIngName').value.trim();
             const category = document.getElementById('newIngCategory').value;
             const allergensSelect = document.getElementById('newIngAllergens');
+            const tracesSelect = document.getElementById('newIngTraces');
             const allergens = Array.from(allergensSelect.selectedOptions).map(opt => opt.value);
+            const traces = Array.from(tracesSelect.selectedOptions).map(opt => opt.value);
 
             if (!name) {
                 showToast('⚠️ Escribe el nombre del ingrediente', 'warning');
@@ -884,7 +1005,7 @@
                         name,
                         category,
                         allergens,
-                        traces: []
+                        traces
                     })
                 });
 
@@ -894,6 +1015,7 @@
                     showToast('✅ Ingrediente añadido', 'success');
                     document.getElementById('newIngName').value = '';
                     allergensSelect.selectedIndex = -1;
+                    tracesSelect.selectedIndex = -1;
                     await loadAllIngredients();
                     filterIngredients();
                 } else {
@@ -915,7 +1037,7 @@
             };
 
             const toast = document.createElement('div');
-            toast.className = `fixed top-4 right-4 ${colors[type]} text-white px-5 py-3 rounded-lg shadow-lg z-50 text-sm font-medium`;
+            toast.className = `fixed top-4 right-4 ${colors[type]} text-white px-5 py-3 rounded-lg shadow-lg z-50 text-sm font-medium animate-slide-up`;
             toast.textContent = message;
 
             document.body.appendChild(toast);
