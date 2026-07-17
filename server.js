@@ -6,7 +6,9 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { createClient } = require('@supabase/supabase-js');
-const { createCanvas } = require('@napi-rs/canvas');
+const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
+
+GlobalFonts.registerFromPath(path.join(__dirname, 'fonts', 'Roboto-Regular.ttf'), 'Roboto');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -620,38 +622,38 @@ function generateScreenImage(dish, allergens) {
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, 400, 300);
 
-    ctx.fillStyle = '#2563EB';
-    ctx.font = 'bold 28px sans-serif';
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 28px Roboto';
     ctx.textAlign = 'left';
     wrapText(ctx, dish.name, 16, 40, 368, 32);
 
     let y = 110;
     if (allergens && allergens.length > 0) {
-        ctx.fillStyle = '#DC2626';
-        ctx.font = 'bold 16px sans-serif';
-        ctx.fillText('⚠ Contiene:', 16, y);
+        ctx.fillStyle = '#FF0000';
+        ctx.font = 'bold 16px Roboto';
+        ctx.fillText('Contiene:', 16, y);
         y += 28;
 
-        ctx.font = '15px sans-serif';
+        ctx.font = '15px Roboto';
         allergens.forEach(code => {
             const a = ALLERGENS[code];
             if (!a) return;
-            ctx.fillStyle = '#DC2626';
+            ctx.fillStyle = '#FF0000';
             ctx.fillRect(16, y - 14, 8, 8);
             ctx.fillStyle = '#000000';
-            ctx.fillText(`${a.icon} ${a.name}`, 32, y);
+            ctx.fillText(a.name, 32, y);
             y += 24;
         });
     } else {
-        ctx.fillStyle = '#10B981';
-        ctx.font = 'bold 18px sans-serif';
-        ctx.fillText('✓ Sin alérgenos', 16, y);
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 18px Roboto';
+        ctx.fillText('Sin alergenos', 16, y);
     }
 
     if (dish.traces && dish.traces.length > 0) {
         y += 10;
-        ctx.fillStyle = '#F59E0B';
-        ctx.font = 'bold 13px sans-serif';
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 13px Roboto';
         ctx.fillText('Trazas: ' + dish.traces.map(t => ALLERGENS[t]?.name || t).join(', '), 16, y);
     }
 
@@ -704,7 +706,7 @@ async function pushToScreen(mac, imageBuffer) {
             },
             body: JSON.stringify({
                 algorithm: 'floyd-steinberg',
-                imgsrc: `data:image/png;base64,${base64Image}`
+                imgsrc: base64Image
             })
         }
     );
