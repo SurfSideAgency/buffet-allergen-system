@@ -1210,6 +1210,21 @@ app.get('/api/screens', checkLicenseWithDevice, async (req, res) => {
     }
 });
 
+// DEBUG: Consultar estado real del dispositivo en Sertag
+app.get('/api/screens/:mac/status', checkLicenseWithDevice, async (req, res) => {
+    try {
+        const token = await sertagLogin();
+        const response = await fetch(
+            `${process.env.SERTAG_API_BASE}/user/api/rest/devices/mac/${req.params.mac}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const data = await response.json();
+        res.json({ success: true, deviceInfo: data });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.put('/api/screens/:mac/assign', checkLicenseWithDevice, async (req, res) => {
     try {
         const { mac } = req.params;
