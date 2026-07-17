@@ -6,6 +6,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { createClient } = require('@supabase/supabase-js');
+const { createCanvas } = require('@napi-rs/canvas');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -610,6 +611,106 @@ async function getTraces(ingredients) {
     return Array.from(allTraces);
 }
 
+// ============= FUNCIONES PANTALLAS SERTAG =============
+
+function generateScreenImage(dish, allergens) {
+    const canvas = createCanvas(400, 300);
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, 400, 300);
+
+    ctx.fillStyle = '#2563EB';
+    ctx.font = 'bold 28px sans-serif';
+    ctx.textAlign = 'left';
+    wrapText(ctx, dish.name, 16, 40, 368, 32);
+
+    let y = 110;
+    if (allergens && allergens.length > 0) {
+        ctx.fillStyle = '#DC2626';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText('⚠ Contiene:', 16, y);
+        y += 28;
+
+        ctx.font = '15px sans-serif';
+        allergens.forEach(code => {
+            const a = ALLERGENS[code];
+            if (!a) return;
+            ctx.fillStyle = '#DC2626';
+            ctx.fillRect(16, y - 14, 8, 8);
+            ctx.fillStyle = '#000000';
+            ctx.fillText(`${a.icon} ${a.name}`, 32, y);
+            y += 24;
+        });
+    } else {
+        ctx.fillStyle = '#10B981';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText('✓ Sin alérgenos', 16, y);
+    }
+
+    if (dish.traces && dish.traces.length > 0) {
+        y += 10;
+        ctx.fillStyle = '#F59E0B';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText('Trazas: ' + dish.traces.map(t => ALLERGENS[t]?.name || t).join(', '), 16, y);
+    }
+
+    return canvas.toBuffer('image/png');
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    let curY = y;
+    for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+            ctx.fillText(line, x, curY);
+            line = words[n] + ' ';
+            curY += lineHeight;
+        } else {
+            line = testLine;
+        }
+    }
+    ctx.fillText(line, x, curY);
+}
+
+async function sertagLogin() {
+    const res = await fetch(`${process.env.SERTAG_API_BASE}/user/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            username: process.env.SERTAG_USER,
+            password: process.env.SERTAG_PASS
+        })
+    });
+    const json = await res.json();
+    return json.data?.token;
+}
+
+async function pushToScreen(mac, imageBuffer) {
+    const token = await sertagLogin();
+    if (!token) throw new Error('No se pudo autenticar con Sertag');
+
+    const base64Image = imageBuffer.toString('base64');
+
+    const res = await fetch(
+        `${process.env.SERTAG_API_BASE}/user/api/mqtt/publish/${mac}/display`,
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                algorithm: 'floyd-steinberg',
+                imgsrc: `data:image/png;base64,${base64Image}`
+            })
+        }
+    );
+    return res.json();
+}
+
 // ============= ENDPOINTS PROTEGIDOS CON CONTROL DE DISPOSITIVOS =============
 
 app.get('/api/ingredients', checkLicenseWithDevice, async (req, res) => {
@@ -1081,6 +1182,90 @@ app.post('/api/generate-recipe-document', checkLicenseWithDevice, async (req, re
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.send(html);
 
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ============= ENDPOINTS PANTALLAS SERTAG =============
+
+app.get('/api/screens', checkLicenseWithDevice, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('esl_screens')
+            .select('*, dish:dishes(id, name)')
+            .eq('establishment_id', req.establishment.id)
+            .order('slot_number');
+
+        if (error) throw error;
+
+        res.json({ success: true, screens: data });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.put('/api/screens/:mac/assign', checkLicenseWithDevice, async (req, res) => {
+    try {
+        const { mac } = req.params;
+        const { dishId } = req.body;
+
+        const { data: screen, error: screenError } = await supabase
+            .from('esl_screens')
+            .update({ current_dish_id: dishId, updated_at: new Date().toISOString() })
+            .eq('mac', mac)
+            .eq('establishment_id', req.establishment.id)
+            .select()
+            .single();
+
+        if (screenError) throw screenError;
+
+        const { data: dish, error: dishError } = await supabase
+            .from('dishes')
+            .select('*')
+            .eq('id', dishId)
+            .single();
+
+        if (dishError) throw dishError;
+
+        const { data: allergens } = await supabase
+            .rpc('get_dish_allergens', { dish_id_param: dishId });
+
+        const imageBuffer = generateScreenImage(dish, allergens || []);
+        const pushResult = await pushToScreen(mac, imageBuffer);
+
+        res.json({ success: true, screen, pushResult });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/screens/refresh-all', checkLicenseWithDevice, async (req, res) => {
+    try {
+        const { data: screens, error } = await supabase
+            .from('esl_screens')
+            .select('*, dish:dishes(*)')
+            .eq('establishment_id', req.establishment.id)
+            .not('current_dish_id', 'is', null);
+
+        if (error) throw error;
+
+        const results = [];
+        for (const screen of screens) {
+            const { data: allergens } = await supabase
+                .rpc('get_dish_allergens', { dish_id_param: screen.current_dish_id });
+
+            const imageBuffer = generateScreenImage(screen.dish, allergens || []);
+            const pushResult = await pushToScreen(screen.mac, imageBuffer);
+            results.push({ mac: screen.mac, pushResult });
+
+            await new Promise(r => setTimeout(r, 300));
+        }
+
+        res.json({ success: true, results });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ success: false, error: error.message });
