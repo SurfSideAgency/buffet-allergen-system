@@ -7,8 +7,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { createClient } = require('@supabase/supabase-js');
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
+const robotoBase64 = require('./fontData');
 
-GlobalFonts.registerFromPath(path.join(__dirname, 'fonts', 'Roboto-Regular.ttf'), 'Roboto');
+GlobalFonts.register(Buffer.from(robotoBase64, 'base64'), 'Roboto');
 
 const app = express();
 const port = process.env.PORT || 3000;
