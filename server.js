@@ -1225,6 +1225,26 @@ app.get('/api/screens/:mac/status', checkLicenseWithDevice, async (req, res) => 
     }
 });
 
+// DEBUG: Ver la imagen generada directamente, sin pasar por Sertag
+app.get('/api/screens/:mac/preview', checkLicenseWithDevice, async (req, res) => {
+    try {
+        const { data: dish } = await supabase
+            .from('dishes')
+            .select('*')
+            .eq('id', req.query.dishId)
+            .single();
+
+        const { data: allergens } = await supabase
+            .rpc('get_dish_allergens', { dish_id_param: req.query.dishId });
+
+        const imageBuffer = generateScreenImage(dish, allergens || []);
+        res.setHeader('Content-Type', 'image/png');
+        res.send(imageBuffer);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.put('/api/screens/:mac/assign', checkLicenseWithDevice, async (req, res) => {
     try {
         const { mac } = req.params;
