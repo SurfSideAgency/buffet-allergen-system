@@ -1,1052 +1,1176 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Alérgenos - Profesional</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* PALETA DE COLORES OFICIAL - Basada en normativa EU 1169/2011 */
-        :root {
-            --color-primary: #003D82;      /* Azul oficial FSA */
-            --color-secondary: #00A3E0;    /* Azul claro profesional */
-            --color-accent: #E31837;       /* Rojo alérgenos */
-            --color-warning: #FDB913;      /* Amarillo trazas */
-            --color-success: #00853E;      /* Verde sin alérgenos */
-            --color-gray-light: #F5F7FA;   /* Fondo suave */
-        }
-        
-        body { 
-            background: var(--color-gray-light); 
-            min-height: 100vh; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
-        }
-        
-        .gradient-header { 
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); 
-        }
-        
-        .btn-primary { 
-            background: var(--color-primary);
-            transition: all 0.2s; 
-        }
-        .btn-primary:hover { 
-            background: var(--color-secondary);
-            transform: translateY(-1px); 
-            box-shadow: 0 4px 12px rgba(0, 61, 130, 0.3); 
-        }
-        
-        .spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* Estilos para badges de alérgenos - NUEVO DISEÑO OFICIAL */
-        .allergen-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            background: #FEE2E2;
-            border: 2px solid var(--color-accent);
-            border-radius: 8px;
-            margin: 0.25rem;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #991B1B;
-        }
-        
-        .trace-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            background: #FEF3C7;
-            border: 2px solid var(--color-warning);
-            border-radius: 8px;
-            margin: 0.25rem;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #92400E;
-        }
-        
-        .tab-active { 
-            border-bottom: 3px solid var(--color-primary); 
-            color: var(--color-primary); 
-            font-weight: bold; 
-        }
-        
-        .ingredient-item { 
-            cursor: pointer; 
-            transition: all 0.2s; 
-        }
-        .ingredient-item:hover { 
-            background: #EFF6FF; 
-            transform: translateX(5px); 
-        }
-        
-        .trace-checkbox { 
-            width: 20px; 
-            height: 20px; 
-            cursor: pointer;
-            accent-color: var(--color-primary);
-        }
-        
-        @keyframes slideUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .animate-slide-up { animation: slideUp 0.3s ease-out; }
-        
-        /* Iconos de alérgenos oficiales */
-        .allergen-icon {
-            width: 2rem;
-            height: 2rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Alérgenos - Profesional</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* PALETA DE COLORES OFICIAL - Basada en normativa EU 1169/2011 */
+:root {
+  --color-primary: #003D82; /* Azul oficial FSA */
+  --color-secondary: #00A3E0; /* Azul claro profesional */
+  --color-accent: #E31837; /* Rojo alérgenos */
+  --color-warning: #FDB913; /* Amarillo trazas */
+  --color-success: #00853E; /* Verde sin alérgenos */
+  --color-gray-light: #F5F7FA; /* Fondo suave */
+}
+
+body {
+  background: var(--color-gray-light);
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.gradient-header {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  transition: all 0.2s;
+}
+.btn-primary:hover {
+  background: var(--color-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 61, 130, 0.3);
+}
+
+.spinner { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Estilos para badges de alérgenos - NUEVO DISEÑO OFICIAL */
+.allergen-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #FEE2E2;
+  border: 2px solid var(--color-accent);
+  border-radius: 8px;
+  margin: 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #991B1B;
+}
+
+.trace-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #FEF3C7;
+  border: 2px solid var(--color-warning);
+  border-radius: 8px;
+  margin: 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #92400E;
+}
+
+.tab-active {
+  border-bottom: 3px solid var(--color-primary);
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+.ingredient-item {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ingredient-item:hover {
+  background: #EFF6FF;
+  transform: translateX(5px);
+}
+
+.trace-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up { animation: slideUp 0.3s ease-out; }
+
+/* Iconos de alérgenos oficiales */
+.allergen-icon {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+</style>
 </head>
 <body>
-    
-    <!-- Header con nueva paleta -->
-    <div class="gradient-header text-white py-6 mb-6 shadow-lg">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <span class="text-4xl">🍽️</span>
-                    <div>
-                        <h1 class="text-2xl font-bold">Sistema de Gestión de Alérgenos</h1>
-                        <p class="text-sm opacity-90" id="establishmentName">Cargando...</p>
-                    </div>
-                </div>
-                <div id="licenseInfo" class="text-sm bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm">
-                    <span class="spinner w-4 h-4 border-2 border-white border-t-transparent rounded-full inline-block mr-2"></span>
-                    Verificando licencia...
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="max-w-7xl mx-auto px-4 mb-6">
-        <div class="bg-white rounded-xl shadow-sm p-2 flex gap-2">
-            <button onclick="showTab('new-dish')" id="tab-new-dish" class="tab-active flex-1 py-3 px-4 rounded-lg transition-all">
-                ➕ Nuevo Plato
-            </button>
-            <button onclick="showTab('saved-dishes')" id="tab-saved-dishes" class="flex-1 py-3 px-4 rounded-lg transition-all hover:bg-gray-50">
-                📚 Platos Guardados
-            </button>
-            <button onclick="showTab('ingredients')" id="tab-ingredients" class="flex-1 py-3 px-4 rounded-lg transition-all hover:bg-gray-50">
-                🥘 Ingredientes
-            </button>
-        </div>
-    </div>
-
-    <div class="max-w-7xl mx-auto px-4 pb-8" id="mainContent">
-        <div class="text-center py-20">
-            <div class="spinner w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full inline-block mb-4"></div>
-            <p class="text-gray-600">Verificando licencia...</p>
-        </div>
-    </div>
-
-    <script>
-        // ========== DEVICE FINGERPRINTING ==========
-        function generateDeviceFingerprint() {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            ctx.textBaseline = 'top';
-            ctx.font = '14px Arial';
-            ctx.textBaseline = 'alphabetic';
-            ctx.fillStyle = '#f60';
-            ctx.fillRect(125, 1, 62, 20);
-            ctx.fillStyle = '#069';
-            ctx.fillText('Buffet Allergen System', 2, 15);
-            
-            const canvasData = canvas.toDataURL();
-            
-            const fingerprint = {
-                canvas: hashCode(canvasData),
-                screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                language: navigator.language,
-                platform: navigator.platform,
-                hardwareConcurrency: navigator.hardwareConcurrency || 0,
-                deviceMemory: navigator.deviceMemory || 0,
-                cookieEnabled: navigator.cookieEnabled,
-                doNotTrack: navigator.doNotTrack || 'unknown'
-            };
-            
-            const fingerprintString = JSON.stringify(fingerprint);
-            return 'FP-' + hashCode(fingerprintString);
-        }
-
-        function hashCode(str) {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                const char = str.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash;
-            }
-            return Math.abs(hash).toString(36).toUpperCase();
-        }
-
-        let deviceFingerprint = localStorage.getItem('deviceFingerprint');
-        if (!deviceFingerprint) {
-            deviceFingerprint = generateDeviceFingerprint();
-            localStorage.setItem('deviceFingerprint', deviceFingerprint);
-        }
-
-        // ========== ICONOS OFICIALES DE ALÉRGENOS (Basados en FSA UK) ==========
-        const ALLERGENS = {
-            'gluten': { name: 'Cereales con Gluten', icon: '🌾', color: '#E31837' },
-            'crustaceos': { name: 'Crustáceos', icon: '🦐', color: '#E31837' },
-            'huevos': { name: 'Huevos', icon: '🥚', color: '#E31837' },
-            'pescado': { name: 'Pescado', icon: '🐟', color: '#E31837' },
-            'cacahuetes': { name: 'Cacahuetes', icon: '🥜', color: '#E31837' },
-            'soja': { name: 'Soja', icon: '🌱', color: '#E31837' },
-            'lacteos': { name: 'Lácteos', icon: '🥛', color: '#E31837' },
-            'frutos_secos': { name: 'Frutos Secos', icon: '🌰', color: '#E31837' },
-            'apio': { name: 'Apio', icon: '🥬', color: '#E31837' },
-            'mostaza': { name: 'Mostaza', icon: '🟡', color: '#E31837' },
-            'sesamo': { name: 'Sésamo', icon: '🫘', color: '#E31837' },
-            'sulfitos': { name: 'Sulfitos', icon: '🍷', color: '#E31837' },
-            'altramuces': { name: 'Altramuces', icon: '🫘', color: '#E31837' },
-            'moluscos': { name: 'Moluscos', icon: '🐚', color: '#E31837' }
-        };
-
-        let licenseKey = localStorage.getItem('licenseKey');
-        let establishment = null;
-        let selectedIngredients = [];
-        let currentDish = null;
-        let allIngredients = [];
-        let searchTimeout = null;
-
-        // ========== INICIALIZACIÓN ==========
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (!licenseKey) {
-                window.location.href = '/activation';
-                return;
-            }
-
-            const valid = await checkLicense();
-            if (valid) {
-                await initializeApp();
-            } else {
-                window.location.href = '/activation';
-            }
-        });
-
-        async function checkLicense() {
-            try {
-                const response = await fetch('/api/license/verify-with-device', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        licenseKey,
-                        deviceFingerprint
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    establishment = data.establishment;
-                    document.getElementById('establishmentName').textContent = establishment.name;
-                    
-                    const licenseInfo = document.getElementById('licenseInfo');
-                    const daysRemaining = establishment.daysRemaining;
-                    
-                    if (daysRemaining <= 7) {
-                        licenseInfo.innerHTML = `⚠️ ${daysRemaining} días | ${establishment.maxDevices} dispositivos`;
-                        licenseInfo.className = 'text-sm bg-yellow-500 px-4 py-2 rounded-lg font-bold';
-                    } else {
-                        licenseInfo.innerHTML = `✅ Activa | ${establishment.maxDevices} dispositivos`;
-                        licenseInfo.className = 'text-sm bg-green-500 px-4 py-2 rounded-lg';
-                    }
-                    
-                    return true;
-                } else {
-                    if (data.code === 'MAX_DEVICES_REACHED') {
-                        showDeviceLimitModal(data);
-                    } else {
-                        showToast('❌ ' + data.error, 'error');
-                    }
-                    localStorage.removeItem('licenseKey');
-                    return false;
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                showToast('❌ Error de conexión', 'error');
-                return false;
-            }
-        }
-
-        async function fetchWithLicense(url, options = {}) {
-            if (!options.headers) {
-                options.headers = {};
-            }
-            options.headers['X-License-Key'] = licenseKey;
-            options.headers['X-Device-Fingerprint'] = deviceFingerprint;
-            return fetch(url, options);
-        }
-
-        function showDeviceLimitModal(data) {
-            const modal = document.createElement('div');
-            modal.id = 'deviceLimitModal';
-            modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
-            modal.innerHTML = `
-                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-slide-up">
-                    <div class="text-center mb-6">
-                        <div class="text-6xl mb-4">⚠️</div>
-                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Límite de Dispositivos Alcanzado</h2>
-                        <p class="text-gray-600 mb-4">
-                            Esta licencia ya está activa en <strong>${data.activeDevices} de ${data.maxDevices}</strong> dispositivos permitidos.
-                        </p>
-                    </div>
-
-                    <div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mb-6">
-                        <p class="text-sm font-bold text-yellow-800 mb-2">💡 ¿Qué puedo hacer?</p>
-                        <ul class="text-xs text-yellow-700 space-y-2">
-                            <li class="flex items-start gap-2">
-                                <span>•</span>
-                                <span>Desactiva un dispositivo antiguo desde otro dispositivo activo</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <span>•</span>
-                                <span>Contacta con soporte para aumentar el límite</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <span>•</span>
-                                <span>Los dispositivos inactivos >30 días se liberan automáticamente</span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div class="bg-blue-50 border-2 border-blue-300 rounded-lg p-4 mb-6">
-                        <p class="text-xs text-blue-800">
-                            <strong>ID de este dispositivo:</strong><br>
-                            <code class="text-xs bg-blue-100 px-2 py-1 rounded mt-1 inline-block">${deviceFingerprint}</code>
-                        </p>
-                    </div>
-
-                    <div class="space-y-3">
-                        <button 
-                            onclick="window.location.href='/activation'"
-                            style="background: var(--color-primary);"
-                            class="w-full hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg transition-all">
-                            🔄 Probar Otra Licencia
-                        </button>
-                        <button 
-                            onclick="document.getElementById('deviceLimitModal').remove()"
-                            class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-lg transition-all">
-                            Cerrar
-                        </button>
-                    </div>
-
-                    <p class="text-xs text-center text-gray-500 mt-4">
-                        ¿Necesitas ayuda? Contacta con soporte
-                    </p>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-
-        async function initializeApp() {
-            document.getElementById('mainContent').innerHTML = `
-                <div id="content-new-dish" class="tab-content">
-                    <div class="bg-white rounded-2xl shadow-sm p-6">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4">📝 Crear Nuevo Plato</h2>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">🥘 Nombre del Plato</label>
-                                <input 
-                                    type="text"
-                                    id="dishName"
-                                    placeholder="Ej: Paella Valenciana"
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                                >
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">🔍 Buscar y Añadir Ingredientes</label>
-                                <input 
-                                    type="text"
-                                    id="ingredientSearch"
-                                    placeholder="Buscar ingrediente..."
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                                    oninput="searchIngredients()"
-                                >
-                                <div id="ingredientResults" class="mt-2 max-h-60 overflow-y-auto"></div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">✅ Ingredientes Seleccionados</label>
-                                <div id="selectedIngredients" class="min-h-20 p-4 border-2 border-dashed border-gray-300 rounded-lg">
-                                    <p class="text-gray-400 text-sm text-center">Busca y añade ingredientes arriba</p>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">📝 Proceso de Elaboración</label>
-                                <textarea 
-                                    id="elaboration"
-                                    rows="4"
-                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-none"
-                                    placeholder="1. Sofreír el ajo y la cebolla...&#10;2. Añadir el arroz...&#10;3. Incorporar el caldo..."
-                                ></textarea>
-                            </div>
-
-                            <div style="background: #FEF3C7; border: 2px solid var(--color-warning);" class="rounded-lg p-4">
-                                <label class="block text-sm font-bold mb-3" style="color: var(--color-warning);">
-                                    ⚡ Trazas (Contaminación Cruzada)
-                                </label>
-                                <p class="text-xs mb-3" style="color: #92400E;">
-                                    Selecciona los alérgenos que PUEDEN estar presentes por elaboración en cocina compartida
-                                </p>
-                                <div class="grid grid-cols-2 gap-2" id="tracesCheckboxes"></div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">👨‍🍳 Chef Responsable</label>
-                                <input 
-                                    type="text"
-                                    id="chef"
-                                    value="Chef Principal"
-                                    class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                                >
-                            </div>
-
-                            <button 
-                                onclick="createDish()"
-                                class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg shadow">
-                                💾 Guardar Plato
-                            </button>
-                        </div>
-
-                        <div id="loading" class="hidden mt-4 flex items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg">
-                            <div class="spinner w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                            <span class="text-blue-700 font-medium text-sm">Guardando...</span>
-                        </div>
-                    </div>
-
-                    <div id="results" class="hidden mt-6 space-y-6">
-                        <div class="bg-white rounded-2xl shadow-sm p-6">
-                            <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 rounded-lg p-4">
-                                <h3 class="text-lg font-bold text-green-800 mb-2">✅ Plato Guardado</h3>
-                                <div id="resultDishName" class="text-2xl font-bold text-gray-800 mb-1"></div>
-                                <div id="resultMeta" class="text-sm text-gray-600"></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded-2xl shadow-sm p-6">
-                            <h4 class="text-lg font-bold text-gray-800 mb-4">⚠️ Alérgenos Detectados</h4>
-                            <div id="resultAllergens"></div>
-                        </div>
-
-                        <div class="bg-white rounded-2xl shadow-sm p-6" id="resultTracesSection" style="display:none;">
-                            <h4 class="text-lg font-bold text-gray-800 mb-4">⚡ Trazas (Puede Contener)</h4>
-                            <div id="resultTraces"></div>
-                        </div>
-
-                        <div class="bg-white rounded-2xl shadow-sm p-6">
-                            <h4 class="text-lg font-bold text-gray-800 mb-4">📄 Generar Documentos</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <button 
-                                    onclick="generateLabelFromResult()"
-                                    class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-all">
-                                    <div class="text-3xl mb-2">🏷️</div>
-                                    <h5 class="font-bold text-gray-800">Etiqueta Multiidioma</h5>
-                                    <p class="text-xs text-gray-500 mt-1">Con alérgenos y trazas</p>
-                                </button>
-                                <button 
-                                    onclick="generateRecipeFromResult()"
-                                    class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-all">
-                                    <div class="text-3xl mb-2">📋</div>
-                                    <h5 class="font-bold text-gray-800">Recetario Oficial</h5>
-                                    <p class="text-xs text-gray-500 mt-1">Control sanitario</p>
-                                </button>
-                            </div>
-                        </div>
-
-                        <button 
-                            onclick="resetForm()"
-                            class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg shadow transition-all">
-                            🔄 Crear Otro Plato
-                        </button>
-                    </div>
-                </div>
-
-                <div id="content-saved-dishes" class="tab-content hidden">
-                    <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-                        <div class="flex gap-4 items-center">
-                            <input 
-                                type="text"
-                                id="dishSearchInput"
-                                placeholder="🔍 Buscar plato guardado..."
-                                class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
-                                oninput="searchDishes()"
-                            >
-                            <button onclick="loadAllDishes()" class="btn-primary text-white px-6 py-3 rounded-lg font-bold">
-                                🔄 Recargar
-                            </button>
-                        </div>
-                    </div>
-
-                    <div id="savedDishesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div class="col-span-full text-center py-12 text-gray-400">
-                            <div class="text-5xl mb-3">📚</div>
-                            <p>Cargando platos guardados...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="content-ingredients" class="tab-content hidden">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="bg-white rounded-2xl shadow-sm p-6">
-                            <h3 class="text-xl font-bold text-gray-800 mb-4">📦 Base de Ingredientes</h3>
-                            <input 
-                                type="text"
-                                id="ingredientFilterInput"
-                                placeholder="🔍 Filtrar ingredientes..."
-                                class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none mb-4"
-                                oninput="filterIngredients()"
-                            >
-                            <div id="ingredientsList" class="space-y-2 max-h-96 overflow-y-auto">
-                                <p class="text-gray-400 text-center py-8">Cargando ingredientes...</p>
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded-2xl shadow-sm p-6">
-                            <h3 class="text-xl font-bold text-gray-800 mb-4">➕ Añadir Ingrediente</h3>
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
-                                    <input type="text" id="newIngName" placeholder="Ej: Tomate" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
-                                    <select id="newIngCategory" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
-                                        <option value="verduras">Verduras</option>
-                                        <option value="carnes">Carnes</option>
-                                        <option value="pescados">Pescados</option>
-                                        <option value="mariscos">Mariscos</option>
-                                        <option value="lacteos">Lácteos</option>
-                                        <option value="cereales">Cereales</option>
-                                        <option value="frutos_secos">Frutos Secos</option>
-                                        <option value="salsas">Salsas</option>
-                                        <option value="condimentos">Condimentos</option>
-                                        <option value="otros">Otros</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Alérgenos (contiene)</label>
-                                    <select id="newIngAllergens" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" size="6">
-                                        ${Object.entries(ALLERGENS).map(([code, data]) => 
-                                            `<option value="${code}">${data.icon} ${data.name}</option>`
-                                        ).join('')}
-                                    </select>
-                                    <p class="text-xs text-gray-500 mt-1">Mantén Ctrl/Cmd para seleccionar varios</p>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Trazas (puede contener)</label>
-                                    <select id="newIngTraces" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" size="6">
-                                        ${Object.entries(ALLERGENS).map(([code, data]) => 
-                                            `<option value="${code}">${data.icon} ${data.name}</option>`
-                                        ).join('')}
-                                    </select>
-                                    <p class="text-xs text-gray-500 mt-1">Para contaminación cruzada</p>
-                                </div>
-                                <button onclick="addNewIngredient()" class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg shadow">
-                                    ➕ Añadir Ingrediente
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            generateTracesCheckboxes();
-            await loadAllIngredients();
-        }
-
-        function generateTracesCheckboxes() {
-            const container = document.getElementById('tracesCheckboxes');
-            if (!container) return;
-            container.innerHTML = Object.entries(ALLERGENS).map(([code, data]) => `
-                <label class="flex items-center gap-2 p-2 hover:bg-yellow-50 rounded cursor-pointer">
-                    <input type="checkbox" name="trace" value="${code}" class="trace-checkbox">
-                    <span class="text-sm">${data.icon} ${data.name}</span>
-                </label>
-            `).join('');
-        }
-
-        function getSelectedTraces() {
-            const checkboxes = document.querySelectorAll('input[name="trace"]:checked');
-            return Array.from(checkboxes).map(cb => cb.value);
-        }
-
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.remove('tab-active'));
-            
-            document.getElementById(`content-${tabName}`).classList.remove('hidden');
-            document.getElementById(`tab-${tabName}`).classList.add('tab-active');
-
-            if (tabName === 'saved-dishes') loadAllDishes();
-            if (tabName === 'ingredients') {
-                loadAllIngredients();
-                filterIngredients();
-            }
-        }
-
-        async function loadAllIngredients() {
-            try {
-                const response = await fetchWithLicense('/api/ingredients');
-                const data = await response.json();
-                
-                if (!data.success && data.requiresActivation) {
-                    window.location.href = '/activation';
-                    return;
-                }
-                
-                allIngredients = data.ingredients || [];
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
-
-        function searchIngredients() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(async () => {
-                const query = document.getElementById('ingredientSearch').value.trim();
-                
-                if (query.length < 2) {
-                    document.getElementById('ingredientResults').innerHTML = '';
-                    return;
-                }
-
-                try {
-                    const response = await fetchWithLicense(`/api/ingredients/search?q=${encodeURIComponent(query)}`);
-                    const data = await response.json();
-                    displayIngredientResults(data.ingredients || [], query);
-                } catch (error) {
-                    console.error('Error:', error);
-                }
-            }, 300);
-        }
-
-        function displayIngredientResults(ingredients, searchQuery) {
-            const container = document.getElementById('ingredientResults');
-            
-            if (ingredients.length === 0) {
-                container.innerHTML = `
-                    <div class="p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                        <p class="text-gray-600 text-sm mb-3 text-center">
-                            No se encontraron ingredientes con "${searchQuery}"
-                        </p>
-                        <p class="text-xs text-gray-500 text-center">
-                            Ve a la pestaña "Ingredientes" para añadirlo a la base de datos
-                        </p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = ingredients.map(ing => `
-                <div onclick="addIngredient(${ing.id}, '${ing.name.replace(/'/g, "\\'")}')" 
-                     class="ingredient-item p-3 border rounded-lg hover:bg-blue-50 cursor-pointer flex justify-between items-center mb-2">
-                    <span class="font-medium">${ing.name}</span>
-                    <span class="text-xs text-gray-500">${ing.category}</span>
-                </div>
-            `).join('');
-        }
-
-        function addIngredient(id, name) {
-            if (selectedIngredients.find(i => i.id === id)) {
-                showToast('⚠️ Ya añadido', 'warning');
-                return;
-            }
-
-            const ingredient = allIngredients.find(i => i.id === id);
-            selectedIngredients.push({ 
-                id, 
-                name, 
-                quantity: '', 
-                allergens: ingredient?.allergens || [],
-                traces: ingredient?.traces || []
-            });
-            
-            document.getElementById('ingredientSearch').value = '';
-            document.getElementById('ingredientResults').innerHTML = '';
-            updateSelectedIngredients();
-        }
-
-        function removeIngredient(id) {
-            selectedIngredients = selectedIngredients.filter(i => i.id !== id);
-            updateSelectedIngredients();
-        }
-
-        function updateSelectedIngredients() {
-            const container = document.getElementById('selectedIngredients');
-            
-            if (selectedIngredients.length === 0) {
-                container.innerHTML = '<p class="text-gray-400 text-sm text-center">Busca y añade ingredientes arriba</p>';
-                return;
-            }
-
-            container.innerHTML = selectedIngredients.map(ing => `
-                <div class="flex items-center justify-between p-2 bg-blue-50 rounded-lg mb-2">
-                    <div class="flex-1">
-                        <span class="font-medium">${ing.name}</span>
-                        ${ing.allergens && ing.allergens.length > 0 ? `
-                            <div class="text-xs text-red-600 mt-1">
-                                ⚠️ ${ing.allergens.map(a => ALLERGENS[a]?.icon || '⚠️').join(' ')}
-                            </div>
-                        ` : ''}
-                        ${ing.traces && ing.traces.length > 0 ? `
-                            <div class="text-xs text-yellow-600 mt-1">
-                                ⚡ Trazas: ${ing.traces.map(a => ALLERGENS[a]?.icon || '⚡').join(' ')}
-                            </div>
-                        ` : ''}
-                    </div>
-                    <button onclick="removeIngredient(${ing.id})" class="text-red-500 hover:text-red-700 font-bold ml-2">✕</button>
-                </div>
-            `).join('');
-        }
-
-        async function createDish() {
-            const name = document.getElementById('dishName').value.trim();
-            const elaboration = document.getElementById('elaboration').value.trim();
-            const chef = document.getElementById('chef').value.trim();
-            const manualTraces = getSelectedTraces();
-
-            if (!name) {
-                showToast('⚠️ Escribe el nombre del plato', 'warning');
-                return;
-            }
-
-            if (selectedIngredients.length === 0) {
-                showToast('⚠️ Añade al menos un ingrediente', 'warning');
-                return;
-            }
-
-            document.getElementById('loading').classList.remove('hidden');
-
-            try {
-                const response = await fetchWithLicense('/api/dishes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name,
-                        description: name,
-                        elaboration,
-                        chef,
-                        ingredients: selectedIngredients,
-                        manualTraces: manualTraces
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    currentDish = data.dish;
-                    displayResults(data.dish);
-                    showToast('✅ Plato guardado correctamente', 'success');
-                } else {
-                    showToast('❌ Error: ' + data.error, 'error');
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                showToast('❌ Error de conexión', 'error');
-            } finally {
-                document.getElementById('loading').classList.add('hidden');
-            }
-        }
-
-        function displayResults(dish) {
-            document.getElementById('resultDishName').textContent = dish.name;
-            document.getElementById('resultMeta').innerHTML = `<strong>Chef:</strong> ${dish.chef} | <strong>ID:</strong> #${dish.id}`;
-            
-            const allergensEl = document.getElementById('resultAllergens');
-            
-            if (!dish.allergens || dish.allergens.length === 0) {
-                allergensEl.innerHTML = `
-                    <div class="bg-green-50 border-2 border-green-400 rounded-lg p-6 text-center">
-                        <div class="text-4xl mb-2">✅</div>
-                        <div class="text-green-800 font-bold text-lg">Sin Alérgenos</div>
-                    </div>
-                `;
-            } else {
-                allergensEl.innerHTML = dish.allergens.map(code => {
-                    const a = ALLERGENS[code];
-                    return a ? `
-                        <div class="allergen-badge">
-                            <span class="text-xl">${a.icon}</span>
-                            <span class="font-bold">${a.name}</span>
-                        </div>
-                    ` : '';
-                }).join('');
-            }
-
-            const tracesSection = document.getElementById('resultTracesSection');
-            const tracesEl = document.getElementById('resultTraces');
-            
-            if (dish.traces && dish.traces.length > 0) {
-                tracesSection.style.display = 'block';
-                tracesEl.innerHTML = dish.traces.map(code => {
-                    const a = ALLERGENS[code];
-                    return a ? `
-                        <div class="trace-badge">
-                            <span class="text-xl">${a.icon}</span>
-                            <span class="font-bold">${a.name}</span>
-                        </div>
-                    ` : '';
-                }).join('');
-            } else {
-                tracesSection.style.display = 'none';
-            }
-            
-            document.getElementById('results').classList.remove('hidden');
-            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function resetForm() {
-            document.getElementById('dishName').value = '';
-            document.getElementById('elaboration').value = '';
-            selectedIngredients = [];
-            updateSelectedIngredients();
-            document.querySelectorAll('input[name="trace"]').forEach(cb => cb.checked = false);
-            document.getElementById('results').classList.add('hidden');
-            currentDish = null;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        async function generateLabelFromResult() {
-            if (!currentDish) return;
-            await generateDocument(currentDish.id, 'label');
-        }
-
-        async function generateRecipeFromResult() {
-            if (!currentDish) return;
-            await generateDocument(currentDish.id, 'recipe');
-        }
-
-        async function generateDocument(dishId, type) {
-            try {
-                const endpoint = type === 'label' ? '/api/generate-label' : '/api/generate-recipe-document';
-                const response = await fetchWithLicense(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ dishId })
-                });
-
-                if (response.ok) {
-                    const html = await response.text();
-                    const newWindow = window.open('', '_blank');
-                    newWindow.document.write(html);
-                    newWindow.document.close();
-                    showToast('✨ Documento generado', 'success');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                showToast('❌ Error generando documento', 'error');
-            }
-        }
-
-        async function loadAllDishes() {
-            try {
-                const response = await fetchWithLicense('/api/dishes');
-                const data = await response.json();
-                displaySavedDishes(data.dishes || []);
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
-
-        async function searchDishes() {
-            const query = document.getElementById('dishSearchInput').value.trim();
-            if (query.length < 2) {
-                loadAllDishes();
-                return;
-            }
-
-            try {
-                const response = await fetchWithLicense(`/api/dishes/search?q=${encodeURIComponent(query)}`);
-                const data = await response.json();
-                displaySavedDishes(data.dishes || []);
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
-
-        function displaySavedDishes(dishes) {
-            const container = document.getElementById('savedDishesList');
-            
-            if (dishes.length === 0) {
-                container.innerHTML = `
-                    <div class="col-span-full text-center py-12 text-gray-400">
-                        <div class="text-5xl mb-3">📚</div>
-                        <p>No hay platos guardados</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = dishes.map(dish => {
-                // NUEVA FUNCIONALIDAD: Pre-visualización de ingredientes
-                const ingredientsList = dish.dish_ingredients && dish.dish_ingredients.length > 0
-                    ? dish.dish_ingredients.map(di => di.ingredient?.name || 'Ingrediente').join(', ')
-                    : 'Sin ingredientes registrados';
-                
-                return `
-                <div class="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all">
-                    <h3 class="font-bold text-lg mb-2">${dish.name}</h3>
-                    <p class="text-sm text-gray-600 mb-2">
-                        <strong>Chef:</strong> ${dish.chef}<br>
-                        <strong>Fecha:</strong> ${new Date(dish.created_at || dish.date).toLocaleDateString('es-ES')}
-                    </p>
-                    
-                    <!-- PRE-VISUALIZACIÓN DE INGREDIENTES -->
-                    <div class="mb-3 p-2 bg-gray-50 rounded-lg">
-                        <p class="text-xs font-semibold text-gray-700 mb-1">📋 Ingredientes:</p>
-                        <p class="text-xs text-gray-600">${ingredientsList}</p>
-                    </div>
-                    
-                    ${dish.allergens && dish.allergens.length > 0 ? `
-                        <div class="mb-2">
-                            <span class="text-xs font-semibold text-red-700">⚠️ ${dish.allergens.length} alérgeno${dish.allergens.length > 1 ? 's' : ''}</span>
-                        </div>
-                    ` : `
-                        <div class="mb-2">
-                            <span class="text-xs font-semibold text-green-700">✅ Sin alérgenos</span>
-                        </div>
-                    `}
-
-                    ${dish.traces && dish.traces.length > 0 ? `
-                        <div class="mb-3">
-                            <span class="text-xs font-semibold text-yellow-700">⚡ ${dish.traces.length} traza${dish.traces.length > 1 ? 's' : ''}</span>
-                        </div>
-                    ` : ''}
-                    
-                    <div class="flex gap-2">
-                        <button onclick="generateDocument(${dish.id}, 'label')" style="background: var(--color-primary);" class="flex-1 hover:opacity-90 text-white text-sm font-bold py-2 px-3 rounded">
-                            🏷️ Etiqueta
-                        </button>
-                        <button onclick="generateDocument(${dish.id}, 'recipe')" style="background: var(--color-secondary);" class="flex-1 hover:opacity-90 text-white text-sm font-bold py-2 px-3 rounded">
-                            📋 Receta
-                        </button>
-                    </div>
-                </div>
-            `}).join('');
-        }
-
-        function filterIngredients() {
-            const query = document.getElementById('ingredientFilterInput').value.toLowerCase();
-            const filtered = allIngredients.filter(ing => 
-                ing.name.toLowerCase().includes(query) || 
-                ing.category.toLowerCase().includes(query)
-            );
-            
-            const container = document.getElementById('ingredientsList');
-            
-            if (filtered.length === 0) {
-                container.innerHTML = '<p class="text-gray-400 text-center py-8">No se encontraron ingredientes</p>';
-                return;
-            }
-
-            const grouped = filtered.reduce((acc, ing) => {
-                if (!acc[ing.category]) acc[ing.category] = [];
-                acc[ing.category].push(ing);
-                return acc;
-            }, {});
-
-            container.innerHTML = Object.entries(grouped).map(([category, ings]) => `
-                <div class="mb-4">
-                    <h4 class="font-bold text-sm text-gray-600 mb-2 uppercase">${category}</h4>
-                    ${ings.map(ing => `
-                        <div class="p-2 border-b hover:bg-gray-50">
-                            <div class="font-medium text-sm">${ing.name}</div>
-                            ${ing.allergens && ing.allergens.length > 0 ? `
-                                <div class="text-xs text-red-600 mt-1">
-                                    ⚠️ ${ing.allergens.map(a => ALLERGENS[a]?.icon || '⚠️').join(' ')}
-                                </div>
-                            ` : ''}
-                            ${ing.traces && ing.traces.length > 0 ? `
-                                <div class="text-xs text-yellow-600 mt-1">
-                                    ⚡ ${ing.traces.map(a => ALLERGENS[a]?.icon || '⚡').join(' ')}
-                                </div>
-                            ` : ''}
-                        </div>
-                    `).join('')}
-                </div>
-            `).join('');
-        }
-
-        async function addNewIngredient() {
-            const name = document.getElementById('newIngName').value.trim();
-            const category = document.getElementById('newIngCategory').value;
-            const allergensSelect = document.getElementById('newIngAllergens');
-            const tracesSelect = document.getElementById('newIngTraces');
-            const allergens = Array.from(allergensSelect.selectedOptions).map(opt => opt.value);
-            const traces = Array.from(tracesSelect.selectedOptions).map(opt => opt.value);
-
-            if (!name) {
-                showToast('⚠️ Escribe el nombre del ingrediente', 'warning');
-                return;
-            }
-
-            try {
-                const response = await fetchWithLicense('/api/ingredients', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name,
-                        category,
-                        allergens,
-                        traces
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showToast('✅ Ingrediente añadido', 'success');
-                    document.getElementById('newIngName').value = '';
-                    allergensSelect.selectedIndex = -1;
-                    tracesSelect.selectedIndex = -1;
-                    await loadAllIngredients();
-                    filterIngredients();
-                } else {
-                    showToast('❌ Error: ' + data.error, 'error');
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                showToast('❌ Error de conexión', 'error');
-            }
-        }
-
-        function showToast(message, type = 'info') {
-            const colors = {
-                success: 'bg-green-500',
-                error: 'bg-red-500',
-                warning: 'bg-yellow-500',
-                info: 'bg-blue-500'
-            };
-
-            const toast = document.createElement('div');
-            toast.className = `fixed top-4 right-4 ${colors[type]} text-white px-5 py-3 rounded-lg shadow-lg z-50 text-sm font-medium animate-slide-up`;
-            toast.textContent = message;
-
-            document.body.appendChild(toast);
-
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
-        }
-    </script>
+
+<!-- Header con nueva paleta -->
+<div class="gradient-header text-white py-6 mb-6 shadow-lg">
+<div class="max-w-7xl mx-auto px-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="text-4xl">🍽️</span>
+<div>
+<h1 class="text-2xl font-bold">Sistema de Gestión de Alérgenos</h1>
+<p class="text-sm opacity-90" id="establishmentName">Cargando...</p>
+</div>
+</div>
+<div id="licenseInfo" class="text-sm bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm">
+<span class="spinner w-4 h-4 border-2 border-white border-t-transparent rounded-full inline-block mr-2"></span>
+Verificando licencia...
+</div>
+</div>
+</div>
+</div>
+
+<!-- Tabs -->
+<div class="max-w-7xl mx-auto px-4 mb-6">
+<div class="bg-white rounded-xl shadow-sm p-2 flex gap-2">
+<button onclick="showTab('new-dish')" id="tab-new-dish" class="tab-active flex-1 py-3 px-4 rounded-lg transition-all">
+➕ Nuevo Plato
+</button>
+<button onclick="showTab('saved-dishes')" id="tab-saved-dishes" class="flex-1 py-3 px-4 rounded-lg transition-all hover:bg-gray-50">
+📚 Platos Guardados
+</button>
+<button onclick="showTab('ingredients')" id="tab-ingredients" class="flex-1 py-3 px-4 rounded-lg transition-all hover:bg-gray-50">
+🥘 Ingredientes
+</button>
+<button onclick="showTab('screens')" id="tab-screens" class="flex-1 py-3 px-4 rounded-lg transition-all hover:bg-gray-50">
+📺 Pantallas
+</button>
+</div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 pb-8" id="mainContent">
+<div class="text-center py-20">
+<div class="spinner w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full inline-block mb-4"></div>
+<p class="text-gray-600">Verificando licencia...</p>
+</div>
+</div>
+
+<script>
+// ========== DEVICE FINGERPRINTING ==========
+function generateDeviceFingerprint() {
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d');
+ctx.textBaseline = 'top';
+ctx.font = '14px Arial';
+ctx.textBaseline = 'alphabetic';
+ctx.fillStyle = '#f60';
+ctx.fillRect(125, 1, 62, 20);
+ctx.fillStyle = '#069';
+ctx.fillText('Buffet Allergen System', 2, 15);
+
+const canvasData = canvas.toDataURL();
+
+const fingerprint = {
+canvas: hashCode(canvasData),
+screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
+timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+language: navigator.language,
+platform: navigator.platform,
+hardwareConcurrency: navigator.hardwareConcurrency || 0,
+deviceMemory: navigator.deviceMemory || 0,
+cookieEnabled: navigator.cookieEnabled,
+doNotTrack: navigator.doNotTrack || 'unknown'
+};
+
+const fingerprintString = JSON.stringify(fingerprint);
+return 'FP-' + hashCode(fingerprintString);
+}
+
+function hashCode(str) {
+let hash = 0;
+for (let i = 0; i < str.length; i++) {
+const char = str.charCodeAt(i);
+hash = ((hash << 5) - hash) + char;
+hash = hash & hash;
+}
+return Math.abs(hash).toString(36).toUpperCase();
+}
+
+let deviceFingerprint = localStorage.getItem('deviceFingerprint');
+if (!deviceFingerprint) {
+deviceFingerprint = generateDeviceFingerprint();
+localStorage.setItem('deviceFingerprint', deviceFingerprint);
+}
+
+// ========== ICONOS OFICIALES DE ALÉRGENOS (Basados en FSA UK) ==========
+const ALLERGENS = {
+'gluten': { name: 'Cereales con Gluten', icon: '🌾', color: '#E31837' },
+'crustaceos': { name: 'Crustáceos', icon: '🦐', color: '#E31837' },
+'huevos': { name: 'Huevos', icon: '🥚', color: '#E31837' },
+'pescado': { name: 'Pescado', icon: '🐟', color: '#E31837' },
+'cacahuetes': { name: 'Cacahuetes', icon: '🥜', color: '#E31837' },
+'soja': { name: 'Soja', icon: '🌱', color: '#E31837' },
+'lacteos': { name: 'Lácteos', icon: '🥛', color: '#E31837' },
+'frutos_secos': { name: 'Frutos Secos', icon: '🌰', color: '#E31837' },
+'apio': { name: 'Apio', icon: '🥬', color: '#E31837' },
+'mostaza': { name: 'Mostaza', icon: '🟡', color: '#E31837' },
+'sesamo': { name: 'Sésamo', icon: '🫘', color: '#E31837' },
+'sulfitos': { name: 'Sulfitos', icon: '🍷', color: '#E31837' },
+'altramuces': { name: 'Altramuces', icon: '🫘', color: '#E31837' },
+'moluscos': { name: 'Moluscos', icon: '🐚', color: '#E31837' }
+};
+
+let licenseKey = localStorage.getItem('licenseKey');
+let establishment = null;
+let selectedIngredients = [];
+let currentDish = null;
+let allIngredients = [];
+let searchTimeout = null;
+
+// ========== INICIALIZACIÓN ==========
+document.addEventListener('DOMContentLoaded', async () => {
+if (!licenseKey) {
+window.location.href = '/activation';
+return;
+}
+
+const valid = await checkLicense();
+if (valid) {
+await initializeApp();
+} else {
+window.location.href = '/activation';
+}
+});
+
+async function checkLicense() {
+try {
+const response = await fetch('/api/license/verify-with-device', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+licenseKey,
+deviceFingerprint
+})
+});
+
+const data = await response.json();
+
+if (data.success) {
+establishment = data.establishment;
+document.getElementById('establishmentName').textContent = establishment.name;
+
+const licenseInfo = document.getElementById('licenseInfo');
+const daysRemaining = establishment.daysRemaining;
+
+if (daysRemaining <= 7) {
+licenseInfo.innerHTML = `⚠️ ${daysRemaining} días | ${establishment.maxDevices} dispositivos`;
+licenseInfo.className = 'text-sm bg-yellow-500 px-4 py-2 rounded-lg font-bold';
+} else {
+licenseInfo.innerHTML = `✅ Activa | ${establishment.maxDevices} dispositivos`;
+licenseInfo.className = 'text-sm bg-green-500 px-4 py-2 rounded-lg';
+}
+
+return true;
+} else {
+if (data.code === 'MAX_DEVICES_REACHED') {
+showDeviceLimitModal(data);
+} else {
+showToast('❌ ' + data.error, 'error');
+}
+localStorage.removeItem('licenseKey');
+return false;
+}
+} catch (error) {
+console.error('Error:', error);
+showToast('❌ Error de conexión', 'error');
+return false;
+}
+}
+
+async function fetchWithLicense(url, options = {}) {
+if (!options.headers) {
+options.headers = {};
+}
+options.headers['X-License-Key'] = licenseKey;
+options.headers['X-Device-Fingerprint'] = deviceFingerprint;
+return fetch(url, options);
+}
+
+function showDeviceLimitModal(data) {
+const modal = document.createElement('div');
+modal.id = 'deviceLimitModal';
+modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+modal.innerHTML = `
+<div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-slide-up">
+<div class="text-center mb-6">
+<div class="text-6xl mb-4">⚠️</div>
+<h2 class="text-2xl font-bold text-gray-800 mb-2">Límite de Dispositivos Alcanzado</h2>
+<p class="text-gray-600 mb-4">
+Esta licencia ya está activa en <strong>${data.activeDevices} de ${data.maxDevices}</strong> dispositivos permitidos.
+</p>
+</div>
+
+<div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mb-6">
+<p class="text-sm font-bold text-yellow-800 mb-2">💡 ¿Qué puedo hacer?</p>
+<ul class="text-xs text-yellow-700 space-y-2">
+<li class="flex items-start gap-2">
+<span>•</span>
+<span>Desactiva un dispositivo antiguo desde otro dispositivo activo</span>
+</li>
+<li class="flex items-start gap-2">
+<span>•</span>
+<span>Contacta con soporte para aumentar el límite</span>
+</li>
+<li class="flex items-start gap-2">
+<span>•</span>
+<span>Los dispositivos inactivos >30 días se liberan automáticamente</span>
+</li>
+</ul>
+</div>
+
+<div class="bg-blue-50 border-2 border-blue-300 rounded-lg p-4 mb-6">
+<p class="text-xs text-blue-800">
+<strong>ID de este dispositivo:</strong><br>
+<code class="text-xs bg-blue-100 px-2 py-1 rounded mt-1 inline-block">${deviceFingerprint}</code>
+</p>
+</div>
+
+<div class="space-y-3">
+<button
+onclick="window.location.href='/activation'"
+style="background: var(--color-primary);"
+class="w-full hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg transition-all">
+🔄 Probar Otra Licencia
+</button>
+<button
+onclick="document.getElementById('deviceLimitModal').remove()"
+class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-lg transition-all">
+Cerrar
+</button>
+</div>
+
+<p class="text-xs text-center text-gray-500 mt-4">
+¿Necesitas ayuda? Contacta con soporte
+</p>
+</div>
+`;
+document.body.appendChild(modal);
+}
+
+async function initializeApp() {
+document.getElementById('mainContent').innerHTML = `
+<div id="content-new-dish" class="tab-content">
+<div class="bg-white rounded-2xl shadow-sm p-6">
+<h2 class="text-xl font-bold text-gray-800 mb-4">📝 Crear Nuevo Plato</h2>
+<div class="space-y-4">
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-2">🥘 Nombre del Plato</label>
+<input
+type="text"
+id="dishName"
+placeholder="Ej: Paella Valenciana"
+class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+>
+</div>
+
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-2">🔍 Buscar y Añadir Ingredientes</label>
+<input
+type="text"
+id="ingredientSearch"
+placeholder="Buscar ingrediente..."
+class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+oninput="searchIngredients()"
+>
+<div id="ingredientResults" class="mt-2 max-h-60 overflow-y-auto"></div>
+</div>
+
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-2">✅ Ingredientes Seleccionados</label>
+<div id="selectedIngredients" class="min-h-20 p-4 border-2 border-dashed border-gray-300 rounded-lg">
+<p class="text-gray-400 text-sm text-center">Busca y añade ingredientes arriba</p>
+</div>
+</div>
+
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-2">📝 Proceso de Elaboración</label>
+<textarea
+id="elaboration"
+rows="4"
+class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-none"
+placeholder="1. Sofreír el ajo y la cebolla...&#10;2. Añadir el arroz...&#10;3. Incorporar el caldo..."
+></textarea>
+</div>
+
+<div style="background: #FEF3C7; border: 2px solid var(--color-warning);" class="rounded-lg p-4">
+<label class="block text-sm font-bold mb-3" style="color: var(--color-warning);">
+⚡ Trazas (Contaminación Cruzada)
+</label>
+<p class="text-xs mb-3" style="color: #92400E;">
+Selecciona los alérgenos que PUEDEN estar presentes por elaboración en cocina compartida
+</p>
+<div class="grid grid-cols-2 gap-2" id="tracesCheckboxes"></div>
+</div>
+
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-2">👨‍🍳 Chef Responsable</label>
+<input
+type="text"
+id="chef"
+value="Chef Principal"
+class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+>
+</div>
+
+<button
+onclick="createDish()"
+class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg shadow">
+💾 Guardar Plato
+</button>
+</div>
+
+<div id="loading" class="hidden mt-4 flex items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg">
+<div class="spinner w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+<span class="text-blue-700 font-medium text-sm">Guardando...</span>
+</div>
+</div>
+
+<div id="results" class="hidden mt-6 space-y-6">
+<div class="bg-white rounded-2xl shadow-sm p-6">
+<div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 rounded-lg p-4">
+<h3 class="text-lg font-bold text-green-800 mb-2">✅ Plato Guardado</h3>
+<div id="resultDishName" class="text-2xl font-bold text-gray-800 mb-1"></div>
+<div id="resultMeta" class="text-sm text-gray-600"></div>
+</div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm p-6">
+<h4 class="text-lg font-bold text-gray-800 mb-4">⚠️ Alérgenos Detectados</h4>
+<div id="resultAllergens"></div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm p-6" id="resultTracesSection" style="display:none;">
+<h4 class="text-lg font-bold text-gray-800 mb-4">⚡ Trazas (Puede Contener)</h4>
+<div id="resultTraces"></div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm p-6">
+<h4 class="text-lg font-bold text-gray-800 mb-4">📄 Generar Documentos</h4>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<button
+onclick="generateLabelFromResult()"
+class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-all">
+<div class="text-3xl mb-2">🏷️</div>
+<h5 class="font-bold text-gray-800">Etiqueta Multiidioma</h5>
+<p class="text-xs text-gray-500 mt-1">Con alérgenos y trazas</p>
+</button>
+<button
+onclick="generateRecipeFromResult()"
+class="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-all">
+<div class="text-3xl mb-2">📋</div>
+<h5 class="font-bold text-gray-800">Recetario Oficial</h5>
+<p class="text-xs text-gray-500 mt-1">Control sanitario</p>
+</button>
+</div>
+</div>
+
+<button
+onclick="resetForm()"
+class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg shadow transition-all">
+🔄 Crear Otro Plato
+</button>
+</div>
+</div>
+
+<div id="content-saved-dishes" class="tab-content hidden">
+<div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
+<div class="flex gap-4 items-center">
+<input
+type="text"
+id="dishSearchInput"
+placeholder="🔍 Buscar plato guardado..."
+class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+oninput="searchDishes()"
+>
+<button onclick="loadAllDishes()" class="btn-primary text-white px-6 py-3 rounded-lg font-bold">
+🔄 Recargar
+</button>
+</div>
+</div>
+
+<div id="savedDishesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+<div class="col-span-full text-center py-12 text-gray-400">
+<div class="text-5xl mb-3">📚</div>
+<p>Cargando platos guardados...</p>
+</div>
+</div>
+</div>
+
+<div id="content-ingredients" class="tab-content hidden">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="bg-white rounded-2xl shadow-sm p-6">
+<h3 class="text-xl font-bold text-gray-800 mb-4">📦 Base de Ingredientes</h3>
+<input
+type="text"
+id="ingredientFilterInput"
+placeholder="🔍 Filtrar ingredientes..."
+class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none mb-4"
+oninput="filterIngredients()"
+>
+<div id="ingredientsList" class="space-y-2 max-h-96 overflow-y-auto">
+<p class="text-gray-400 text-center py-8">Cargando ingredientes...</p>
+</div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm p-6">
+<h3 class="text-xl font-bold text-gray-800 mb-4">➕ Añadir Ingrediente</h3>
+<div class="space-y-4">
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
+<input type="text" id="newIngName" placeholder="Ej: Tomate" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
+</div>
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
+<select id="newIngCategory" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none">
+<option value="verduras">Verduras</option>
+<option value="carnes">Carnes</option>
+<option value="pescados">Pescados</option>
+<option value="mariscos">Mariscos</option>
+<option value="lacteos">Lácteos</option>
+<option value="cereales">Cereales</option>
+<option value="frutos_secos">Frutos Secos</option>
+<option value="salsas">Salsas</option>
+<option value="condimentos">Condimentos</option>
+<option value="otros">Otros</option>
+</select>
+</div>
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-2">Alérgenos (contiene)</label>
+<select id="newIngAllergens" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" size="6">
+${Object.entries(ALLERGENS).map(([code, data]) =>
+`<option value="${code}">${data.icon} ${data.name}</option>`
+).join('')}
+</select>
+<p class="text-xs text-gray-500 mt-1">Mantén Ctrl/Cmd para seleccionar varios</p>
+</div>
+<div>
+<label class="block text-sm font-semibold text-gray-700 mb-2">Trazas (puede contener)</label>
+<select id="newIngTraces" multiple class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none" size="6">
+${Object.entries(ALLERGENS).map(([code, data]) =>
+`<option value="${code}">${data.icon} ${data.name}</option>`
+).join('')}
+</select>
+<p class="text-xs text-gray-500 mt-1">Para contaminación cruzada</p>
+</div>
+<button onclick="addNewIngredient()" class="btn-primary w-full text-white font-bold py-3 px-4 rounded-lg shadow">
+➕ Añadir Ingrediente
+</button>
+</div>
+</div>
+</div>
+</div>
+
+<div id="content-screens" class="tab-content hidden">
+<div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
+<div class="flex gap-4 items-center justify-between flex-wrap">
+<h3 class="text-xl font-bold text-gray-800">📺 Puestos del Buffet</h3>
+<button onclick="refreshAllScreens()" class="btn-primary text-white px-6 py-3 rounded-lg font-bold">
+🔄 Refrescar Todo el Buffet
+</button>
+</div>
+</div>
+<div id="screensList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+<div class="col-span-full text-center py-12 text-gray-400">
+<div class="text-5xl mb-3">📺</div>
+<p>Cargando puestos...</p>
+</div>
+</div>
+</div>
+`;
+
+generateTracesCheckboxes();
+await loadAllIngredients();
+}
+
+function generateTracesCheckboxes() {
+const container = document.getElementById('tracesCheckboxes');
+if (!container) return;
+container.innerHTML = Object.entries(ALLERGENS).map(([code, data]) => `
+<label class="flex items-center gap-2 p-2 hover:bg-yellow-50 rounded cursor-pointer">
+<input type="checkbox" name="trace" value="${code}" class="trace-checkbox">
+<span class="text-sm">${data.icon} ${data.name}</span>
+</label>
+`).join('');
+}
+
+function getSelectedTraces() {
+const checkboxes = document.querySelectorAll('input[name="trace"]:checked');
+return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function showTab(tabName) {
+document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.remove('tab-active'));
+
+document.getElementById(`content-${tabName}`).classList.remove('hidden');
+document.getElementById(`tab-${tabName}`).classList.add('tab-active');
+
+if (tabName === 'saved-dishes') loadAllDishes();
+if (tabName === 'ingredients') {
+loadAllIngredients();
+filterIngredients();
+}
+if (tabName === 'screens') loadScreens();
+}
+
+async function loadAllIngredients() {
+try {
+const response = await fetchWithLicense('/api/ingredients');
+const data = await response.json();
+
+if (!data.success && data.requiresActivation) {
+window.location.href = '/activation';
+return;
+}
+
+allIngredients = data.ingredients || [];
+} catch (error) {
+console.error('Error:', error);
+}
+}
+
+function searchIngredients() {
+clearTimeout(searchTimeout);
+searchTimeout = setTimeout(async () => {
+const query = document.getElementById('ingredientSearch').value.trim();
+
+if (query.length < 2) {
+document.getElementById('ingredientResults').innerHTML = '';
+return;
+}
+
+try {
+const response = await fetchWithLicense(`/api/ingredients/search?q=${encodeURIComponent(query)}`);
+const data = await response.json();
+displayIngredientResults(data.ingredients || [], query);
+} catch (error) {
+console.error('Error:', error);
+}
+}, 300);
+}
+
+function displayIngredientResults(ingredients, searchQuery) {
+const container = document.getElementById('ingredientResults');
+
+if (ingredients.length === 0) {
+container.innerHTML = `
+<div class="p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+<p class="text-gray-600 text-sm mb-3 text-center">
+No se encontraron ingredientes con "${searchQuery}"
+</p>
+<p class="text-xs text-gray-500 text-center">
+Ve a la pestaña "Ingredientes" para añadirlo a la base de datos
+</p>
+</div>
+`;
+return;
+}
+
+container.innerHTML = ingredients.map(ing => `
+<div onclick="addIngredient(${ing.id}, '${ing.name.replace(/'/g, "\\'")}')"
+class="ingredient-item p-3 border rounded-lg hover:bg-blue-50 cursor-pointer flex justify-between items-center mb-2">
+<span class="font-medium">${ing.name}</span>
+<span class="text-xs text-gray-500">${ing.category}</span>
+</div>
+`).join('');
+}
+
+function addIngredient(id, name) {
+if (selectedIngredients.find(i => i.id === id)) {
+showToast('⚠️ Ya añadido', 'warning');
+return;
+}
+
+const ingredient = allIngredients.find(i => i.id === id);
+selectedIngredients.push({
+id,
+name,
+quantity: '',
+allergens: ingredient?.allergens || [],
+traces: ingredient?.traces || []
+});
+
+document.getElementById('ingredientSearch').value = '';
+document.getElementById('ingredientResults').innerHTML = '';
+updateSelectedIngredients();
+}
+
+function removeIngredient(id) {
+selectedIngredients = selectedIngredients.filter(i => i.id !== id);
+updateSelectedIngredients();
+}
+
+function updateSelectedIngredients() {
+const container = document.getElementById('selectedIngredients');
+
+if (selectedIngredients.length === 0) {
+container.innerHTML = '<p class="text-gray-400 text-sm text-center">Busca y añade ingredientes arriba</p>';
+return;
+}
+
+container.innerHTML = selectedIngredients.map(ing => `
+<div class="flex items-center justify-between p-2 bg-blue-50 rounded-lg mb-2">
+<div class="flex-1">
+<span class="font-medium">${ing.name}</span>
+${ing.allergens && ing.allergens.length > 0 ? `
+<div class="text-xs text-red-600 mt-1">
+⚠️ ${ing.allergens.map(a => ALLERGENS[a]?.icon || '⚠️').join(' ')}
+</div>
+` : ''}
+${ing.traces && ing.traces.length > 0 ? `
+<div class="text-xs text-yellow-600 mt-1">
+⚡ Trazas: ${ing.traces.map(a => ALLERGENS[a]?.icon || '⚡').join(' ')}
+</div>
+` : ''}
+</div>
+<button onclick="removeIngredient(${ing.id})" class="text-red-500 hover:text-red-700 font-bold ml-2">✕</button>
+</div>
+`).join('');
+}
+
+async function createDish() {
+const name = document.getElementById('dishName').value.trim();
+const elaboration = document.getElementById('elaboration').value.trim();
+const chef = document.getElementById('chef').value.trim();
+const manualTraces = getSelectedTraces();
+
+if (!name) {
+showToast('⚠️ Escribe el nombre del plato', 'warning');
+return;
+}
+
+if (selectedIngredients.length === 0) {
+showToast('⚠️ Añade al menos un ingrediente', 'warning');
+return;
+}
+
+document.getElementById('loading').classList.remove('hidden');
+
+try {
+const response = await fetchWithLicense('/api/dishes', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+name,
+description: name,
+elaboration,
+chef,
+ingredients: selectedIngredients,
+manualTraces: manualTraces
+})
+});
+
+const data = await response.json();
+
+if (data.success) {
+currentDish = data.dish;
+displayResults(data.dish);
+showToast('✅ Plato guardado correctamente', 'success');
+} else {
+showToast('❌ Error: ' + data.error, 'error');
+}
+
+} catch (error) {
+console.error('Error:', error);
+showToast('❌ Error de conexión', 'error');
+} finally {
+document.getElementById('loading').classList.add('hidden');
+}
+}
+
+function displayResults(dish) {
+document.getElementById('resultDishName').textContent = dish.name;
+document.getElementById('resultMeta').innerHTML = `<strong>Chef:</strong> ${dish.chef} | <strong>ID:</strong> #${dish.id}`;
+
+const allergensEl = document.getElementById('resultAllergens');
+
+if (!dish.allergens || dish.allergens.length === 0) {
+allergensEl.innerHTML = `
+<div class="bg-green-50 border-2 border-green-400 rounded-lg p-6 text-center">
+<div class="text-4xl mb-2">✅</div>
+<div class="text-green-800 font-bold text-lg">Sin Alérgenos</div>
+</div>
+`;
+} else {
+allergensEl.innerHTML = dish.allergens.map(code => {
+const a = ALLERGENS[code];
+return a ? `
+<div class="allergen-badge">
+<span class="text-xl">${a.icon}</span>
+<span class="font-bold">${a.name}</span>
+</div>
+` : '';
+}).join('');
+}
+
+const tracesSection = document.getElementById('resultTracesSection');
+const tracesEl = document.getElementById('resultTraces');
+
+if (dish.traces && dish.traces.length > 0) {
+tracesSection.style.display = 'block';
+tracesEl.innerHTML = dish.traces.map(code => {
+const a = ALLERGENS[code];
+return a ? `
+<div class="trace-badge">
+<span class="text-xl">${a.icon}</span>
+<span class="font-bold">${a.name}</span>
+</div>
+` : '';
+}).join('');
+} else {
+tracesSection.style.display = 'none';
+}
+
+document.getElementById('results').classList.remove('hidden');
+document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetForm() {
+document.getElementById('dishName').value = '';
+document.getElementById('elaboration').value = '';
+selectedIngredients = [];
+updateSelectedIngredients();
+document.querySelectorAll('input[name="trace"]').forEach(cb => cb.checked = false);
+document.getElementById('results').classList.add('hidden');
+currentDish = null;
+window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function generateLabelFromResult() {
+if (!currentDish) return;
+await generateDocument(currentDish.id, 'label');
+}
+
+async function generateRecipeFromResult() {
+if (!currentDish) return;
+await generateDocument(currentDish.id, 'recipe');
+}
+
+async function generateDocument(dishId, type) {
+try {
+const endpoint = type === 'label' ? '/api/generate-label' : '/api/generate-recipe-document';
+const response = await fetchWithLicense(endpoint, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ dishId })
+});
+
+if (response.ok) {
+const html = await response.text();
+const newWindow = window.open('', '_blank');
+newWindow.document.write(html);
+newWindow.document.close();
+showToast('✨ Documento generado', 'success');
+}
+} catch (error) {
+console.error('Error:', error);
+showToast('❌ Error generando documento', 'error');
+}
+}
+
+async function loadAllDishes() {
+try {
+const response = await fetchWithLicense('/api/dishes');
+const data = await response.json();
+displaySavedDishes(data.dishes || []);
+} catch (error) {
+console.error('Error:', error);
+}
+}
+
+async function searchDishes() {
+const query = document.getElementById('dishSearchInput').value.trim();
+if (query.length < 2) {
+loadAllDishes();
+return;
+}
+
+try {
+const response = await fetchWithLicense(`/api/dishes/search?q=${encodeURIComponent(query)}`);
+const data = await response.json();
+displaySavedDishes(data.dishes || []);
+} catch (error) {
+console.error('Error:', error);
+}
+}
+
+function displaySavedDishes(dishes) {
+const container = document.getElementById('savedDishesList');
+
+if (dishes.length === 0) {
+container.innerHTML = `
+<div class="col-span-full text-center py-12 text-gray-400">
+<div class="text-5xl mb-3">📚</div>
+<p>No hay platos guardados</p>
+</div>
+`;
+return;
+}
+
+container.innerHTML = dishes.map(dish => {
+// NUEVA FUNCIONALIDAD: Pre-visualización de ingredientes
+const ingredientsList = dish.dish_ingredients && dish.dish_ingredients.length > 0
+? dish.dish_ingredients.map(di => di.ingredient?.name || 'Ingrediente').join(', ')
+: 'Sin ingredientes registrados';
+
+return `
+<div class="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all">
+<h3 class="font-bold text-lg mb-2">${dish.name}</h3>
+<p class="text-sm text-gray-600 mb-2">
+<strong>Chef:</strong> ${dish.chef}<br>
+<strong>Fecha:</strong> ${new Date(dish.created_at || dish.date).toLocaleDateString('es-ES')}
+</p>
+
+<!-- PRE-VISUALIZACIÓN DE INGREDIENTES -->
+<div class="mb-3 p-2 bg-gray-50 rounded-lg">
+<p class="text-xs font-semibold text-gray-700 mb-1">📋 Ingredientes:</p>
+<p class="text-xs text-gray-600">${ingredientsList}</p>
+</div>
+
+${dish.allergens && dish.allergens.length > 0 ? `
+<div class="mb-2">
+<span class="text-xs font-semibold text-red-700">⚠️ ${dish.allergens.length} alérgeno${dish.allergens.length > 1 ? 's' : ''}</span>
+</div>
+` : `
+<div class="mb-2">
+<span class="text-xs font-semibold text-green-700">✅ Sin alérgenos</span>
+</div>
+`}
+
+${dish.traces && dish.traces.length > 0 ? `
+<div class="mb-3">
+<span class="text-xs font-semibold text-yellow-700">⚡ ${dish.traces.length} traza${dish.traces.length > 1 ? 's' : ''}</span>
+</div>
+` : ''}
+
+<div class="flex gap-2">
+<button onclick="generateDocument(${dish.id}, 'label')" style="background: var(--color-primary);" class="flex-1 hover:opacity-90 text-white text-sm font-bold py-2 px-3 rounded">
+🏷️ Etiqueta
+</button>
+<button onclick="generateDocument(${dish.id}, 'recipe')" style="background: var(--color-secondary);" class="flex-1 hover:opacity-90 text-white text-sm font-bold py-2 px-3 rounded">
+📋 Receta
+</button>
+</div>
+</div>
+`}).join('');
+}
+
+function filterIngredients() {
+const query = document.getElementById('ingredientFilterInput').value.toLowerCase();
+const filtered = allIngredients.filter(ing =>
+ing.name.toLowerCase().includes(query) ||
+ing.category.toLowerCase().includes(query)
+);
+
+const container = document.getElementById('ingredientsList');
+
+if (filtered.length === 0) {
+container.innerHTML = '<p class="text-gray-400 text-center py-8">No se encontraron ingredientes</p>';
+return;
+}
+
+const grouped = filtered.reduce((acc, ing) => {
+if (!acc[ing.category]) acc[ing.category] = [];
+acc[ing.category].push(ing);
+return acc;
+}, {});
+
+container.innerHTML = Object.entries(grouped).map(([category, ings]) => `
+<div class="mb-4">
+<h4 class="font-bold text-sm text-gray-600 mb-2 uppercase">${category}</h4>
+${ings.map(ing => `
+<div class="p-2 border-b hover:bg-gray-50">
+<div class="font-medium text-sm">${ing.name}</div>
+${ing.allergens && ing.allergens.length > 0 ? `
+<div class="text-xs text-red-600 mt-1">
+⚠️ ${ing.allergens.map(a => ALLERGENS[a]?.icon || '⚠️').join(' ')}
+</div>
+` : ''}
+${ing.traces && ing.traces.length > 0 ? `
+<div class="text-xs text-yellow-600 mt-1">
+⚡ ${ing.traces.map(a => ALLERGENS[a]?.icon || '⚡').join(' ')}
+</div>
+` : ''}
+</div>
+`).join('')}
+</div>
+`).join('');
+}
+
+async function addNewIngredient() {
+const name = document.getElementById('newIngName').value.trim();
+const category = document.getElementById('newIngCategory').value;
+const allergensSelect = document.getElementById('newIngAllergens');
+const tracesSelect = document.getElementById('newIngTraces');
+const allergens = Array.from(allergensSelect.selectedOptions).map(opt => opt.value);
+const traces = Array.from(tracesSelect.selectedOptions).map(opt => opt.value);
+
+if (!name) {
+showToast('⚠️ Escribe el nombre del ingrediente', 'warning');
+return;
+}
+
+try {
+const response = await fetchWithLicense('/api/ingredients', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+name,
+category,
+allergens,
+traces
+})
+});
+
+const data = await response.json();
+
+if (data.success) {
+showToast('✅ Ingrediente añadido', 'success');
+document.getElementById('newIngName').value = '';
+allergensSelect.selectedIndex = -1;
+tracesSelect.selectedIndex = -1;
+await loadAllIngredients();
+filterIngredients();
+} else {
+showToast('❌ Error: ' + data.error, 'error');
+}
+
+} catch (error) {
+console.error('Error:', error);
+showToast('❌ Error de conexión', 'error');
+}
+}
+
+// ========== PANTALLAS SERTAG ==========
+
+async function loadScreens() {
+try {
+const [screensRes, dishesRes] = await Promise.all([
+fetchWithLicense('/api/screens'),
+fetchWithLicense('/api/dishes')
+]);
+const screensData = await screensRes.json();
+const dishesData = await dishesRes.json();
+displayScreens(screensData.screens || [], dishesData.dishes || []);
+} catch (error) {
+console.error('Error:', error);
+showToast('❌ Error cargando pantallas', 'error');
+}
+}
+
+function displayScreens(screens, dishes) {
+const container = document.getElementById('screensList');
+
+if (screens.length === 0) {
+container.innerHTML = `
+<div class="col-span-full text-center py-12 text-gray-400">
+<div class="text-5xl mb-3">📺</div>
+<p>No hay pantallas registradas todavía</p>
+<p class="text-xs mt-2">Añádelas desde Supabase (tabla esl_screens)</p>
+</div>
+`;
+return;
+}
+
+container.innerHTML = screens.map(screen => `
+<div class="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all border-2 border-gray-100">
+<h3 class="font-bold text-lg mb-1">Puesto ${screen.slot_number}</h3>
+<p class="text-xs text-gray-400 mb-3">${screen.mac}</p>
+
+<div class="mb-3">
+${screen.dish
+? `<div class="p-2 bg-blue-50 rounded-lg text-sm font-semibold text-blue-800">🍽️ ${screen.dish.name}</div>`
+: `<div class="p-2 bg-gray-50 rounded-lg text-sm text-gray-400">Sin asignar</div>`
+}
+</div>
+
+<select id="select-${screen.mac}" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg mb-2 text-sm">
+<option value="">-- Seleccionar plato --</option>
+${dishes.map(d => `<option value="${d.id}" ${screen.current_dish_id === d.id ? 'selected' : ''}>${d.name}</option>`).join('')}
+</select>
+
+<button onclick="assignScreen('${screen.mac}')" class="btn-primary w-full text-white text-sm font-bold py-2 px-3 rounded-lg">
+✅ Asignar y Enviar
+</button>
+</div>
+`).join('');
+}
+
+async function assignScreen(mac) {
+const select = document.getElementById(`select-${mac}`);
+const dishId = select.value;
+
+if (!dishId) {
+showToast('⚠️ Selecciona un plato', 'warning');
+return;
+}
+
+showToast('📡 Enviando a la pantalla...', 'info');
+
+try {
+const response = await fetchWithLicense(`/api/screens/${mac}/assign`, {
+method: 'PUT',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ dishId: parseInt(dishId) })
+});
+
+const data = await response.json();
+
+if (data.success) {
+showToast('✅ Pantalla actualizada', 'success');
+loadScreens();
+} else {
+showToast('❌ Error: ' + data.error, 'error');
+}
+} catch (error) {
+console.error('Error:', error);
+showToast('❌ Error de conexión', 'error');
+}
+}
+
+async function refreshAllScreens() {
+showToast('📡 Refrescando todas las pantallas...', 'info');
+try {
+const response = await fetchWithLicense('/api/screens/refresh-all', { method: 'POST' });
+const data = await response.json();
+if (data.success) {
+showToast(`✅ ${data.results.length} pantallas actualizadas`, 'success');
+} else {
+showToast('❌ Error: ' + data.error, 'error');
+}
+} catch (error) {
+console.error('Error:', error);
+showToast('❌ Error de conexión', 'error');
+}
+}
+
+function showToast(message, type = 'info') {
+const colors = {
+success: 'bg-green-500',
+error: 'bg-red-500',
+warning: 'bg-yellow-500',
+info: 'bg-blue-500'
+};
+
+const toast = document.createElement('div');
+toast.className = `fixed top-4 right-4 ${colors[type]} text-white px-5 py-3 rounded-lg shadow-lg z-50 text-sm font-medium animate-slide-up`;
+toast.textContent = message;
+
+document.body.appendChild(toast);
+
+setTimeout(() => {
+toast.remove();
+}, 3000);
+}
+</script>
 
 </body>
 </html>
