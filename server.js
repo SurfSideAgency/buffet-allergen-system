@@ -618,7 +618,7 @@ async function getTraces(ingredients) {
 
 function generateScreenImage(dish, allergens) {
     const canvas = createCanvas(400, 300);
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
 
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, 400, 300);
@@ -658,7 +658,7 @@ function generateScreenImage(dish, allergens) {
         ctx.fillText('Trazas: ' + dish.traces.map(t => ALLERGENS[t]?.name || t).join(', '), 16, y);
     }
 
-    return canvas.toBuffer('image/jpeg', 0.92);
+    return canvas.toBuffer('image/png');
 }
 
 function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
@@ -1238,7 +1238,7 @@ app.get('/api/screens/:mac/preview', checkLicenseWithDevice, async (req, res) =>
             .rpc('get_dish_allergens', { dish_id_param: req.query.dishId });
 
         const imageBuffer = generateScreenImage(dish, allergens || []);
-        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Content-Type', 'image/png');
         res.send(imageBuffer);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
