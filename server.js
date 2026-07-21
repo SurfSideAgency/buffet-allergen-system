@@ -1265,6 +1265,44 @@ app.get('/api/screens', checkLicenseWithDevice, async (req, res) => {
     }
 });
 
+app.post('/api/screens', checkLicenseWithDevice, async (req, res) => {
+    try {
+        const { mac, slotNumber } = req.body;
+
+        if (!mac) {
+            return res.status(400).json({ success: false, error: 'Falta la dirección MAC' });
+        }
+
+        const normalizedMac = mac.trim().toUpperCase();
+
+        let slot = slotNumber;
+        if (!slot) {
+            const { count } = await supabase
+                .from('esl_screens')
+                .select('*', { count: 'exact', head: true })
+                .eq('establishment_id', req.establishment.id);
+            slot = (count || 0) + 1;
+        }
+
+        const { data, error } = await supabase
+            .from('esl_screens')
+            .insert([{
+                mac: normalizedMac,
+                establishment_id: req.establishment.id,
+                slot_number: slot
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.json({ success: true, screen: data });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // DEBUG: Consultar estado real del dispositivo en Sertag
 app.get('/api/screens/:mac/status', checkLicenseWithDevice, async (req, res) => {
     try {
