@@ -920,6 +920,107 @@ app.post('/api/ingredients', checkLicenseWithDevice, async (req, res) => {
     }
 });
 
+const SPANISH_STOPWORDS = new Set([
+    'de', 'del', 'la', 'el', 'los', 'las', 'con', 'y', 'en', 'un', 'una',
+    'unos', 'unas', 'al', 'a', 'para', 'por', 'sin', 'su', 'sus', 'plato'
+]);
+
+function tokenizeDishDescription(text) {
+    return [...new Set(
+        text
+            .toLowerCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g, '') // quita acentos
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter(word => word.length >= 3 && !SPANISH_STOPWORDS.has(word))
+    )];
+}
+
+async function extractIngredientTermsWithAI(text) {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{
+                role: 'user',
+                content: `Extrae los ingredientes de cocina mencionados en esta descripción de un plato, en español, sin cantidades ni artículos. Devuelve SOLO un array JSON de strings, nada más.\n\nDescripción: "${text}"`
+            }],
+            temperature: 0
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`OpenAI respondió ${response.status}`);
+    }
+
+    const json = await response.json();
+    const raw = json.choices?.[0]?.message?.content || '[]';
+    const cleaned = raw.replace(/```json\s*|```\s*/g, '').trim();
+    const terms = JSON.parse(cleaned);
+
+    if (!Array.isArray(terms)) throw new Error('Respuesta de IA no es un array');
+    return terms.map(t => String(t).toLowerCase().trim()).filter(Boolean);
+}
+
+app.post('/api/suggest-ingredients', checkLicenseWithDevice, async (req, res) => {
+    try {
+        const { text } = req.body;
+
+        if (!text || !text.trim()) {
+            return res.status(400).json({ success: false, error: 'Falta la descripción del plato' });
+        }
+
+        let terms;
+        let source;
+
+        if (process.env.OPENAI_API_KEY) {
+            try {
+                terms = await extractIngredientTermsWithAI(text);
+                source = 'ia';
+            } catch (aiError) {
+                console.error('IA no disponible, usando fallback por palabras clave:', aiError.message);
+                terms = tokenizeDishDescription(text);
+                source = 'keywords';
+            }
+        } else {
+            terms = tokenizeDishDescription(text);
+            source = 'keywords';
+        }
+
+        if (terms.length === 0) {
+            return res.json({ success: true, source, suggestions: [] });
+        }
+
+        const orFilter = terms.map(term => `name.ilike.%${term}%`).join(',');
+
+        const { data, error } = await supabase
+            .from('ingredients')
+            .select('*')
+            .or(orFilter)
+            .limit(50);
+
+        if (error) throw error;
+
+        const uniqueById = Object.values(
+            (data || [])
+                .filter(ing => ing.establishment_id === null || ing.establishment_id === req.establishment.id)
+                .reduce((acc, ing) => {
+                    acc[ing.id] = ing;
+                    return acc;
+                }, {})
+        ).slice(0, 20);
+
+        res.json({ success: true, source, suggestions: uniqueById });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.post('/api/dishes', checkLicenseWithDevice, async (req, res) => {
     try {
         const { name, description, elaboration, chef, ingredients, manualTraces } = req.body;
