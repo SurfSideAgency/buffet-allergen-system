@@ -1297,6 +1297,28 @@ app.post('/api/generate-label', checkLicenseWithDevice, async (req, res) => {
 </body>
 </html>`;
 
+        // Snapshot para trazabilidad: no debe romper la generación de la
+        // etiqueta si la tabla aún no existe o falla el insert.
+        try {
+            const { error: snapshotError } = await supabase.from('etiquetas_impresas').insert([{
+                dish_id: dish.id,
+                establishment_id: req.establishment.id,
+                datos_etiqueta: {
+                    dishName: dish.name,
+                    translations,
+                    allergens: allergens || [],
+                    traces: dish.traces || [],
+                    establishmentName: req.establishment.name,
+                    generatedAt: new Date().toISOString()
+                }
+            }]);
+            if (snapshotError) {
+                console.error('No se pudo guardar snapshot de etiqueta:', snapshotError.message);
+            }
+        } catch (snapshotError) {
+            console.error('No se pudo guardar snapshot de etiqueta:', snapshotError.message);
+        }
+
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.send(html);
 
