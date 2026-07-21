@@ -1021,6 +1021,82 @@ app.post('/api/suggest-ingredients', checkLicenseWithDevice, async (req, res) =>
     }
 });
 
+const VALID_ALLERGEN_CODES = Object.keys(ALLERGENS);
+
+async function extractIngredientFromLabelImage(imageDataUrl) {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{
+                role: 'user',
+                content: [
+                    {
+                        type: 'text',
+                        text: `Esta es una foto de la etiqueta de un producto alimentario. Extrae:
+- "name": el nombre del producto (string)
+- "allergens": alérgenos que CONTIENE (normalmente resaltados en negrita en la lista de ingredientes), usando SOLO estos códigos: ${VALID_ALLERGEN_CODES.join(', ')}
+- "traces": alérgenos de la frase "puede contener trazas de..." si aparece, con los mismos códigos
+
+Devuelve SOLO un objeto JSON con esas tres claves, nada más. Si no puedes leer la etiqueta con confianza, devuelve "name": "" y arrays vacíos.`
+                    },
+                    {
+                        type: 'image_url',
+                        image_url: { url: imageDataUrl }
+                    }
+                ]
+            }],
+            temperature: 0
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`OpenAI respondió ${response.status}`);
+    }
+
+    const json = await response.json();
+    const raw = json.choices?.[0]?.message?.content || '{}';
+    const cleaned = raw.replace(/```json\s*|```\s*/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+
+    return {
+        name: typeof parsed.name === 'string' ? parsed.name.trim() : '',
+        allergens: Array.isArray(parsed.allergens)
+            ? parsed.allergens.filter(code => VALID_ALLERGEN_CODES.includes(code))
+            : [],
+        traces: Array.isArray(parsed.traces)
+            ? parsed.traces.filter(code => VALID_ALLERGEN_CODES.includes(code))
+            : []
+    };
+}
+
+app.post('/api/scan-ingredient-label', checkLicenseWithDevice, async (req, res) => {
+    try {
+        if (!process.env.OPENAI_API_KEY) {
+            return res.status(400).json({
+                success: false,
+                error: 'El escaneo de etiquetas requiere IA activada (falta configurar OPENAI_API_KEY)'
+            });
+        }
+
+        const { image } = req.body;
+
+        if (!image || !image.startsWith('data:image/')) {
+            return res.status(400).json({ success: false, error: 'Falta la imagen de la etiqueta' });
+        }
+
+        const suggestion = await extractIngredientFromLabelImage(image);
+        res.json({ success: true, suggestion });
+    } catch (error) {
+        console.error('Error escaneando etiqueta:', error);
+        res.status(500).json({ success: false, error: 'No se pudo leer la etiqueta, inténtalo de nuevo o rellena a mano' });
+    }
+});
+
 app.post('/api/dishes', checkLicenseWithDevice, async (req, res) => {
     try {
         const { name, description, elaboration, chef, ingredients, manualTraces } = req.body;

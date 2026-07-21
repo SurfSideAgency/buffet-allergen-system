@@ -551,6 +551,17 @@ oninput="filterIngredients()"
 
 <div class="bg-white rounded-2xl shadow-sm p-6">
 <h3 class="text-xl font-bold text-gray-800 mb-4">➕ Añadir Ingrediente</h3>
+
+<div style="background: #EFF6FF; border: 2px solid var(--color-secondary);" class="rounded-lg p-4 mb-4">
+<label class="block text-sm font-bold mb-2" style="color: var(--color-primary);">📷 Escanear Etiqueta de Producto</label>
+<p class="text-xs mb-3 text-gray-600">Haz una foto a la etiqueta y la IA rellena el formulario de abajo (revísalo antes de guardar)</p>
+<input type="file" id="labelPhotoInput" accept="image/*" capture="environment" class="hidden" onchange="scanIngredientLabel(this.files[0])">
+<button type="button" onclick="document.getElementById('labelPhotoInput').click()" class="w-full py-2 px-4 rounded-lg font-semibold text-white" style="background: var(--color-secondary);">
+📷 Hacer Foto a la Etiqueta
+</button>
+<div id="labelScanStatus" class="mt-2 text-sm"></div>
+</div>
+
 <div class="space-y-4">
 <div>
 <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
@@ -1139,6 +1150,85 @@ ${ing.traces && ing.traces.length > 0 ? `
 `).join('')}
 </div>
 `).join('');
+}
+
+function resizeImageToDataUrl(file, maxDimension = 1280, quality = 0.8) {
+return new Promise((resolve, reject) => {
+const img = new Image();
+const reader = new FileReader();
+
+reader.onload = () => { img.src = reader.result; };
+reader.onerror = reject;
+
+img.onload = () => {
+let { width, height } = img;
+if (width > height && width > maxDimension) {
+height = Math.round(height * (maxDimension / width));
+width = maxDimension;
+} else if (height > maxDimension) {
+width = Math.round(width * (maxDimension / height));
+height = maxDimension;
+}
+
+const canvas = document.createElement('canvas');
+canvas.width = width;
+canvas.height = height;
+canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+resolve(canvas.toDataURL('image/jpeg', quality));
+};
+img.onerror = reject;
+
+reader.readAsDataURL(file);
+});
+}
+
+async function scanIngredientLabel(file) {
+if (!file) return;
+
+const status = document.getElementById('labelScanStatus');
+status.innerHTML = '<span class="text-blue-600">📷 Leyendo etiqueta...</span>';
+
+try {
+const imageDataUrl = await resizeImageToDataUrl(file);
+
+const response = await fetchWithLicense('/api/scan-ingredient-label', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ image: imageDataUrl })
+});
+const data = await response.json();
+
+if (!data.success) {
+status.innerHTML = `<span class="text-red-600">⚠️ ${data.error}</span>`;
+return;
+}
+
+const { name, allergens, traces } = data.suggestion;
+
+if (!name && allergens.length === 0 && traces.length === 0) {
+status.innerHTML = '<span class="text-yellow-600">⚠️ No se pudo leer la etiqueta con confianza. Rellena a mano.</span>';
+return;
+}
+
+document.getElementById('newIngName').value = name || '';
+
+const allergensSelect = document.getElementById('newIngAllergens');
+Array.from(allergensSelect.options).forEach(opt => {
+opt.selected = allergens.includes(opt.value);
+});
+
+const tracesSelect = document.getElementById('newIngTraces');
+Array.from(tracesSelect.options).forEach(opt => {
+opt.selected = traces.includes(opt.value);
+});
+
+status.innerHTML = '<span class="text-green-600">✅ Formulario rellenado. Revisa los datos antes de guardar.</span>';
+} catch (error) {
+console.error('Error:', error);
+status.innerHTML = '<span class="text-red-600">⚠️ Error al escanear la etiqueta, inténtalo de nuevo</span>';
+} finally {
+document.getElementById('labelPhotoInput').value = '';
+}
 }
 
 async function addNewIngredient() {
