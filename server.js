@@ -616,66 +616,121 @@ async function getTraces(ingredients) {
 
 // ============= FUNCIONES PANTALLAS SERTAG =============
 
+const SCREEN_WIDTH = 400;
+const SCREEN_HEIGHT = 300;
+const SCREEN_MARGIN = 16;
+const SCREEN_BOTTOM_LIMIT = SCREEN_HEIGHT - 12;
+
 function generateScreenImage(dish, allergens) {
-    const canvas = createCanvas(400, 300);
+    const canvas = createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT);
     const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.textAlign = 'left';
+    ctx.textRendering = 'optimizeLegibility';
+    ctx.fontKerning = 'normal';
 
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, 400, 300);
+    ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     ctx.fillStyle = '#000000';
-    ctx.font = 'bold 28px Roboto';
-    ctx.textAlign = 'left';
-    wrapText(ctx, dish.name, 16, 40, 368, 32);
+    const titleEndY = wrapText(ctx, dish.name, SCREEN_MARGIN, 38, SCREEN_WIDTH - SCREEN_MARGIN * 2, 32, {
+        font: 'bold 26px Roboto',
+        maxLines: 2
+    });
 
-    let y = 110;
+    let y = Math.max(110, titleEndY + 24);
+
     if (allergens && allergens.length > 0) {
         ctx.fillStyle = '#FF0000';
-        ctx.font = 'bold 16px Roboto';
-        ctx.fillText('Contiene:', 16, y);
+        ctx.font = 'bold 17px Roboto';
+        ctx.fillText('Contiene:', SCREEN_MARGIN, y);
         y += 28;
 
-        ctx.font = '15px Roboto';
-        allergens.forEach(code => {
-            const a = ALLERGENS[code];
-            if (!a) return;
+        ctx.font = 'bold 16px Roboto';
+        for (let i = 0; i < allergens.length; i++) {
+            const a = ALLERGENS[allergens[i]];
+            if (!a) continue;
+
+            if (y > SCREEN_BOTTOM_LIMIT - 18) {
+                ctx.fillStyle = '#000000';
+                ctx.font = '13px Roboto';
+                ctx.fillText(`+ ${allergens.length - i} más`, SCREEN_MARGIN, y);
+                y += 18;
+                allergens = allergens.slice(0, i);
+                break;
+            }
+
             ctx.fillStyle = '#FF0000';
-            ctx.fillRect(16, y - 14, 8, 8);
+            ctx.fillRect(SCREEN_MARGIN, y - 13, 13, 13);
             ctx.fillStyle = '#000000';
-            ctx.fillText(a.name, 32, y);
+            ctx.fillText(a.name, SCREEN_MARGIN + 20, y);
             y += 24;
-        });
+        }
     } else {
         ctx.fillStyle = '#000000';
         ctx.font = 'bold 18px Roboto';
-        ctx.fillText('Sin alergenos', 16, y);
+        ctx.fillText('Sin alergenos', SCREEN_MARGIN, y);
+        y += 24;
     }
 
-    if (dish.traces && dish.traces.length > 0) {
-        y += 10;
+    if (dish.traces && dish.traces.length > 0 && y <= SCREEN_BOTTOM_LIMIT - 14) {
+        y += 8;
         ctx.fillStyle = '#000000';
-        ctx.font = 'bold 13px Roboto';
-        ctx.fillText('Trazas: ' + dish.traces.map(t => ALLERGENS[t]?.name || t).join(', '), 16, y);
+        wrapText(
+            ctx,
+            'Trazas: ' + dish.traces.map(t => ALLERGENS[t]?.name || t).join(', '),
+            SCREEN_MARGIN,
+            y,
+            SCREEN_WIDTH - SCREEN_MARGIN * 2,
+            16,
+            { font: 'bold 13px Roboto', maxLines: 2, maxY: SCREEN_BOTTOM_LIMIT }
+        );
     }
 
     return canvas.toBuffer('image/png');
 }
 
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+// Envuelve texto respetando maxLines/maxY; trunca con "…" si no cabe.
+// Devuelve la coordenada Y de la última línea dibujada.
+function wrapText(ctx, text, x, y, maxWidth, lineHeight, options = {}) {
+    if (options.font) ctx.font = options.font;
+    const maxLines = options.maxLines || Infinity;
+    const maxY = options.maxY || Infinity;
+
     const words = text.split(' ');
+    const lines = [];
     let line = '';
-    let curY = y;
-    for (let n = 0; n < words.length; n++) {
-        const testLine = line + words[n] + ' ';
-        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
-            ctx.fillText(line, x, curY);
-            line = words[n] + ' ';
-            curY += lineHeight;
+    for (const word of words) {
+        const testLine = line ? `${line} ${word}` : word;
+        if (line && ctx.measureText(testLine).width > maxWidth) {
+            lines.push(line);
+            line = word;
         } else {
             line = testLine;
         }
     }
-    ctx.fillText(line, x, curY);
+    if (line) lines.push(line);
+
+    let curY = y;
+    for (let i = 0; i < lines.length; i++) {
+        const isLastAllowedLine = i === maxLines - 1 && lines.length > maxLines;
+        const wouldExceedHeight = i < lines.length - 1 && curY + lineHeight > maxY;
+
+        if (isLastAllowedLine || wouldExceedHeight) {
+            let truncated = lines[i];
+            while (truncated.length > 0 && ctx.measureText(truncated + '…').width > maxWidth) {
+                truncated = truncated.slice(0, -1).trimEnd();
+            }
+            ctx.fillText(truncated + '…', x, curY);
+            return curY;
+        }
+
+        if (i >= maxLines) break;
+
+        ctx.fillText(lines[i], x, curY);
+        if (i < lines.length - 1) curY += lineHeight;
+    }
+
+    return curY;
 }
 
 async function sertagLogin() {
@@ -706,7 +761,7 @@ async function pushToScreen(mac, imageBuffer) {
                 Authorization: `Bearer ${token}`
             },
             body: JSON.stringify({
-                algorithm: 'floyd-steinberg',
+                algorithm: process.env.SERTAG_DITHER_ALGORITHM || 'floyd-steinberg',
                 imgsrc: base64Image
             })
         }
