@@ -838,7 +838,7 @@ async function pushToScreen(mac, imageBuffer) {
                 Authorization: `Bearer ${token}`
             },
             body: JSON.stringify({
-                algorithm: process.env.SERTAG_DITHER_ALGORITHM || 'floyd-steinberg',
+                algorithm: process.env.SERTAG_DITHER_ALGORITHM || '624d12ea5b7d2668a48d5536',
                 imgsrc: base64Image
             })
         }
