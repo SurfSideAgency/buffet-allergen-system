@@ -1,175 +1,108 @@
-# 🍽️ Sistema de Detección de Alérgenos
+# Sistema de Gestión de Alérgenos para Buffet
 
-Sistema simplificado para detectar alérgenos automáticamente en platos mediante IA.
+Sistema para gestión de alérgenos en buffets de hoteles/restaurantes, con
+modelo de licencias por establecimiento. Conforme al Reglamento (UE)
+1169/2011 y al RD 126/2015.
 
-## 📁 Estructura del Proyecto
+## Estructura del proyecto
 
 ```
-allergen-system/
-├── data/
-│   ├── allergens.json      # Base de datos de alérgenos (14 oficiales UE)
-│   └── ingredients.json    # Base de datos de ingredientes
-├── public/
-│   └── index.html          # Interfaz web simplificada
-├── server.js               # Servidor Express
-├── package.json            # Dependencias
-└── README.md              # Este archivo
+server.js            Backend Express (todas las rutas y lógica)
+public/
+  index.html          App del chef (crear platos, ingredientes, etiquetas, pantallas Sertag)
+  admin.html           Panel de administración (licencias, establecimientos, dispositivos)
+  activation.html       Pantalla de activación de licencia
+fontData.js           Fuente Roboto embebida en base64 (usada por @napi-rs/canvas)
+fonts/Roboto-Regular.ttf
 ```
 
-## 🚀 Instalación
+El JS del frontend va inline en los `.html` (los ficheros JS externos han
+dado problemas de carga en el deploy de Vercel).
 
-1. **Clonar o descargar el proyecto**
+## Base de datos
 
-2. **Instalar dependencias**
+Supabase (Postgres). Tablas principales: `establishments`, `ingredients`,
+`dishes`, `dish_ingredients`, `esl_screens`. Los alérgenos de un plato se
+calculan automáticamente como la unión de los alérgenos de sus ingredientes,
+vía el RPC `get_dish_allergens`.
+
+No hay datos de alérgenos/ingredientes en ficheros locales: todo vive en
+Supabase.
+
+## Variables de entorno
+
+| Variable | Uso |
+|---|---|
+| `SUPABASE_URL`, `SUPABASE_KEY` | Conexión a la base de datos |
+| `JWT_SECRET` | Firma de tokens del panel admin |
+| `SERTAG_API_BASE`, `SERTAG_USER`, `SERTAG_PASS` | Integración con pantallas e-ink Sertag |
+| `SERTAG_DITHER_ALGORITHM` | Algoritmo de dithering enviado a Sertag (por defecto `floyd-steinberg`) |
+| `OPENAI_API_KEY` | Opcional. Sugerencia de alérgenos por IA; sin ella, fallback por palabras clave |
+
+## Instalación local
+
 ```bash
 npm install
-```
-
-3. **Crear las carpetas necesarias**
-```bash
-mkdir data
-```
-
-4. **Crear los archivos JSON** en la carpeta `data/`:
-   - `allergens.json` (base de alérgenos)
-   - `ingredients.json` (base de ingredientes)
-
-5. **Iniciar el servidor**
-```bash
 npm start
+# http://localhost:3000
 ```
 
-6. **Abrir en navegador**
+## Funcionalidad
+
+- **Licencias por establecimiento**: códigos `BUFF-XXXX-XXXX-XXXX` /
+  `LIC-XXXX-XXXX-XXXX`, con fingerprinting de dispositivo y límite de
+  dispositivos configurable por establecimiento.
+- **Platos e ingredientes**: el chef selecciona ingredientes de una base de
+  datos compartida; los alérgenos y trazas se calculan automáticamente.
+- **Etiquetas imprimibles**: HTML con distinción visual clara de alérgenos
+  (paleta: azul `#2563EB`, rojo `#DC2626` alérgenos, ámbar `#F59E0B` trazas,
+  verde `#10B981` sin alérgenos), con traducción EN/FR del nombre del plato.
+- **Pantallas Sertag (e-ink 4.2", 400×300, blanco/negro/rojo)**: al asignar
+  un plato a una pantalla, se genera una imagen PNG indexada a 3 colores y se
+  envía por MQTT vía la API de Sertag.
+- **Panel de administración**: gestión de establecimientos, licencias,
+  extensión de vigencia, dispositivos activos.
+
+## Endpoints principales
+
 ```
-http://localhost:3000
-```
+GET  /api/system-status
+POST /api/license/verify-with-device
+POST /api/admin/login                                    (JWT)
+GET  /api/admin/establishments                            (admin)
+POST /api/admin/establishments                             (admin)
+PUT  /api/admin/establishments/:id                          (admin)
+POST /api/admin/establishments/:id/extend                    (admin)
+GET  /api/admin/establishments/:id/devices                    (admin)
+POST /api/admin/establishments/:id/devices/:fingerprint/deactivate (admin)
+PUT  /api/admin/establishments/:id/max-devices                 (admin)
 
-## 📝 Cómo Funciona
+GET  /api/ingredients                                     (licencia)
+GET  /api/ingredients/search?q=
+POST /api/ingredients
+POST /api/dishes
+GET  /api/dishes
+GET  /api/dishes/search?q=
+GET  /api/dishes/today
+POST /api/generate-label            { dishId }
+POST /api/generate-recipe-document   { dishId }
 
-### Flujo Simple:
-
-1. **Entrada**: El chef describe el plato e ingredientes
-2. **Detección**: La IA analiza y detecta alérgenos automáticamente
-3. **Resultado**: Se muestra la lista de alérgenos detectados
-4. **Etiqueta**: Se puede generar e imprimir la etiqueta oficial
-
-### Ejemplo:
-
-**Entrada:**
-> Paella valenciana con arroz, gambas, mejillones, pollo y azafrán
-
-**Detección automática:**
-- 🦐 Crustáceos (gambas)
-- 🐚 Moluscos (mejillones)
-
-**Resultado:**
-Etiqueta imprimible con todos los alérgenos detectados.
-
-## ⚠️ Alérgenos Detectables
-
-El sistema detecta los 14 alérgenos oficiales de la UE:
-
-1. 🌾 Cereales con gluten
-2. 🦐 Crustáceos
-3. 🥚 Huevos
-4. 🐟 Pescado
-5. 🥜 Cacahuetes
-6. 🌱 Soja
-7. 🥛 Leche y lácteos
-8. 🌰 Frutos de cáscara
-9. 🥬 Apio
-10. 🟡 Mostaza
-11. 🫘 Sésamo
-12. 🍷 Sulfitos
-13. 🫘 Altramuces
-14. 🐚 Moluscos
-
-## 🔧 API Endpoints
-
-### POST `/api/analyze`
-Analiza un plato y detecta alérgenos.
-
-**Body:**
-```json
-{
-  "description": "Paella con gambas y mejillones",
-  "chef": "Chef Principal"
-}
+GET  /api/screens                                         (licencia)
+POST /api/screens                    { mac, slotNumber? }
+GET  /api/screens/:mac/status        (debug, consulta Sertag)
+GET  /api/screens/:mac/preview?dishId=  (debug, PNG sin pasar por Sertag)
+PUT  /api/screens/:mac/assign        { dishId }
+POST /api/screens/refresh-all
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "dish": {
-    "id": 1,
-    "name": "Paella",
-    "allergens": ["crustaceos", "moluscos"]
-  },
-  "allergens": [
-    {
-      "code": "crustaceos",
-      "name": "Crustáceos",
-      "icon": "🦐"
-    }
-  ]
-}
-```
+Todos los endpoints marcados "licencia" requieren las cabeceras
+`x-license-key` y `x-device-fingerprint`.
 
-### POST `/api/generate-label`
-Genera etiqueta HTML imprimible.
+## Restricciones conocidas
 
-### GET `/api/dishes`
-Obtiene platos del día actual.
-
-## 📄 Archivos JSON
-
-### allergens.json
-Contiene la definición de cada alérgeno con:
-- Nombre oficial
-- Icono
-- Descripción
-- Palabras clave para detección
-
-### ingredients.json
-Base de ingredientes comunes organizados por categorías con sus alérgenos asociados.
-
-## 🎨 Características
-
-✅ Detección automática con IA  
-✅ Interfaz simple e intuitiva  
-✅ Etiquetas imprimibles  
-✅ Cumple normativa UE 1169/2011  
-✅ Historial de platos del día  
-✅ Sin base de datos externa (todo en memoria)  
-✅ Diseño responsive
-
-## 🔒 Normativa
-
-Sistema diseñado conforme al Reglamento UE 1169/2011 sobre información alimentaria al consumidor.
-
-## 📦 Despliegue en Vercel
-
-El proyecto incluye `vercel.json` configurado. Solo necesitas:
-
-```bash
-vercel
-```
-
-## 💡 Mejoras Futuras
-
-- [ ] Integración con IA real (OpenAI, Claude)
-- [ ] Base de datos persistente
-- [ ] Escaneo de imágenes
-- [ ] Multi-idioma
-- [ ] Export PDF profesional
-- [ ] API REST completa
-
-## 📞 Soporte
-
-Para soporte, abre un issue en el repositorio.
-
----
-
-**Versión:** 4.0.0 - Sistema Simplificado  
-**Licencia:** MIT
+- Vercel serverless: no hay estado en memoria entre peticiones, todo pasa
+  por Supabase.
+- El middleware de licencia (`checkLicenseWithDevice`) se aplica por ruta,
+  después de las rutas públicas (`/`, `/admin`, `/activation`, login) — no
+  cambiar ese orden o se bloquea el acceso a páginas esenciales.
+- Contraseñas de admin en bcrypt, nunca en texto plano.
