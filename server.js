@@ -1286,11 +1286,11 @@ app.post('/api/screens', checkLicenseWithDevice, async (req, res) => {
 
         const { data, error } = await supabase
             .from('esl_screens')
-            .insert([{
+            .upsert([{
                 mac: normalizedMac,
                 establishment_id: req.establishment.id,
                 slot_number: slot
-            }])
+            }], { onConflict: 'mac' })
             .select()
             .single();
 
