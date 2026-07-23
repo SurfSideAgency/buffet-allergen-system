@@ -7,7 +7,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { createClient } = require('@supabase/supabase-js');
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
-const zlib = require('zlib');
 const robotoBase64 = require('./fontData');
 
 GlobalFonts.register(Buffer.from(robotoBase64, 'base64'), 'Roboto');
@@ -687,83 +686,12 @@ function generateScreenImage(dish, allergens) {
         );
     }
 
-    const imageData = ctx.getImageData(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    return encodeIndexed3ColorPng(imageData);
-}
-
-// La pantalla Sertag es tricolor (blanco/negro/rojo). @napi-rs/canvas solo
-// exporta PNG truecolor RGBA, que el pipeline de Sertag descartaba en
-// silencio (binFile nunca se generaba). Codificamos aquí un PNG indexado a
-// paleta de 3 colores a mano, con zlib nativo de Node, sin depender de una
-// librería de imagen adicional.
-const SCREEN_PALETTE = [
-    [255, 255, 255], // 0 = blanco
-    [0, 0, 0],       // 1 = negro
-    [255, 0, 0]      // 2 = rojo
-];
-
-function nearestPaletteIndex(r, g, b) {
-    let best = 0;
-    let bestDist = Infinity;
-    for (let i = 0; i < SCREEN_PALETTE.length; i++) {
-        const [pr, pg, pb] = SCREEN_PALETTE[i];
-        const dist = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2;
-        if (dist < bestDist) {
-            bestDist = dist;
-            best = i;
-        }
-    }
-    return best;
-}
-
-function pngChunk(type, data) {
-    const typeBuf = Buffer.from(type, 'ascii');
-    const lenBuf = Buffer.alloc(4);
-    lenBuf.writeUInt32BE(data.length, 0);
-    const crcBuf = Buffer.alloc(4);
-    crcBuf.writeUInt32BE(zlib.crc32(Buffer.concat([typeBuf, data])) >>> 0, 0);
-    return Buffer.concat([lenBuf, typeBuf, data, crcBuf]);
-}
-
-function encodeIndexed3ColorPng(imageData) {
-    const { width, height, data } = imageData;
-
-    const raw = Buffer.alloc(height * (1 + width));
-    for (let y = 0; y < height; y++) {
-        const rowStart = y * (1 + width);
-        raw[rowStart] = 0; // sin filtro por scanline
-        for (let x = 0; x < width; x++) {
-            const i = (y * width + x) * 4;
-            raw[rowStart + 1 + x] = nearestPaletteIndex(data[i], data[i + 1], data[i + 2]);
-        }
-    }
-
-    const ihdr = Buffer.alloc(13);
-    ihdr.writeUInt32BE(width, 0);
-    ihdr.writeUInt32BE(height, 4);
-    ihdr[8] = 8; // profundidad de bits
-    ihdr[9] = 3; // color type: paleta indexada
-    ihdr[10] = 0;
-    ihdr[11] = 0;
-    ihdr[12] = 0;
-
-    const plte = Buffer.alloc(SCREEN_PALETTE.length * 3);
-    SCREEN_PALETTE.forEach((c, i) => {
-        plte[i * 3] = c[0];
-        plte[i * 3 + 1] = c[1];
-        plte[i * 3 + 2] = c[2];
-    });
-
-    const idat = zlib.deflateSync(raw, { level: 9 });
-    const sig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-
-    return Buffer.concat([
-        sig,
-        pngChunk('IHDR', ihdr),
-        pngChunk('PLTE', plte),
-        pngChunk('IDAT', idat),
-        pngChunk('IEND', Buffer.alloc(0))
-    ]);
+    // IMPORTANTE: el backend de Sertag solo decodifica JPEG en imgsrc.
+    // Con PNG (probado truecolor e indexado) responde 20000 pero descarta
+    // la imagen en silencio y la pantalla nunca se actualiza. Verificado
+    // contra el historial: el push dejó de funcionar en el commit exacto
+    // que cambió image/jpeg por image/png (18245f0, 18-jul).
+    return canvas.toBuffer('image/jpeg', 0.92);
 }
 
 // Envuelve texto respetando maxLines/maxY; trunca con "…" si no cabe.
@@ -1607,7 +1535,7 @@ app.get('/api/screens/:mac/preview', checkLicenseWithDevice, async (req, res) =>
             .rpc('get_dish_allergens', { dish_id_param: req.query.dishId });
 
         const imageBuffer = generateScreenImage(dish, allergens || []);
-        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Type', 'image/jpeg');
         res.send(imageBuffer);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
