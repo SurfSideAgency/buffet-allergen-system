@@ -866,19 +866,23 @@ function generateScreenImage(dish, allergens) {
         ctx.fillText('CONTIENE', SCREEN_MARGIN, y);
         y += 10;
 
-        const cols = codes.length > 7 ? 2 : 1;
+        const cols = codes.length > 6 ? 2 : 1;
         const rows = Math.ceil(codes.length / cols);
         const available = bottomLimit - y;
-        const rowHeight = clamp(available / rows, 18, 56);
-        const fontSize = clamp(Math.round(rowHeight * 0.56), 13, 32);
-        const bullet = Math.round(fontSize * 0.78);
+        // Sin mínimo por arriba: forzar una altura de fila que no cabe hacía
+        // que la última línea se comiera el bloque de trazas.
+        const rowHeight = Math.min(54, available / rows);
+        const iconSize = clamp(rowHeight * 0.8, 14, 42);
+        const fontSize = clamp(Math.round(rowHeight * 0.44), 11, 26);
         const colWidth = contentWidth / cols;
+        const iconGap = Math.max(6, iconSize * 0.28);
 
         // Si sobra sitio (platos con pocos alérgenos) centramos el bloque en
         // vertical en vez de dejarlo pegado arriba con media pantalla vacía.
         const blockTop = y + Math.max(0, (available - rows * rowHeight) / 2);
 
         ctx.font = `bold ${fontSize}px Roboto`;
+        ctx.textBaseline = 'middle';
 
         codes.forEach((code, i) => {
             const col = Math.floor(i / rows);
@@ -886,11 +890,25 @@ function generateScreenImage(dish, allergens) {
             const x = SCREEN_MARGIN + col * colWidth;
             const rowY = blockTop + row * rowHeight + rowHeight / 2;
 
-            ctx.fillStyle = '#FF0000';
-            ctx.fillRect(x, Math.round(rowY - bullet * 0.78), bullet, bullet);
+            drawAllergenIcon(ctx, code, x + iconSize / 2, rowY, iconSize, '#FF0000');
+
             ctx.fillStyle = '#000000';
-            ctx.fillText(ALLERGENS[code].name, x + bullet + 8, rowY);
+            ctx.font = `bold ${fontSize}px Roboto`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            const textX = x + iconSize + iconGap;
+            const maxTextWidth = colWidth - iconSize - iconGap - 6;
+            let label = ALLERGENS[code].name;
+            while (label.length > 3 && ctx.measureText(label).width > maxTextWidth) {
+                label = label.slice(0, -1);
+            }
+            if (label !== ALLERGENS[code].name) label = label.trimEnd() + '…';
+
+            ctx.fillText(label, textX, rowY);
         });
+
+        ctx.textBaseline = 'alphabetic';
     } else {
         const fitted = fitText(ctx, 'SIN ALERGENOS', contentWidth, 1, 40, 20);
         ctx.font = `bold ${fitted.size}px Roboto`;
@@ -920,6 +938,250 @@ function generateScreenImage(dish, allergens) {
     // PNG y no JPEG: sin pérdidas, así los bordes del texto llegan limpios.
     // (Ambos formatos funcionan siempre que imgsrc lleve el prefijo data URI.)
     return canvas.toBuffer('image/png');
+}
+
+// ============= PICTOGRAMAS DE ALÉRGENOS =============
+// Dibujados a mano con primitivas de canvas y no con emoji: la fuente de la
+// pantalla no tiene glifos de emoji y, aunque los tuviera, son imágenes en
+// color que al reducirse a blanco/negro/rojo quedarían en manchas ilegibles.
+// Cada icono se dibuja dentro de un cuadrado de lado `s` centrado en (cx, cy).
+
+function iconStroke(ctx, s) {
+    ctx.lineWidth = Math.max(2, s * 0.09);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+}
+
+const ALLERGEN_ICONS = {
+    // Espiga de trigo
+    gluten(ctx, cx, cy, s) {
+        const h = s * 0.42;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + h);
+        ctx.lineTo(cx, cy - h);
+        ctx.stroke();
+        for (let i = 0; i < 4; i++) {
+            const y = cy - h + s * 0.16 + i * s * 0.19;
+            const w = s * 0.3;
+            ctx.beginPath();
+            ctx.moveTo(cx, y + s * 0.1);
+            ctx.quadraticCurveTo(cx - w, y + s * 0.04, cx - w * 0.85, y - s * 0.1);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx, y + s * 0.1);
+            ctx.quadraticCurveTo(cx + w, y + s * 0.04, cx + w * 0.85, y - s * 0.1);
+            ctx.stroke();
+        }
+    },
+    // Gamba: cuerpo en coma con segmentos, cola en abanico y antenas
+    crustaceos(ctx, cx, cy, s) {
+        ctx.beginPath();
+        ctx.moveTo(cx + s * 0.34, cy - s * 0.24);
+        ctx.quadraticCurveTo(cx - s * 0.22, cy - s * 0.34, cx - s * 0.3, cy + s * 0.06);
+        ctx.quadraticCurveTo(cx - s * 0.34, cy + s * 0.38, cx + s * 0.02, cy + s * 0.34);
+        ctx.stroke();
+
+        for (let i = 0; i < 3; i++) {
+            const t = 0.2 + i * 0.22;
+            ctx.beginPath();
+            ctx.moveTo(cx + s * (0.16 - t * 0.9), cy - s * (0.28 - t * 0.5));
+            ctx.lineTo(cx + s * (0.05 - t * 0.55), cy + s * (0.02 + t * 0.25));
+            ctx.stroke();
+        }
+
+        // Cola en abanico
+        ctx.beginPath();
+        ctx.moveTo(cx + s * 0.34, cy - s * 0.24);
+        ctx.lineTo(cx + s * 0.46, cy - s * 0.42);
+        ctx.moveTo(cx + s * 0.34, cy - s * 0.24);
+        ctx.lineTo(cx + s * 0.5, cy - s * 0.16);
+        ctx.stroke();
+
+        // Antenas
+        ctx.beginPath();
+        ctx.moveTo(cx + s * 0.02, cy + s * 0.34);
+        ctx.quadraticCurveTo(cx + s * 0.3, cy + s * 0.42, cx + s * 0.42, cy + s * 0.22);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(cx - s * 0.16, cy + s * 0.24, s * 0.05, 0, Math.PI * 2);
+        ctx.fill();
+    },
+    // Huevo: ovoide, más estrecho arriba
+    huevos(ctx, cx, cy, s) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - s * 0.44);
+        ctx.bezierCurveTo(cx + s * 0.3, cy - s * 0.36, cx + s * 0.38, cy + s * 0.1, cx, cy + s * 0.42);
+        ctx.bezierCurveTo(cx - s * 0.38, cy + s * 0.1, cx - s * 0.3, cy - s * 0.36, cx, cy - s * 0.44);
+        ctx.stroke();
+    },
+    // Pez
+    pescado(ctx, cx, cy, s) {
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.18, cy);
+        ctx.quadraticCurveTo(cx + s * 0.1, cy - s * 0.32, cx + s * 0.42, cy);
+        ctx.quadraticCurveTo(cx + s * 0.1, cy + s * 0.32, cx - s * 0.18, cy);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.18, cy);
+        ctx.lineTo(cx - s * 0.44, cy - s * 0.22);
+        ctx.lineTo(cx - s * 0.44, cy + s * 0.22);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx + s * 0.24, cy - s * 0.05, s * 0.045, 0, Math.PI * 2);
+        ctx.fill();
+    },
+    // Cacahuete
+    cacahuetes(ctx, cx, cy, s) {
+        ctx.beginPath();
+        ctx.ellipse(cx, cy - s * 0.2, s * 0.24, s * 0.22, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + s * 0.18, s * 0.28, s * 0.26, 0, 0, Math.PI * 2);
+        ctx.stroke();
+    },
+    // Vaina de soja
+    soja(ctx, cx, cy, s) {
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, s * 0.45, s * 0.2, Math.PI * 0.15, 0, Math.PI * 2);
+        ctx.stroke();
+        for (let i = -1; i <= 1; i++) {
+            ctx.beginPath();
+            ctx.arc(cx + i * s * 0.22, cy - i * s * 0.06, s * 0.09, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    },
+    // Vaso de leche
+    lacteos(ctx, cx, cy, s) {
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.24, cy - s * 0.36);
+        ctx.lineTo(cx + s * 0.24, cy - s * 0.36);
+        ctx.lineTo(cx + s * 0.17, cy + s * 0.38);
+        ctx.lineTo(cx - s * 0.17, cy + s * 0.38);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.21, cy - s * 0.1);
+        ctx.lineTo(cx + s * 0.21, cy - s * 0.1);
+        ctx.stroke();
+    },
+    // Fruto seco (avellana)
+    frutos_secos(ctx, cx, cy, s) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - s * 0.4);
+        ctx.quadraticCurveTo(cx + s * 0.42, cy - s * 0.05, cx, cy + s * 0.4);
+        ctx.quadraticCurveTo(cx - s * 0.42, cy - s * 0.05, cx, cy - s * 0.4);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - s * 0.3);
+        ctx.lineTo(cx, cy + s * 0.3);
+        ctx.stroke();
+    },
+    // Apio
+    apio(ctx, cx, cy, s) {
+        for (let i = -1; i <= 1; i++) {
+            ctx.beginPath();
+            ctx.moveTo(cx + i * s * 0.18, cy + s * 0.4);
+            ctx.quadraticCurveTo(cx + i * s * 0.26, cy, cx + i * s * 0.2, cy - s * 0.28);
+            ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.arc(cx, cy - s * 0.3, s * 0.16, Math.PI, Math.PI * 2);
+        ctx.stroke();
+    },
+    // Bote de mostaza
+    mostaza(ctx, cx, cy, s) {
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.2, cy - s * 0.12);
+        ctx.lineTo(cx + s * 0.2, cy - s * 0.12);
+        ctx.lineTo(cx + s * 0.2, cy + s * 0.38);
+        ctx.lineTo(cx - s * 0.2, cy + s * 0.38);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.1, cy - s * 0.12);
+        ctx.lineTo(cx - s * 0.1, cy - s * 0.34);
+        ctx.lineTo(cx + s * 0.1, cy - s * 0.34);
+        ctx.lineTo(cx + s * 0.1, cy - s * 0.12);
+        ctx.stroke();
+    },
+    // Semillas de sésamo
+    sesamo(ctx, cx, cy, s) {
+        const pts = [[-0.22, -0.18], [0.2, -0.22], [-0.02, 0.02], [-0.26, 0.24], [0.22, 0.2]];
+        for (const [dx, dy] of pts) {
+            ctx.beginPath();
+            ctx.ellipse(cx + dx * s, cy + dy * s, s * 0.12, s * 0.07, Math.PI * 0.25, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    },
+    // Copa de vino (sulfitos)
+    sulfitos(ctx, cx, cy, s) {
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.24, cy - s * 0.36);
+        ctx.lineTo(cx + s * 0.24, cy - s * 0.36);
+        ctx.quadraticCurveTo(cx, cy + s * 0.12, cx, cy + s * 0.12);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + s * 0.12);
+        ctx.lineTo(cx, cy + s * 0.34);
+        ctx.moveTo(cx - s * 0.18, cy + s * 0.38);
+        ctx.lineTo(cx + s * 0.18, cy + s * 0.38);
+        ctx.stroke();
+    },
+    // Altramuces
+    altramuces(ctx, cx, cy, s) {
+        ctx.beginPath();
+        ctx.arc(cx, cy - s * 0.14, s * 0.17, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx - s * 0.22, cy + s * 0.2, s * 0.17, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx + s * 0.22, cy + s * 0.2, s * 0.17, 0, Math.PI * 2);
+        ctx.stroke();
+    },
+    // Concha (moluscos)
+    moluscos(ctx, cx, cy, s) {
+        ctx.beginPath();
+        ctx.arc(cx, cy + s * 0.22, s * 0.42, Math.PI, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.42, cy + s * 0.22);
+        ctx.lineTo(cx + s * 0.42, cy + s * 0.22);
+        ctx.stroke();
+        for (let i = -1; i <= 1; i++) {
+            ctx.beginPath();
+            ctx.moveTo(cx + i * s * 0.02, cy + s * 0.22);
+            ctx.lineTo(cx + i * s * 0.3, cy - s * 0.14);
+            ctx.stroke();
+        }
+    }
+};
+
+// Dibuja el pictograma dentro de un círculo, al estilo de los iconos de
+// alérgenos que se usan en hostelería.
+function drawAllergenIcon(ctx, code, cx, cy, size, color) {
+    const draw = ALLERGEN_ICONS[code];
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    iconStroke(ctx, size);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, size * 0.62, 0, Math.PI * 2);
+    ctx.stroke();
+
+    if (draw) {
+        draw(ctx, cx, cy, size * 0.78);
+    } else {
+        ctx.font = `bold ${Math.round(size * 0.7)}px Roboto`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('!', cx, cy);
+    }
+    ctx.restore();
 }
 
 const SCREEN_PALETTE = [
