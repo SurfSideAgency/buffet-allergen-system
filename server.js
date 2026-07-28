@@ -161,6 +161,60 @@ async function checkLicenseWithDevice(req, res, next) {
     }
 }
 
+// ============= LÍMITE DE INTENTOS =============
+// Vercel es serverless y no conserva estado entre peticiones, así que el
+// contador vive en Supabase. Si la tabla no existe todavía la comprobación
+// se salta (y lo avisa por consola) en vez de dejar a nadie fuera.
+
+const RATE_LIMITS = {
+    admin: { max: 10, windowMinutes: 15 },
+    licencia: { max: 20, windowMinutes: 15 }
+};
+
+function clientIp(req) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (typeof forwarded === 'string' && forwarded.length > 0) {
+        return forwarded.split(',')[0].trim();
+    }
+    return req.ip || req.connection?.remoteAddress || 'desconocida';
+}
+
+async function tooManyAttempts(tipo, identificador) {
+    const { max, windowMinutes } = RATE_LIMITS[tipo];
+    const desde = new Date(Date.now() - windowMinutes * 60000).toISOString();
+
+    const { count, error } = await supabase
+        .from('intentos_login')
+        .select('*', { count: 'exact', head: true })
+        .eq('tipo', tipo)
+        .eq('identificador', identificador)
+        .gte('created_at', desde);
+
+    if (error) {
+        console.error('Límite de intentos no aplicado (¿falta la tabla intentos_login?):', error.message);
+        return false;
+    }
+
+    return (count || 0) >= max;
+}
+
+async function registrarIntentoFallido(tipo, identificador) {
+    const { error } = await supabase
+        .from('intentos_login')
+        .insert([{ tipo, identificador }]);
+    if (error) {
+        console.error('No se pudo registrar el intento fallido:', error.message);
+    }
+}
+
+async function limpiarIntentos(tipo, identificador) {
+    await supabase
+        .from('intentos_login')
+        .delete()
+        .eq('tipo', tipo)
+        .eq('identificador', identificador);
+}
+
 async function checkAdmin(req, res, next) {
     if (!ADMIN_ENABLED) {
         return res.status(503).json({
@@ -286,9 +340,18 @@ app.post('/api/license/verify-with-device', async (req, res) => {
         const userAgent = req.headers['user-agent'];
 
         if (!licenseKey || !deviceFingerprint) {
-            return res.json({ 
-                success: false, 
-                error: 'Faltan datos requeridos' 
+            return res.json({
+                success: false,
+                error: 'Faltan datos requeridos'
+            });
+        }
+
+        const ip = clientIp(req);
+
+        if (await tooManyAttempts('licencia', ip)) {
+            return res.status(429).json({
+                success: false,
+                error: 'Demasiados intentos de activación. Espera unos minutos e inténtalo de nuevo.'
             });
         }
 
@@ -299,8 +362,9 @@ app.post('/api/license/verify-with-device', async (req, res) => {
             .single();
 
         if (error || !establishment) {
-            return res.json({ 
-                success: false, 
+            await registrarIntentoFallido('licencia', ip);
+            return res.json({
+                success: false,
                 error: 'Código de licencia no válido' 
             });
         }
@@ -346,6 +410,8 @@ app.post('/api/license/verify-with-device', async (req, res) => {
             });
         }
 
+        await limpiarIntentos('licencia', ip);
+
         res.json({
             success: true,
             establishment: {
@@ -376,6 +442,15 @@ app.post('/api/admin/login', async (req, res) => {
             });
         }
 
+        const ip = clientIp(req);
+
+        if (await tooManyAttempts('admin', ip)) {
+            return res.status(429).json({
+                success: false,
+                error: 'Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.'
+            });
+        }
+
         const { username, password } = req.body;
 
         const { data: admin, error } = await supabase
@@ -385,20 +460,24 @@ app.post('/api/admin/login', async (req, res) => {
             .single();
 
         if (error || !admin) {
-            return res.json({ 
-                success: false, 
-                error: 'Credenciales incorrectas' 
+            await registrarIntentoFallido('admin', ip);
+            return res.json({
+                success: false,
+                error: 'Credenciales incorrectas'
             });
         }
 
         const validPassword = await bcrypt.compare(password, admin.password_hash);
-        
+
         if (!validPassword) {
-            return res.json({ 
-                success: false, 
-                error: 'Credenciales incorrectas' 
+            await registrarIntentoFallido('admin', ip);
+            return res.json({
+                success: false,
+                error: 'Credenciales incorrectas'
             });
         }
+
+        await limpiarIntentos('admin', ip);
 
         const token = jwt.sign(
             { id: admin.id, username: admin.username },
@@ -1080,7 +1159,19 @@ async function extractIngredientTermsWithAI(text) {
     const terms = JSON.parse(cleaned);
 
     if (!Array.isArray(terms)) throw new Error('Respuesta de IA no es un array');
-    return terms.map(t => String(t).toLowerCase().trim()).filter(Boolean);
+    return terms.map(t => sanitizeSearchTerm(t)).filter(Boolean);
+}
+
+// Los términos acaban interpolados en un filtro .or() de PostgREST, cuya
+// sintaxis usa comas, paréntesis y puntos como separadores. Como el texto
+// viene del usuario (y de lo que la IA decida devolver), se limita a letras,
+// números y espacios antes de construir el filtro.
+function sanitizeSearchTerm(term) {
+    return String(term)
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N} ]/gu, ' ')
+        .trim()
+        .slice(0, 40);
 }
 
 app.post('/api/suggest-ingredients', checkLicenseWithDevice, async (req, res) => {

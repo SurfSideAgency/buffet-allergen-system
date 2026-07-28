@@ -194,6 +194,21 @@ hash = hash & hash;
 return Math.abs(hash).toString(36).toUpperCase();
 }
 
+// ========== ESCAPADO ==========
+// Los nombres de ingredientes y platos los escribe el usuario (o los propone
+// la IA al escanear una etiqueta) y acaban dentro de plantillas HTML, así que
+// hay que escaparlos: sin esto un nombre con comillas o < rompe el marcado.
+function escapeHtml(value) {
+const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+return String(value).replace(/[&<>"']/g, c => map[c]);
+}
+
+// Para interpolar dentro de un atributo onclick: JSON.stringify produce un
+// literal de JavaScript válido y escapeHtml lo hace seguro como atributo.
+function jsArg(value) {
+return escapeHtml(JSON.stringify(String(value)));
+}
+
 let deviceFingerprint = localStorage.getItem('deviceFingerprint');
 if (!deviceFingerprint) {
 deviceFingerprint = generateDeviceFingerprint();
@@ -790,9 +805,9 @@ container.innerHTML = `
 ${suggestions.map(ing => `
 <button
 type="button"
-onclick="addIngredient(${ing.id}, '${ing.name.replace(/'/g, "\\'")}'); this.disabled = true; this.classList.add('opacity-40');"
+onclick="addIngredient(${ing.id}, ${jsArg(ing.name)}); this.disabled = true; this.classList.add('opacity-40');"
 class="px-3 py-2 bg-white border-2 border-blue-300 rounded-lg text-sm font-medium hover:bg-blue-50">
-➕ ${ing.name}
+➕ ${escapeHtml(ing.name)}
 </button>
 `).join('')}
 </div>
@@ -837,10 +852,10 @@ return;
 }
 
 container.innerHTML = ingredients.map(ing => `
-<div onclick="addIngredient(${ing.id}, '${ing.name.replace(/'/g, "\\'")}')"
+<div onclick="addIngredient(${ing.id}, ${jsArg(ing.name)})"
 class="ingredient-item p-3 border rounded-lg hover:bg-blue-50 cursor-pointer flex justify-between items-center mb-2">
-<span class="font-medium">${ing.name}</span>
-<span class="text-xs text-gray-500">${ing.category}</span>
+<span class="font-medium">${escapeHtml(ing.name)}</span>
+<span class="text-xs text-gray-500">${escapeHtml(ing.category)}</span>
 </div>
 `).join('');
 }
@@ -881,7 +896,7 @@ return;
 container.innerHTML = selectedIngredients.map(ing => `
 <div class="flex items-center justify-between p-2 bg-blue-50 rounded-lg mb-2">
 <div class="flex-1">
-<span class="font-medium">${ing.name}</span>
+<span class="font-medium">${escapeHtml(ing.name)}</span>
 ${ing.allergens && ing.allergens.length > 0 ? `
 <div class="text-xs text-red-600 mt-1">
 ⚠️ ${ing.allergens.map(a => ALLERGENS[a]?.icon || '⚠️').join(' ')}
@@ -950,7 +965,7 @@ document.getElementById('loading').classList.add('hidden');
 
 function displayResults(dish) {
 document.getElementById('resultDishName').textContent = dish.name;
-document.getElementById('resultMeta').innerHTML = `<strong>Chef:</strong> ${dish.chef} | <strong>ID:</strong> #${dish.id}`;
+document.getElementById('resultMeta').innerHTML = `<strong>Chef:</strong> ${escapeHtml(dish.chef)} | <strong>ID:</strong> #${dish.id}`;
 
 const allergensEl = document.getElementById('resultAllergens');
 
@@ -1085,9 +1100,9 @@ const ingredientsList = dish.dish_ingredients && dish.dish_ingredients.length > 
 
 return `
 <div class="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all">
-<h3 class="font-bold text-lg mb-2">${dish.name}</h3>
+<h3 class="font-bold text-lg mb-2">${escapeHtml(dish.name)}</h3>
 <p class="text-sm text-gray-600 mb-2">
-<strong>Chef:</strong> ${dish.chef}<br>
+<strong>Chef:</strong> ${escapeHtml(dish.chef)}<br>
 <strong>Fecha:</strong> ${new Date(dish.created_at || dish.date).toLocaleDateString('es-ES')}
 </p>
 
@@ -1150,7 +1165,7 @@ container.innerHTML = Object.entries(grouped).map(([category, ings]) => `
 <h4 class="font-bold text-sm text-gray-600 mb-2 uppercase">${category}</h4>
 ${ings.map(ing => `
 <div class="p-2 border-b hover:bg-gray-50">
-<div class="font-medium text-sm">${ing.name}</div>
+<div class="font-medium text-sm">${escapeHtml(ing.name)}</div>
 ${ing.allergens && ing.allergens.length > 0 ? `
 <div class="text-xs text-red-600 mt-1">
 ⚠️ ${ing.allergens.map(a => ALLERGENS[a]?.icon || '⚠️').join(' ')}
@@ -1363,21 +1378,21 @@ return;
 container.innerHTML = screens.map(screen => `
 <div class="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all border-2 border-gray-100">
 <h3 class="font-bold text-lg mb-1">Puesto ${screen.slot_number}</h3>
-<p class="text-xs text-gray-400 mb-3">${screen.mac}</p>
+<p class="text-xs text-gray-400 mb-3">${escapeHtml(screen.mac)}</p>
 
 <div class="mb-3">
 ${screen.dish
-? `<div class="p-2 bg-blue-50 rounded-lg text-sm font-semibold text-blue-800">🍽️ ${screen.dish.name}</div>`
+? `<div class="p-2 bg-blue-50 rounded-lg text-sm font-semibold text-blue-800">🍽️ ${escapeHtml(screen.dish.name)}</div>`
 : `<div class="p-2 bg-gray-50 rounded-lg text-sm text-gray-400">Sin asignar</div>`
 }
 </div>
 
 <select id="select-${screen.mac}" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg mb-2 text-sm">
 <option value="">-- Seleccionar plato --</option>
-${dishes.map(d => `<option value="${d.id}" ${screen.current_dish_id === d.id ? 'selected' : ''}>${d.name}</option>`).join('')}
+${dishes.map(d => `<option value="${d.id}" ${screen.current_dish_id === d.id ? 'selected' : ''}>${escapeHtml(d.name)}</option>`).join('')}
 </select>
 
-<button onclick="assignScreen('${screen.mac}')" class="btn-primary w-full text-white text-sm font-bold py-2 px-3 rounded-lg">
+<button onclick="assignScreen(${jsArg(screen.mac)})" class="btn-primary w-full text-white text-sm font-bold py-2 px-3 rounded-lg">
 ✅ Asignar y Enviar
 </button>
 </div>
