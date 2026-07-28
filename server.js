@@ -866,65 +866,58 @@ function generateScreenImage(dish, allergens) {
         ctx.fillText('CONTIENE', SCREEN_MARGIN, y);
         y += 10;
 
-        const cols = codes.length > 6 ? 2 : 1;
-        const rows = Math.ceil(codes.length / cols);
         const available = bottomLimit - y;
-        // Sin mínimo por arriba: forzar una altura de fila que no cabe hacía
-        // que la última línea se comiera el bloque de trazas.
-        const rowHeight = Math.min(54, available / rows);
-        const iconSize = clamp(rowHeight * 0.8, 14, 42);
-        const fontSize = clamp(Math.round(rowHeight * 0.44), 11, 26);
-        const colWidth = contentWidth / cols;
-        const iconGap = Math.max(6, iconSize * 0.28);
 
-        // La guía de la FSA fija 0,6 cm como tamaño mínimo para que un icono
-        // de alérgeno sea legible. Esta pantalla tiene ~47 px/cm, así que por
-        // debajo de 28 px el pictograma no cumple: con muchos alérgenos se
-        // sustituye por un cuadro rojo, y el nombre (que es lo que exige la
-        // norma) gana el sitio.
-        const drawIcons = iconSize >= 28;
+        if (codes.length > 6) {
+            // Muchos alérgenos: sólo pictogramas, en rejilla. Poniendo el
+            // nombre al lado no cabrían por encima del mínimo legible de la
+            // FSA (0,6 cm ≈ 28 px en esta pantalla); en rejilla salen a 0,9 cm
+            // incluso con los catorce. Exige una leyenda visible en el buffet,
+            // que es lo que la propia guía admite como alternativa al nombre.
+            const cols = codes.length > 8 ? 5 : 4;
+            const rows = Math.ceil(codes.length / cols);
+            const cellW = contentWidth / cols;
+            const cellH = available / rows;
+            const iconSize = Math.min(cellW, cellH) * 0.86;
 
-        // Si sobra sitio (platos con pocos alérgenos) centramos el bloque en
-        // vertical en vez de dejarlo pegado arriba con media pantalla vacía.
-        const blockTop = y + Math.max(0, (available - rows * rowHeight) / 2);
+            codes.forEach((code, i) => {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                const cx = SCREEN_MARGIN + col * cellW + cellW / 2;
+                const cy = y + row * cellH + cellH / 2;
+                drawAllergenIcon(ctx, code, cx, cy, iconSize, '#FF0000');
+            });
+        } else {
+            const rows = codes.length;
+            const rowHeight = Math.min(54, available / rows);
+            const iconSize = clamp(rowHeight * 0.9, 28, 46);
+            const fontSize = clamp(Math.round(rowHeight * 0.44), 13, 26);
+            const iconGap = Math.max(8, iconSize * 0.25);
+            const blockTop = y + Math.max(0, (available - rows * rowHeight) / 2);
 
-        ctx.font = `bold ${fontSize}px Roboto`;
-        ctx.textBaseline = 'middle';
-
-        codes.forEach((code, i) => {
-            const col = Math.floor(i / rows);
-            const row = i % rows;
-            const x = SCREEN_MARGIN + col * colWidth;
-            const rowY = blockTop + row * rowHeight + rowHeight / 2;
-
-            let markWidth;
-            if (drawIcons) {
-                drawAllergenIcon(ctx, code, x + iconSize / 2, rowY, iconSize, '#FF0000');
-                markWidth = iconSize;
-            } else {
-                const bullet = Math.max(8, Math.round(fontSize * 0.8));
-                ctx.fillStyle = '#FF0000';
-                ctx.fillRect(x, Math.round(rowY - bullet / 2), bullet, bullet);
-                markWidth = bullet;
-            }
-
-            ctx.fillStyle = '#000000';
-            ctx.font = `bold ${fontSize}px Roboto`;
-            ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
 
-            const textX = x + markWidth + iconGap;
-            const maxTextWidth = colWidth - markWidth - iconGap - 6;
-            let label = ALLERGENS[code].name;
-            while (label.length > 3 && ctx.measureText(label).width > maxTextWidth) {
-                label = label.slice(0, -1);
-            }
-            if (label !== ALLERGENS[code].name) label = label.trimEnd() + '…';
+            codes.forEach((code, i) => {
+                const rowY = blockTop + i * rowHeight + rowHeight / 2;
+                drawAllergenIcon(ctx, code, SCREEN_MARGIN + iconSize / 2, rowY, iconSize, '#FF0000');
 
-            ctx.fillText(label, textX, rowY);
-        });
+                ctx.fillStyle = '#000000';
+                ctx.font = `bold ${fontSize}px Roboto`;
+                ctx.textAlign = 'left';
 
-        ctx.textBaseline = 'alphabetic';
+                const textX = SCREEN_MARGIN + iconSize + iconGap;
+                const maxTextWidth = contentWidth - iconSize - iconGap;
+                let label = ALLERGENS[code].name;
+                while (label.length > 3 && ctx.measureText(label).width > maxTextWidth) {
+                    label = label.slice(0, -1);
+                }
+                if (label !== ALLERGENS[code].name) label = label.trimEnd() + '…';
+
+                ctx.fillText(label, textX, rowY);
+            });
+
+            ctx.textBaseline = 'alphabetic';
+        }
     } else {
         const fitted = fitText(ctx, 'SIN ALERGENOS', contentWidth, 1, 40, 20);
         ctx.font = `bold ${fitted.size}px Roboto`;
@@ -971,233 +964,296 @@ function iconStroke(ctx, s) {
     ctx.lineJoin = 'round';
 }
 
+// Siluetas inspiradas en el juego de iconos de alérgenos de la Food Standards
+// Agency (Crown copyright, Open Government Licence v3.0). Se redibujan como
+// vectores porque los ficheros oficiales son PNG pensados para impresión y, a
+// los tamaños de esta pantalla y con sólo tres colores, se emborronarían.
+// Van en blanco sobre el disco, gruesas y sin detalle fino, que es lo que
+// aguanta la reducción de tamaño.
+
+function petal(ctx, cx, cy, rx, ry, rot) {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, rot, 0, Math.PI * 2);
+    ctx.fill();
+}
+
 const ALLERGEN_ICONS = {
-    // Espiga de trigo
-    gluten(ctx, cx, cy, s) {
-        const h = s * 0.42;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy + h);
-        ctx.lineTo(cx, cy - h);
-        ctx.stroke();
-        for (let i = 0; i < 4; i++) {
-            const y = cy - h + s * 0.16 + i * s * 0.19;
-            const w = s * 0.3;
-            ctx.beginPath();
-            ctx.moveTo(cx, y + s * 0.1);
-            ctx.quadraticCurveTo(cx - w, y + s * 0.04, cx - w * 0.85, y - s * 0.1);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx, y + s * 0.1);
-            ctx.quadraticCurveTo(cx + w, y + s * 0.04, cx + w * 0.85, y - s * 0.1);
-            ctx.stroke();
-        }
+    // Tres espigas de trigo
+    gluten(ctx, cx, cy, s, disc) {
+        const ear = (ex, ey, sc) => {
+            ctx.fillRect(ex - s * 0.022 * sc, ey - s * 0.05 * sc, s * 0.044 * sc, s * 0.5 * sc);
+            for (let i = 0; i < 3; i++) {
+                const gy = ey - s * (0.04 + i * 0.13) * sc;
+                petal(ctx, ex - s * 0.1 * sc, gy, s * 0.11 * sc, s * 0.055 * sc, -0.5);
+                petal(ctx, ex + s * 0.1 * sc, gy, s * 0.11 * sc, s * 0.055 * sc, 0.5);
+            }
+            petal(ctx, ex, ey - s * 0.42 * sc, s * 0.05 * sc, s * 0.11 * sc, 0);
+        };
+        ear(cx, cy + s * 0.06, 1);
+        ear(cx - s * 0.26, cy + s * 0.16, 0.78);
+        ear(cx + s * 0.26, cy + s * 0.16, 0.78);
     },
-    // Gamba: cuerpo en coma con segmentos, cola en abanico y antenas
-    crustaceos(ctx, cx, cy, s) {
+    // Gamba enroscada
+    crustaceos(ctx, cx, cy, s, disc) {
         ctx.beginPath();
-        ctx.moveTo(cx + s * 0.34, cy - s * 0.24);
-        ctx.quadraticCurveTo(cx - s * 0.22, cy - s * 0.34, cx - s * 0.3, cy + s * 0.06);
-        ctx.quadraticCurveTo(cx - s * 0.34, cy + s * 0.38, cx + s * 0.02, cy + s * 0.34);
-        ctx.stroke();
-
-        for (let i = 0; i < 3; i++) {
-            const t = 0.2 + i * 0.22;
-            ctx.beginPath();
-            ctx.moveTo(cx + s * (0.16 - t * 0.9), cy - s * (0.28 - t * 0.5));
-            ctx.lineTo(cx + s * (0.05 - t * 0.55), cy + s * (0.02 + t * 0.25));
-            ctx.stroke();
-        }
-
+        ctx.arc(cx, cy - s * 0.02, s * 0.3, Math.PI * 1.15, Math.PI * 0.55);
+        ctx.arc(cx, cy - s * 0.02, s * 0.14, Math.PI * 0.55, Math.PI * 1.15, true);
+        ctx.closePath();
+        ctx.fill();
+        // Cabeza
+        petal(ctx, cx - s * 0.2, cy + s * 0.2, s * 0.15, s * 0.11, -0.6);
         // Cola en abanico
         ctx.beginPath();
-        ctx.moveTo(cx + s * 0.34, cy - s * 0.24);
-        ctx.lineTo(cx + s * 0.46, cy - s * 0.42);
-        ctx.moveTo(cx + s * 0.34, cy - s * 0.24);
-        ctx.lineTo(cx + s * 0.5, cy - s * 0.16);
-        ctx.stroke();
-
-        // Antenas
-        ctx.beginPath();
-        ctx.moveTo(cx + s * 0.02, cy + s * 0.34);
-        ctx.quadraticCurveTo(cx + s * 0.3, cy + s * 0.42, cx + s * 0.42, cy + s * 0.22);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(cx - s * 0.16, cy + s * 0.24, s * 0.05, 0, Math.PI * 2);
+        ctx.moveTo(cx + s * 0.16, cy - s * 0.24);
+        ctx.lineTo(cx + s * 0.44, cy - s * 0.4);
+        ctx.lineTo(cx + s * 0.42, cy - s * 0.02);
+        ctx.closePath();
         ctx.fill();
+        // Patas
+        ctx.save();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = s * 0.05;
+        ctx.lineCap = 'round';
+        for (let i = 0; i < 3; i++) {
+            const a = Math.PI * (1.25 + i * 0.16);
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(a) * s * 0.3, cy - s * 0.02 + Math.sin(a) * s * 0.3);
+            ctx.lineTo(cx + Math.cos(a) * s * 0.46, cy - s * 0.02 + Math.sin(a) * s * 0.46);
+            ctx.stroke();
+        }
+        ctx.restore();
     },
-    // Huevo: ovoide, más estrecho arriba
-    huevos(ctx, cx, cy, s) {
+    // Huevo cascado
+    huevos(ctx, cx, cy, s, disc) {
         ctx.beginPath();
-        ctx.moveTo(cx, cy - s * 0.44);
-        ctx.bezierCurveTo(cx + s * 0.3, cy - s * 0.36, cx + s * 0.38, cy + s * 0.1, cx, cy + s * 0.42);
-        ctx.bezierCurveTo(cx - s * 0.38, cy + s * 0.1, cx - s * 0.3, cy - s * 0.36, cx, cy - s * 0.44);
-        ctx.stroke();
+        ctx.moveTo(cx, cy - s * 0.46);
+        ctx.bezierCurveTo(cx + s * 0.36, cy - s * 0.34, cx + s * 0.4, cy + s * 0.16, cx, cy + s * 0.46);
+        ctx.bezierCurveTo(cx - s * 0.4, cy + s * 0.16, cx - s * 0.36, cy - s * 0.34, cx, cy - s * 0.46);
+        ctx.closePath();
+        ctx.fill();
     },
     // Pez
-    pescado(ctx, cx, cy, s) {
+    pescado(ctx, cx, cy, s, disc) {
         ctx.beginPath();
-        ctx.moveTo(cx - s * 0.18, cy);
-        ctx.quadraticCurveTo(cx + s * 0.1, cy - s * 0.32, cx + s * 0.42, cy);
-        ctx.quadraticCurveTo(cx + s * 0.1, cy + s * 0.32, cx - s * 0.18, cy);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - s * 0.18, cy);
-        ctx.lineTo(cx - s * 0.44, cy - s * 0.22);
-        ctx.lineTo(cx - s * 0.44, cy + s * 0.22);
+        ctx.moveTo(cx - s * 0.1, cy);
+        ctx.quadraticCurveTo(cx + s * 0.1, cy - s * 0.3, cx + s * 0.46, cy);
+        ctx.quadraticCurveTo(cx + s * 0.1, cy + s * 0.3, cx - s * 0.1, cy);
         ctx.closePath();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cx + s * 0.24, cy - s * 0.05, s * 0.045, 0, Math.PI * 2);
         ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.06, cy);
+        ctx.lineTo(cx - s * 0.46, cy - s * 0.26);
+        ctx.lineTo(cx - s * 0.46, cy + s * 0.26);
+        ctx.closePath();
+        ctx.fill();
+        ctx.save();
+        ctx.fillStyle = disc;
+        ctx.beginPath();
+        ctx.arc(cx + s * 0.24, cy - s * 0.03, s * 0.055, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
     },
-    // Cacahuete
-    cacahuetes(ctx, cx, cy, s) {
+    // Cacahuete con cáscara
+    cacahuetes(ctx, cx, cy, s, disc) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(-Math.PI * 0.12);
         ctx.beginPath();
-        ctx.ellipse(cx, cy - s * 0.2, s * 0.24, s * 0.22, 0, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.ellipse(cx, cy + s * 0.18, s * 0.28, s * 0.26, 0, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.moveTo(0, -s * 0.46);
+        ctx.bezierCurveTo(s * 0.28, -s * 0.46, s * 0.3, -s * 0.12, s * 0.15, 0);
+        ctx.bezierCurveTo(s * 0.32, s * 0.12, s * 0.3, s * 0.48, 0, s * 0.48);
+        ctx.bezierCurveTo(-s * 0.3, s * 0.48, -s * 0.32, s * 0.12, -s * 0.15, 0);
+        ctx.bezierCurveTo(-s * 0.3, -s * 0.12, -s * 0.28, -s * 0.46, 0, -s * 0.46);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = disc;
+        ctx.lineWidth = s * 0.05;
+        for (const y of [-0.26, 0.28]) {
+            ctx.beginPath();
+            ctx.moveTo(-s * 0.26, s * y);
+            ctx.lineTo(s * 0.26, s * y);
+            ctx.stroke();
+        }
+        ctx.restore();
     },
     // Vaina de soja
-    soja(ctx, cx, cy, s) {
+    soja(ctx, cx, cy, s, disc) {
+        ctx.save();
+        ctx.translate(cx, cy + s * 0.06);
+        ctx.rotate(-Math.PI * 0.22);
         ctx.beginPath();
-        ctx.ellipse(cx, cy, s * 0.45, s * 0.2, Math.PI * 0.15, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.ellipse(0, 0, s * 0.44, s * 0.17, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = disc;
         for (let i = -1; i <= 1; i++) {
             ctx.beginPath();
-            ctx.arc(cx + i * s * 0.22, cy - i * s * 0.06, s * 0.09, 0, Math.PI * 2);
+            ctx.arc(i * s * 0.24, 0, s * 0.085, 0, Math.PI * 2);
             ctx.fill();
         }
-    },
-    // Vaso de leche
-    lacteos(ctx, cx, cy, s) {
+        ctx.restore();
+        // Hoja
         ctx.beginPath();
-        ctx.moveTo(cx - s * 0.24, cy - s * 0.36);
-        ctx.lineTo(cx + s * 0.24, cy - s * 0.36);
-        ctx.lineTo(cx + s * 0.17, cy + s * 0.38);
-        ctx.lineTo(cx - s * 0.17, cy + s * 0.38);
+        ctx.ellipse(cx + s * 0.28, cy - s * 0.3, s * 0.19, s * 0.1, -Math.PI * 0.28, 0, Math.PI * 2);
+        ctx.fill();
+    },
+    // Botella y vaso
+    lacteos(ctx, cx, cy, s, disc) {
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.34, cy + s * 0.44);
+        ctx.lineTo(cx - s * 0.34, cy - s * 0.12);
+        ctx.lineTo(cx - s * 0.2, cy - s * 0.3);
+        ctx.lineTo(cx - s * 0.2, cy - s * 0.44);
+        ctx.lineTo(cx - s * 0.02, cy - s * 0.44);
+        ctx.lineTo(cx - s * 0.02, cy - s * 0.3);
+        ctx.lineTo(cx + s * 0.12, cy - s * 0.12);
+        ctx.lineTo(cx + s * 0.12, cy + s * 0.44);
         ctx.closePath();
-        ctx.stroke();
+        ctx.fill();
+        // Vaso
         ctx.beginPath();
-        ctx.moveTo(cx - s * 0.21, cy - s * 0.1);
-        ctx.lineTo(cx + s * 0.21, cy - s * 0.1);
-        ctx.stroke();
+        ctx.moveTo(cx + s * 0.2, cy + s * 0.02);
+        ctx.lineTo(cx + s * 0.46, cy + s * 0.02);
+        ctx.lineTo(cx + s * 0.41, cy + s * 0.44);
+        ctx.lineTo(cx + s * 0.25, cy + s * 0.44);
+        ctx.closePath();
+        ctx.fill();
     },
-    // Fruto seco (avellana)
-    frutos_secos(ctx, cx, cy, s) {
+    // Bellota
+    frutos_secos(ctx, cx, cy, s, disc) {
         ctx.beginPath();
-        ctx.moveTo(cx, cy - s * 0.4);
-        ctx.quadraticCurveTo(cx + s * 0.42, cy - s * 0.05, cx, cy + s * 0.4);
-        ctx.quadraticCurveTo(cx - s * 0.42, cy - s * 0.05, cx, cy - s * 0.4);
-        ctx.stroke();
+        ctx.moveTo(cx - s * 0.3, cy - s * 0.08);
+        ctx.quadraticCurveTo(cx - s * 0.28, cy + s * 0.46, cx, cy + s * 0.46);
+        ctx.quadraticCurveTo(cx + s * 0.28, cy + s * 0.46, cx + s * 0.3, cy - s * 0.08);
+        ctx.closePath();
+        ctx.fill();
+        // Caperuza
         ctx.beginPath();
-        ctx.moveTo(cx, cy - s * 0.3);
-        ctx.lineTo(cx, cy + s * 0.3);
-        ctx.stroke();
+        ctx.ellipse(cx, cy - s * 0.14, s * 0.36, s * 0.19, 0, Math.PI, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(cx - s * 0.36, cy - s * 0.16, s * 0.72, s * 0.1);
+        ctx.beginPath();
+        ctx.ellipse(cx, cy - s * 0.34, s * 0.06, s * 0.1, 0, 0, Math.PI * 2);
+        ctx.fill();
     },
     // Apio
-    apio(ctx, cx, cy, s) {
+    apio(ctx, cx, cy, s, disc) {
         for (let i = -1; i <= 1; i++) {
             ctx.beginPath();
-            ctx.moveTo(cx + i * s * 0.18, cy + s * 0.4);
-            ctx.quadraticCurveTo(cx + i * s * 0.26, cy, cx + i * s * 0.2, cy - s * 0.28);
-            ctx.stroke();
+            ctx.moveTo(cx + i * s * 0.2 - s * 0.075, cy + s * 0.46);
+            ctx.quadraticCurveTo(cx + i * s * 0.26, cy + s * 0.1, cx + i * s * 0.2 - s * 0.06, cy - s * 0.16);
+            ctx.lineTo(cx + i * s * 0.2 + s * 0.1, cy - s * 0.16);
+            ctx.quadraticCurveTo(cx + i * s * 0.26 + s * 0.13, cy + s * 0.1, cx + i * s * 0.2 + s * 0.09, cy + s * 0.46);
+            ctx.closePath();
+            ctx.fill();
         }
-        ctx.beginPath();
-        ctx.arc(cx, cy - s * 0.3, s * 0.16, Math.PI, Math.PI * 2);
-        ctx.stroke();
+        // Hojas
+        for (let i = -1; i <= 1; i++) {
+            petal(ctx, cx + i * s * 0.19, cy - s * 0.3, s * 0.08, s * 0.18, i * 0.4);
+        }
     },
-    // Bote de mostaza
-    mostaza(ctx, cx, cy, s) {
+    // Bote de mostaza con M
+    mostaza(ctx, cx, cy, s, disc) {
         ctx.beginPath();
-        ctx.moveTo(cx - s * 0.2, cy - s * 0.12);
-        ctx.lineTo(cx + s * 0.2, cy - s * 0.12);
-        ctx.lineTo(cx + s * 0.2, cy + s * 0.38);
-        ctx.lineTo(cx - s * 0.2, cy + s * 0.38);
+        ctx.moveTo(cx - s * 0.26, cy + s * 0.44);
+        ctx.lineTo(cx - s * 0.26, cy - s * 0.12);
+        ctx.quadraticCurveTo(cx - s * 0.26, cy - s * 0.26, cx - s * 0.13, cy - s * 0.3);
+        ctx.lineTo(cx + s * 0.13, cy - s * 0.3);
+        ctx.quadraticCurveTo(cx + s * 0.26, cy - s * 0.26, cx + s * 0.26, cy - s * 0.12);
+        ctx.lineTo(cx + s * 0.26, cy + s * 0.44);
         ctx.closePath();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - s * 0.1, cy - s * 0.12);
-        ctx.lineTo(cx - s * 0.1, cy - s * 0.34);
-        ctx.lineTo(cx + s * 0.1, cy - s * 0.34);
-        ctx.lineTo(cx + s * 0.1, cy - s * 0.12);
-        ctx.stroke();
+        ctx.fill();
+        ctx.fillRect(cx - s * 0.15, cy - s * 0.46, s * 0.3, s * 0.17);
+        ctx.save();
+        ctx.fillStyle = disc;
+        ctx.font = `bold ${Math.round(s * 0.42)}px Roboto`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('M', cx, cy + s * 0.16);
+        ctx.restore();
     },
     // Semillas de sésamo
-    sesamo(ctx, cx, cy, s) {
-        const pts = [[-0.22, -0.18], [0.2, -0.22], [-0.02, 0.02], [-0.26, 0.24], [0.22, 0.2]];
-        for (const [dx, dy] of pts) {
+    sesamo(ctx, cx, cy, s, disc) {
+        const pts = [[-0.26, -0.22, -0.5], [0.08, -0.34, 0.3], [0.3, -0.06, 0.6],
+                     [-0.12, 0.06, 0.1], [-0.3, 0.3, -0.3], [0.14, 0.28, 0.5]];
+        for (const [dx, dy, rot] of pts) {
+            petal(ctx, cx + dx * s, cy + dy * s, s * 0.16, s * 0.09, rot);
+        }
+    },
+    // Molécula SO2
+    sulfitos(ctx, cx, cy, s, disc) {
+        ctx.save();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = s * 0.1;
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.28, cy - s * 0.26);
+        ctx.lineTo(cx + s * 0.06, cy + s * 0.02);
+        ctx.lineTo(cx + s * 0.3, cy + s * 0.34);
+        ctx.stroke();
+        ctx.restore();
+        for (const [dx, dy, r] of [[-0.3, -0.28, 0.16], [0.04, 0.0, 0.19], [0.32, 0.36, 0.16]]) {
             ctx.beginPath();
-            ctx.ellipse(cx + dx * s, cy + dy * s, s * 0.12, s * 0.07, Math.PI * 0.25, 0, Math.PI * 2);
+            ctx.arc(cx + dx * s, cy + dy * s, r * s, 0, Math.PI * 2);
             ctx.fill();
         }
     },
-    // Copa de vino (sulfitos)
-    sulfitos(ctx, cx, cy, s) {
+    // Altramuz: ramita con hojas
+    altramuces(ctx, cx, cy, s, disc) {
+        ctx.fillRect(cx - s * 0.035, cy - s * 0.12, s * 0.07, s * 0.56);
+        for (let i = 0; i < 5; i++) {
+            const a = -Math.PI / 2 + (i - 2) * 0.52;
+            petal(ctx,
+                cx + Math.cos(a) * s * 0.26,
+                cy - s * 0.14 + Math.sin(a) * s * 0.26,
+                s * 0.19, s * 0.075, a);
+        }
+    },
+    // Concha de vieira
+    moluscos(ctx, cx, cy, s, disc) {
         ctx.beginPath();
-        ctx.moveTo(cx - s * 0.24, cy - s * 0.36);
-        ctx.lineTo(cx + s * 0.24, cy - s * 0.36);
-        ctx.quadraticCurveTo(cx, cy + s * 0.12, cx, cy + s * 0.12);
+        ctx.moveTo(cx - s * 0.44, cy + s * 0.2);
+        ctx.quadraticCurveTo(cx - s * 0.38, cy - s * 0.44, cx, cy - s * 0.44);
+        ctx.quadraticCurveTo(cx + s * 0.38, cy - s * 0.44, cx + s * 0.44, cy + s * 0.2);
+        ctx.quadraticCurveTo(cx, cy + s * 0.36, cx - s * 0.44, cy + s * 0.2);
         ctx.closePath();
-        ctx.stroke();
+        ctx.fill();
         ctx.beginPath();
-        ctx.moveTo(cx, cy + s * 0.12);
-        ctx.lineTo(cx, cy + s * 0.34);
-        ctx.moveTo(cx - s * 0.18, cy + s * 0.38);
-        ctx.lineTo(cx + s * 0.18, cy + s * 0.38);
-        ctx.stroke();
-    },
-    // Altramuces
-    altramuces(ctx, cx, cy, s) {
-        ctx.beginPath();
-        ctx.arc(cx, cy - s * 0.14, s * 0.17, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cx - s * 0.22, cy + s * 0.2, s * 0.17, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cx + s * 0.22, cy + s * 0.2, s * 0.17, 0, Math.PI * 2);
-        ctx.stroke();
-    },
-    // Concha (moluscos)
-    moluscos(ctx, cx, cy, s) {
-        ctx.beginPath();
-        ctx.arc(cx, cy + s * 0.22, s * 0.42, Math.PI, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - s * 0.42, cy + s * 0.22);
-        ctx.lineTo(cx + s * 0.42, cy + s * 0.22);
-        ctx.stroke();
-        for (let i = -1; i <= 1; i++) {
+        ctx.moveTo(cx - s * 0.14, cy + s * 0.26);
+        ctx.lineTo(cx + s * 0.14, cy + s * 0.26);
+        ctx.lineTo(cx, cy + s * 0.44);
+        ctx.closePath();
+        ctx.fill();
+        ctx.save();
+        ctx.strokeStyle = disc;
+        ctx.lineWidth = s * 0.055;
+        for (let i = -2; i <= 2; i++) {
             ctx.beginPath();
-            ctx.moveTo(cx + i * s * 0.02, cy + s * 0.22);
-            ctx.lineTo(cx + i * s * 0.3, cy - s * 0.14);
+            ctx.moveTo(cx + i * s * 0.045, cy + s * 0.2);
+            ctx.lineTo(cx + i * s * 0.18, cy - s * 0.36);
             ctx.stroke();
         }
+        ctx.restore();
     }
 };
 
-// El pictograma va en negro y sólo el círculo en rojo: en los e-ink tricolor
-// el negro tiene bastante más definición que el rojo, así que el dibujo fino
-// se lee y el color se reserva para la señal de alérgeno.
+// Mismo esquema que los iconos oficiales de la FSA: disco de color macizo con
+// la silueta calada en blanco. Aquí el disco va siempre rojo, porque la
+// pantalla sólo admite tres colores y el rojo es la señal de alérgeno.
 function drawAllergenIcon(ctx, code, cx, cy, size, color) {
     const draw = ALLERGEN_ICONS[code];
     ctx.save();
 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = Math.max(1, size * 0.06);
+    ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(cx, cy, size * 0.62, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.arc(cx, cy, size * 0.5, 0, Math.PI * 2);
+    ctx.fill();
 
-    ctx.strokeStyle = '#000000';
-    ctx.fillStyle = '#000000';
-    iconStroke(ctx, size);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
 
     if (draw) {
-        draw(ctx, cx, cy, size * 0.74);
+        draw(ctx, cx, cy, size * 0.62, color);
     } else {
         ctx.font = `bold ${Math.round(size * 0.7)}px Roboto`;
         ctx.textAlign = 'center';
