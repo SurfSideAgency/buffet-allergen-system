@@ -20,7 +20,22 @@ const supabase = createClient(
     process.env.SUPABASE_KEY || ''
 );
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// Sin secreto no se firma nada: este repo es público, así que un valor por
+// defecto en el código permitiría a cualquiera fabricarse un token de admin
+// válido. Si falta la variable, el panel se bloquea en vez de quedar abierto.
+const JWT_SECRET = process.env.JWT_SECRET;
+const ADMIN_ENABLED = Boolean(JWT_SECRET);
+
+if (!ADMIN_ENABLED) {
+    console.error(
+        'FALTA JWT_SECRET: el panel de administración queda deshabilitado. ' +
+        'Configúrala en las variables de entorno para reactivarlo.'
+    );
+}
+
+// Firma las URLs públicas de imagen. Usa el secreto de admin si existe y, si
+// no, la clave de Supabase, que también es secreta y estable entre instancias.
+const IMAGE_URL_SECRET = JWT_SECRET || process.env.SUPABASE_KEY || 'sin-secreto';
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -147,8 +162,15 @@ async function checkLicenseWithDevice(req, res, next) {
 }
 
 async function checkAdmin(req, res, next) {
+    if (!ADMIN_ENABLED) {
+        return res.status(503).json({
+            success: false,
+            error: 'Panel de administración no disponible: falta configurar JWT_SECRET'
+        });
+    }
+
     const token = req.headers['authorization']?.replace('Bearer ', '');
-    
+
     if (!token) {
         return res.status(401).json({ 
             success: false, 
@@ -347,6 +369,13 @@ app.post('/api/license/verify-with-device', async (req, res) => {
 
 app.post('/api/admin/login', async (req, res) => {
     try {
+        if (!ADMIN_ENABLED) {
+            return res.status(503).json({
+                success: false,
+                error: 'Panel de administración no disponible: falta configurar JWT_SECRET'
+            });
+        }
+
         const { username, password } = req.body;
 
         const { data: admin, error } = await supabase
@@ -906,7 +935,7 @@ async function sertagLogin() {
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://buffet-allergen-system.vercel.app';
 
 function screenImageToken(mac) {
-    return crypto.createHmac('sha256', JWT_SECRET).update(mac).digest('hex').slice(0, 16);
+    return crypto.createHmac('sha256', IMAGE_URL_SECRET).update(mac).digest('hex').slice(0, 16);
 }
 
 function screenImageUrl(mac) {
@@ -1683,64 +1712,6 @@ app.get('/api/screens/:mac/status', checkLicenseWithDevice, async (req, res) => 
 });
 
 // DEBUG: Ver la imagen generada directamente, sin pasar por Sertag
-// DEBUG: prueba formatos de imgsrc contra Sertag sin tener que redesplegar.
-// mode: url | base64 | datauri | custom (imgsrc a pelo en el body)
-app.post('/api/screens/:mac/test-push', checkLicenseWithDevice, async (req, res) => {
-    try {
-        const { mac } = req.params;
-        const { mode = 'url', imgsrc: customImgsrc } = req.body;
-
-        const { data: screen } = await supabase
-            .from('esl_screens')
-            .select('current_dish_id')
-            .eq('mac', mac)
-            .eq('establishment_id', req.establishment.id)
-            .single();
-
-        if (!screen?.current_dish_id) {
-            return res.status(400).json({ success: false, error: 'Pantalla sin plato asignado' });
-        }
-
-        const { data: dish } = await supabase
-            .from('dishes').select('*').eq('id', screen.current_dish_id).single();
-        const { data: allergens } = await supabase
-            .rpc('get_dish_allergens', { dish_id_param: screen.current_dish_id });
-
-        const buffer = generateScreenImage(dish, allergens || []);
-        const base64 = buffer.toString('base64');
-
-        let imgsrc;
-        if (mode === 'custom') imgsrc = customImgsrc;
-        else if (mode === 'base64') imgsrc = base64;
-        else if (mode === 'datauri') imgsrc = `data:image/jpeg;base64,${base64}`;
-        else imgsrc = screenImageUrl(mac);
-
-        const token = await sertagLogin();
-        const sertagRes = await fetch(
-            `${process.env.SERTAG_API_BASE}/user/api/mqtt/publish/${mac}/display`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({
-                    algorithm: process.env.SERTAG_DITHER_ALGORITHM || 'floyd-steinberg',
-                    imgsrc
-                })
-            }
-        );
-
-        res.json({
-            success: true,
-            mode,
-            imgsrcPreview: imgsrc.slice(0, 90),
-            imgsrcLength: imgsrc.length,
-            sertagResponse: await sertagRes.json()
-        });
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
 app.get('/api/screens/:mac/preview', checkLicenseWithDevice, async (req, res) => {
     try {
         const { data: dish } = await supabase
