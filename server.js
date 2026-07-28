@@ -877,6 +877,13 @@ function generateScreenImage(dish, allergens) {
         const colWidth = contentWidth / cols;
         const iconGap = Math.max(6, iconSize * 0.28);
 
+        // La guía de la FSA fija 0,6 cm como tamaño mínimo para que un icono
+        // de alérgeno sea legible. Esta pantalla tiene ~47 px/cm, así que por
+        // debajo de 28 px el pictograma no cumple: con muchos alérgenos se
+        // sustituye por un cuadro rojo, y el nombre (que es lo que exige la
+        // norma) gana el sitio.
+        const drawIcons = iconSize >= 28;
+
         // Si sobra sitio (platos con pocos alérgenos) centramos el bloque en
         // vertical en vez de dejarlo pegado arriba con media pantalla vacía.
         const blockTop = y + Math.max(0, (available - rows * rowHeight) / 2);
@@ -890,15 +897,24 @@ function generateScreenImage(dish, allergens) {
             const x = SCREEN_MARGIN + col * colWidth;
             const rowY = blockTop + row * rowHeight + rowHeight / 2;
 
-            drawAllergenIcon(ctx, code, x + iconSize / 2, rowY, iconSize, '#FF0000');
+            let markWidth;
+            if (drawIcons) {
+                drawAllergenIcon(ctx, code, x + iconSize / 2, rowY, iconSize, '#FF0000');
+                markWidth = iconSize;
+            } else {
+                const bullet = Math.max(8, Math.round(fontSize * 0.8));
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(x, Math.round(rowY - bullet / 2), bullet, bullet);
+                markWidth = bullet;
+            }
 
             ctx.fillStyle = '#000000';
             ctx.font = `bold ${fontSize}px Roboto`;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
 
-            const textX = x + iconSize + iconGap;
-            const maxTextWidth = colWidth - iconSize - iconGap - 6;
+            const textX = x + markWidth + iconGap;
+            const maxTextWidth = colWidth - markWidth - iconGap - 6;
             let label = ALLERGENS[code].name;
             while (label.length > 3 && ctx.measureText(label).width > maxTextWidth) {
                 label = label.slice(0, -1);
