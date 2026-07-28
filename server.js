@@ -1581,6 +1581,64 @@ app.get('/api/screens/:mac/status', checkLicenseWithDevice, async (req, res) => 
 });
 
 // DEBUG: Ver la imagen generada directamente, sin pasar por Sertag
+// DEBUG: prueba formatos de imgsrc contra Sertag sin tener que redesplegar.
+// mode: url | base64 | datauri | custom (imgsrc a pelo en el body)
+app.post('/api/screens/:mac/test-push', checkLicenseWithDevice, async (req, res) => {
+    try {
+        const { mac } = req.params;
+        const { mode = 'url', imgsrc: customImgsrc } = req.body;
+
+        const { data: screen } = await supabase
+            .from('esl_screens')
+            .select('current_dish_id')
+            .eq('mac', mac)
+            .eq('establishment_id', req.establishment.id)
+            .single();
+
+        if (!screen?.current_dish_id) {
+            return res.status(400).json({ success: false, error: 'Pantalla sin plato asignado' });
+        }
+
+        const { data: dish } = await supabase
+            .from('dishes').select('*').eq('id', screen.current_dish_id).single();
+        const { data: allergens } = await supabase
+            .rpc('get_dish_allergens', { dish_id_param: screen.current_dish_id });
+
+        const buffer = generateScreenImage(dish, allergens || []);
+        const base64 = buffer.toString('base64');
+
+        let imgsrc;
+        if (mode === 'custom') imgsrc = customImgsrc;
+        else if (mode === 'base64') imgsrc = base64;
+        else if (mode === 'datauri') imgsrc = `data:image/jpeg;base64,${base64}`;
+        else imgsrc = screenImageUrl(mac);
+
+        const token = await sertagLogin();
+        const sertagRes = await fetch(
+            `${process.env.SERTAG_API_BASE}/user/api/mqtt/publish/${mac}/display`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                    algorithm: process.env.SERTAG_DITHER_ALGORITHM || 'floyd-steinberg',
+                    imgsrc
+                })
+            }
+        );
+
+        res.json({
+            success: true,
+            mode,
+            imgsrcPreview: imgsrc.slice(0, 90),
+            imgsrcLength: imgsrc.length,
+            sertagResponse: await sertagRes.json()
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.get('/api/screens/:mac/preview', checkLicenseWithDevice, async (req, res) => {
     try {
         const { data: dish } = await supabase
