@@ -666,69 +666,137 @@ const SCREEN_HEIGHT = 300;
 const SCREEN_MARGIN = 16;
 const SCREEN_BOTTOM_LIMIT = SCREEN_HEIGHT - 12;
 
+// Parte el texto en líneas que quepan en maxWidth con la fuente ya fijada.
+function splitIntoLines(ctx, text, maxWidth) {
+    const lines = [];
+    let line = '';
+    for (const word of String(text).split(/\s+/)) {
+        const test = line ? `${line} ${word}` : word;
+        if (line && ctx.measureText(test).width > maxWidth) {
+            lines.push(line);
+            line = word;
+        } else {
+            line = test;
+        }
+    }
+    if (line) lines.push(line);
+    return lines;
+}
+
+// Busca la fuente más grande con la que el texto cabe en maxLines.
+function fitText(ctx, text, maxWidth, maxLines, maxSize, minSize) {
+    for (let size = maxSize; size >= minSize; size -= 1) {
+        ctx.font = `bold ${size}px Roboto`;
+        const lines = splitIntoLines(ctx, text, maxWidth);
+        if (lines.length <= maxLines) return { size, lines };
+    }
+    ctx.font = `bold ${minSize}px Roboto`;
+    const lines = splitIntoLines(ctx, text, maxWidth).slice(0, maxLines);
+    const last = lines.length - 1;
+    while (lines[last] && ctx.measureText(lines[last] + '…').width > maxWidth) {
+        lines[last] = lines[last].slice(0, -1).trimEnd();
+    }
+    if (lines[last]) lines[last] += '…';
+    return { size: minSize, lines };
+}
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+// El tamaño de letra se calcula a partir del contenido para aprovechar toda
+// la pantalla: en un buffet la etiqueta se lee de lejos, así que un plato con
+// pocos alérgenos debe salir en grande y no apelotonado arriba.
 function generateScreenImage(dish, allergens) {
     const canvas = createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT);
     const ctx = canvas.getContext('2d', { alpha: false });
     ctx.textAlign = 'left';
-    ctx.textRendering = 'optimizeLegibility';
+    ctx.textRendering = 'geometricPrecision';
     ctx.fontKerning = 'normal';
 
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
+    const contentWidth = SCREEN_WIDTH - SCREEN_MARGIN * 2;
+    const codes = (allergens || []).filter(c => ALLERGENS[c]);
+    const traces = (dish.traces || []).filter(c => ALLERGENS[c]);
+
+    // --- Título ---
+    const title = fitText(ctx, dish.name, contentWidth, 2, 34, 17);
+    const titleLineHeight = Math.round(title.size * 1.18);
+    let y = SCREEN_MARGIN + title.size;
+
     ctx.fillStyle = '#000000';
-    const titleEndY = wrapText(ctx, dish.name, SCREEN_MARGIN, 38, SCREEN_WIDTH - SCREEN_MARGIN * 2, 32, {
-        font: 'bold 26px Roboto',
-        maxLines: 2
-    });
-
-    let y = Math.max(110, titleEndY + 24);
-
-    if (allergens && allergens.length > 0) {
-        ctx.fillStyle = '#FF0000';
-        ctx.font = 'bold 17px Roboto';
-        ctx.fillText('Contiene:', SCREEN_MARGIN, y);
-        y += 28;
-
-        ctx.font = 'bold 16px Roboto';
-        for (let i = 0; i < allergens.length; i++) {
-            const a = ALLERGENS[allergens[i]];
-            if (!a) continue;
-
-            if (y > SCREEN_BOTTOM_LIMIT - 18) {
-                ctx.fillStyle = '#000000';
-                ctx.font = '13px Roboto';
-                ctx.fillText(`+ ${allergens.length - i} más`, SCREEN_MARGIN, y);
-                y += 18;
-                allergens = allergens.slice(0, i);
-                break;
-            }
-
-            ctx.fillStyle = '#FF0000';
-            ctx.fillRect(SCREEN_MARGIN, y - 13, 13, 13);
-            ctx.fillStyle = '#000000';
-            ctx.fillText(a.name, SCREEN_MARGIN + 20, y);
-            y += 24;
-        }
-    } else {
-        ctx.fillStyle = '#000000';
-        ctx.font = 'bold 18px Roboto';
-        ctx.fillText('Sin alergenos', SCREEN_MARGIN, y);
-        y += 24;
+    for (const line of title.lines) {
+        ctx.fillText(line, SCREEN_MARGIN, y);
+        y += titleLineHeight;
     }
 
-    if (dish.traces && dish.traces.length > 0 && y <= SCREEN_BOTTOM_LIMIT - 14) {
-        y += 8;
+    y = y - titleLineHeight + title.size * 0.45;
+    ctx.fillRect(SCREEN_MARGIN, y, contentWidth, 3);
+    y += 3;
+
+    // --- Reserva para las trazas, que van ancladas abajo ---
+    let tracesBlock = null;
+    if (traces.length > 0) {
+        const text = 'Trazas: ' + traces.map(c => ALLERGENS[c].name).join(', ');
+        const fitted = fitText(ctx, text, contentWidth, 2, 16, 12);
+        const lineHeight = Math.round(fitted.size * 1.25);
+        tracesBlock = { ...fitted, lineHeight, height: fitted.lines.length * lineHeight + 8 };
+    }
+
+    const bottomLimit = SCREEN_HEIGHT - SCREEN_MARGIN - (tracesBlock ? tracesBlock.height : 0);
+
+    // --- Alérgenos ---
+    if (codes.length > 0) {
+        const headerSize = clamp(Math.round((bottomLimit - y) * 0.12), 15, 22);
+        ctx.font = `bold ${headerSize}px Roboto`;
+        ctx.fillStyle = '#FF0000';
+        y += headerSize + 10;
+        ctx.fillText('CONTIENE', SCREEN_MARGIN, y);
+        y += 10;
+
+        const cols = codes.length > 7 ? 2 : 1;
+        const rows = Math.ceil(codes.length / cols);
+        const available = bottomLimit - y;
+        const rowHeight = clamp(available / rows, 18, 56);
+        const fontSize = clamp(Math.round(rowHeight * 0.56), 13, 32);
+        const bullet = Math.round(fontSize * 0.78);
+        const colWidth = contentWidth / cols;
+
+        // Si sobra sitio (platos con pocos alérgenos) centramos el bloque en
+        // vertical en vez de dejarlo pegado arriba con media pantalla vacía.
+        const blockTop = y + Math.max(0, (available - rows * rowHeight) / 2);
+
+        ctx.font = `bold ${fontSize}px Roboto`;
+
+        codes.forEach((code, i) => {
+            const col = Math.floor(i / rows);
+            const row = i % rows;
+            const x = SCREEN_MARGIN + col * colWidth;
+            const rowY = blockTop + row * rowHeight + rowHeight / 2;
+
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(x, Math.round(rowY - bullet * 0.78), bullet, bullet);
+            ctx.fillStyle = '#000000';
+            ctx.fillText(ALLERGENS[code].name, x + bullet + 8, rowY);
+        });
+    } else {
+        const fitted = fitText(ctx, 'SIN ALERGENOS', contentWidth, 1, 40, 20);
+        ctx.font = `bold ${fitted.size}px Roboto`;
         ctx.fillStyle = '#000000';
-        wrapText(
-            ctx,
-            'Trazas: ' + dish.traces.map(t => ALLERGENS[t]?.name || t).join(', '),
-            SCREEN_MARGIN,
-            y,
-            SCREEN_WIDTH - SCREEN_MARGIN * 2,
-            16,
-            { font: 'bold 13px Roboto', maxLines: 2, maxY: SCREEN_BOTTOM_LIMIT }
-        );
+        ctx.textBaseline = 'middle';
+        ctx.fillText('SIN ALERGENOS', SCREEN_MARGIN, y + (bottomLimit - y) / 2);
+        ctx.textBaseline = 'alphabetic';
+    }
+
+    // --- Trazas ---
+    if (tracesBlock) {
+        ctx.font = `bold ${tracesBlock.size}px Roboto`;
+        ctx.fillStyle = '#000000';
+        let ty = SCREEN_HEIGHT - SCREEN_MARGIN - (tracesBlock.lines.length - 1) * tracesBlock.lineHeight;
+        for (const line of tracesBlock.lines) {
+            ctx.fillText(line, SCREEN_MARGIN, ty);
+            ty += tracesBlock.lineHeight;
+        }
     }
 
     // La pantalla solo tiene blanco, negro y rojo. Fijamos cada píxel a uno
