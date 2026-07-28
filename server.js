@@ -318,7 +318,11 @@ app.get('/api/system-status', async (req, res) => {
                 translation: 'enabled',
                 traces: 'enabled',
                 licenses: 'enabled',
-                deviceControl: 'enabled'
+                deviceControl: 'enabled',
+                // La app oculta el escáner de etiquetas si esto es false, para
+                // no ofrecer un botón que sólo devolvería un error. En cuanto
+                // se configure OPENAI_API_KEY aparece solo, sin tocar código.
+                labelScanner: Boolean(process.env.OPENAI_API_KEY) ? 'enabled' : 'disabled'
             }
         });
     } catch (error) {

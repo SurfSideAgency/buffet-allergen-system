@@ -567,7 +567,7 @@ oninput="filterIngredients()"
 <div class="bg-white rounded-2xl shadow-sm p-6">
 <h3 class="text-xl font-bold text-gray-800 mb-4">➕ Añadir Ingrediente</h3>
 
-<div style="background: #EFF6FF; border: 2px solid var(--color-secondary);" class="rounded-lg p-4 mb-4">
+<div id="labelScannerBlock" style="background: #EFF6FF; border: 2px solid var(--color-secondary);" class="rounded-lg p-4 mb-4">
 <label class="block text-sm font-bold mb-2" style="color: var(--color-primary);">📷 Escanear Etiqueta de Producto</label>
 <p class="text-xs mb-3 text-gray-600">Haz una foto a la etiqueta y la IA rellena el formulario de abajo (revísalo antes de guardar)</p>
 <input type="file" id="labelPhotoInput" accept="image/*" capture="environment" class="hidden" onchange="scanIngredientLabel(this.files[0])">
@@ -657,7 +657,24 @@ class="flex-1 min-w-64 px-4 py-3 border-2 border-gray-200 rounded-lg focus:borde
 `;
 
 generateTracesCheckboxes();
+await applyServerFeatures();
 await loadAllIngredients();
+}
+
+// El escáner de etiquetas necesita IA configurada en el servidor. Si no la
+// hay, se oculta el botón: mejor no ofrecer la función que enseñar un botón
+// que sólo devuelve un error.
+async function applyServerFeatures() {
+try {
+const response = await fetch('/api/system-status');
+const data = await response.json();
+const scanner = document.getElementById('labelScannerBlock');
+if (scanner && data.features?.labelScanner !== 'enabled') {
+scanner.classList.add('hidden');
+}
+} catch (error) {
+console.error('No se pudo consultar el estado del servidor:', error);
+}
 }
 
 function generateTracesCheckboxes() {
