@@ -1162,19 +1162,28 @@ const ALLERGEN_ICONS = {
 
 // Dibuja el pictograma dentro de un círculo, al estilo de los iconos de
 // alérgenos que se usan en hostelería.
+// El disco va macizo y el pictograma calado en blanco: en tinta electrónica
+// las masas sólidas se leen mucho mejor que los trazos finos, que quedan
+// deslavados a distancia.
 function drawAllergenIcon(ctx, code, cx, cy, size, color) {
     const draw = ALLERGEN_ICONS[code];
     ctx.save();
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    iconStroke(ctx, size);
 
+    ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(cx, cy, size * 0.62, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.fill();
+
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.fillStyle = '#FFFFFF';
+    // Trazo algo más grueso que en versión calada, para que el blanco no se
+    // cierre al reducir la imagen a tres colores.
+    ctx.lineWidth = Math.max(2, size * 0.11);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
 
     if (draw) {
-        draw(ctx, cx, cy, size * 0.78);
+        draw(ctx, cx, cy, size * 0.7);
     } else {
         ctx.font = `bold ${Math.round(size * 0.7)}px Roboto`;
         ctx.textAlign = 'center';
