@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { createClient } = require('@supabase/supabase-js');
@@ -179,6 +180,50 @@ app.get('/admin', (req, res) => {
 
 app.get('/activation', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'activation.html'));
+});
+
+// Pública a propósito: la descarga el servidor de Sertag, que no puede
+// enviar cabeceras de licencia. Va firmada con HMAC para que no se pueda
+// enumerar por MAC, y solo expone el plato ya visible en el buffet.
+app.get('/api/public/screen-image/:mac/:token', async (req, res) => {
+    try {
+        const { mac, token } = req.params;
+
+        if (token !== screenImageToken(mac)) {
+            return res.status(403).send('Token inválido');
+        }
+
+        const { data: screen } = await supabase
+            .from('esl_screens')
+            .select('current_dish_id')
+            .eq('mac', mac)
+            .single();
+
+        if (!screen || !screen.current_dish_id) {
+            return res.status(404).send('Pantalla sin plato asignado');
+        }
+
+        const { data: dish } = await supabase
+            .from('dishes')
+            .select('*')
+            .eq('id', screen.current_dish_id)
+            .single();
+
+        if (!dish) return res.status(404).send('Plato no encontrado');
+
+        const { data: allergens } = await supabase
+            .rpc('get_dish_allergens', { dish_id_param: screen.current_dish_id });
+
+        const imageBuffer = generateScreenImage(dish, allergens || []);
+
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Content-Length', imageBuffer.length);
+        res.setHeader('Cache-Control', 'no-store');
+        res.send(imageBuffer);
+    } catch (error) {
+        console.error('Error sirviendo imagen de pantalla:', error);
+        res.status(500).send('Error generando la imagen');
+    }
 });
 
 app.get('/api/system-status', async (req, res) => {
@@ -751,11 +796,24 @@ async function sertagLogin() {
     return json.data?.token;
 }
 
-async function pushToScreen(mac, imageBuffer) {
+// El manual de Sertag (4.6) admite en imgsrc tanto base64 como una URL de
+// descarga, pero todos sus ejemplos usan URL y el base64 no funciona contra
+// este servidor: acepta la petición (code 20000) y nunca genera el binFile,
+// así que el dispositivo parpadea sin llegar a repintar. Le damos una URL
+// pública firmada para que la descargue él.
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://buffet-allergen-system.vercel.app';
+
+function screenImageToken(mac) {
+    return crypto.createHmac('sha256', JWT_SECRET).update(mac).digest('hex').slice(0, 16);
+}
+
+function screenImageUrl(mac) {
+    return `${PUBLIC_BASE_URL}/api/public/screen-image/${encodeURIComponent(mac)}/${screenImageToken(mac)}?v=${Date.now()}`;
+}
+
+async function pushToScreen(mac) {
     const token = await sertagLogin();
     if (!token) throw new Error('No se pudo autenticar con Sertag');
-
-    const base64Image = imageBuffer.toString('base64');
 
     const res = await fetch(
         `${process.env.SERTAG_API_BASE}/user/api/mqtt/publish/${mac}/display`,
@@ -767,7 +825,7 @@ async function pushToScreen(mac, imageBuffer) {
             },
             body: JSON.stringify({
                 algorithm: process.env.SERTAG_DITHER_ALGORITHM || 'floyd-steinberg',
-                imgsrc: base64Image
+                imgsrc: screenImageUrl(mac)
             })
         }
     );
@@ -1565,11 +1623,9 @@ app.put('/api/screens/:mac/assign', checkLicenseWithDevice, async (req, res) => 
 
         if (dishError) throw dishError;
 
-        const { data: allergens } = await supabase
-            .rpc('get_dish_allergens', { dish_id_param: dishId });
-
-        const imageBuffer = generateScreenImage(dish, allergens || []);
-        const pushResult = await pushToScreen(mac, imageBuffer);
+        // La imagen ya no se envía aquí: Sertag la descarga de la URL
+        // pública firmada, que la genera con el plato asignado arriba.
+        const pushResult = await pushToScreen(mac);
 
         res.json({ success: true, screen, pushResult });
     } catch (error) {
@@ -1590,11 +1646,7 @@ app.post('/api/screens/refresh-all', checkLicenseWithDevice, async (req, res) =>
 
         const results = [];
         for (const screen of screens) {
-            const { data: allergens } = await supabase
-                .rpc('get_dish_allergens', { dish_id_param: screen.current_dish_id });
-
-            const imageBuffer = generateScreenImage(screen.dish, allergens || []);
-            const pushResult = await pushToScreen(screen.mac, imageBuffer);
+            const pushResult = await pushToScreen(screen.mac);
             results.push({ mac: screen.mac, pushResult });
 
             await new Promise(r => setTimeout(r, 300));
