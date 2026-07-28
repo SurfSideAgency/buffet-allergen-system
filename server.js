@@ -796,11 +796,12 @@ async function sertagLogin() {
     return json.data?.token;
 }
 
-// El manual de Sertag (4.6) admite en imgsrc tanto base64 como una URL de
-// descarga, pero todos sus ejemplos usan URL y el base64 no funciona contra
-// este servidor: acepta la petición (code 20000) y nunca genera el binFile,
-// así que el dispositivo parpadea sin llegar a repintar. Le damos una URL
-// pública firmada para que la descargue él.
+// imgsrc DEBE llevar el prefijo data URI. Comprobado contra el dispositivo
+// real: con base64 "a pelo" (como documenta el manual) la API responde 20000
+// pero descarta la imagen sin más; con una URL de descarga la guarda en
+// imageFile y nunca llega a bajarla. Solo con "data:image/jpeg;base64,..."
+// Sertag la decodifica y genera el thumb en su servidor, que es el mismo
+// estado que deja una subida manual desde el software oficial.
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://buffet-allergen-system.vercel.app';
 
 function screenImageToken(mac) {
@@ -811,7 +812,7 @@ function screenImageUrl(mac) {
     return `${PUBLIC_BASE_URL}/api/public/screen-image/${encodeURIComponent(mac)}/${screenImageToken(mac)}?v=${Date.now()}`;
 }
 
-async function pushToScreen(mac) {
+async function pushToScreen(mac, imageBuffer) {
     const token = await sertagLogin();
     if (!token) throw new Error('No se pudo autenticar con Sertag');
 
@@ -825,7 +826,7 @@ async function pushToScreen(mac) {
             },
             body: JSON.stringify({
                 algorithm: process.env.SERTAG_DITHER_ALGORITHM || 'floyd-steinberg',
-                imgsrc: screenImageUrl(mac)
+                imgsrc: `data:image/jpeg;base64,${imageBuffer.toString('base64')}`
             })
         }
     );
@@ -1681,9 +1682,11 @@ app.put('/api/screens/:mac/assign', checkLicenseWithDevice, async (req, res) => 
 
         if (dishError) throw dishError;
 
-        // La imagen ya no se envía aquí: Sertag la descarga de la URL
-        // pública firmada, que la genera con el plato asignado arriba.
-        const pushResult = await pushToScreen(mac);
+        const { data: allergens } = await supabase
+            .rpc('get_dish_allergens', { dish_id_param: dishId });
+
+        const imageBuffer = generateScreenImage(dish, allergens || []);
+        const pushResult = await pushToScreen(mac, imageBuffer);
 
         res.json({ success: true, screen, pushResult });
     } catch (error) {
@@ -1704,7 +1707,11 @@ app.post('/api/screens/refresh-all', checkLicenseWithDevice, async (req, res) =>
 
         const results = [];
         for (const screen of screens) {
-            const pushResult = await pushToScreen(screen.mac);
+            const { data: allergens } = await supabase
+                .rpc('get_dish_allergens', { dish_id_param: screen.current_dish_id });
+
+            const imageBuffer = generateScreenImage(screen.dish, allergens || []);
+            const pushResult = await pushToScreen(screen.mac, imageBuffer);
             results.push({ mac: screen.mac, pushResult });
 
             await new Promise(r => setTimeout(r, 300));
