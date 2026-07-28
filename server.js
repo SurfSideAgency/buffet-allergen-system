@@ -216,7 +216,7 @@ app.get('/api/public/screen-image/:mac/:token', async (req, res) => {
 
         const imageBuffer = generateScreenImage(dish, allergens || []);
 
-        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Content-Type', 'image/png');
         res.setHeader('Content-Length', imageBuffer.length);
         res.setHeader('Cache-Control', 'no-store');
         res.send(imageBuffer);
@@ -731,12 +731,45 @@ function generateScreenImage(dish, allergens) {
         );
     }
 
-    // IMPORTANTE: el backend de Sertag solo decodifica JPEG en imgsrc.
-    // Con PNG (probado truecolor e indexado) responde 20000 pero descarta
-    // la imagen en silencio y la pantalla nunca se actualiza. Verificado
-    // contra el historial: el push dejó de funcionar en el commit exacto
-    // que cambió image/jpeg por image/png (18245f0, 18-jul).
-    return canvas.toBuffer('image/jpeg', 0.92);
+    // La pantalla solo tiene blanco, negro y rojo. Fijamos cada píxel a uno
+    // de los tres antes de codificar: el antialiasing de las fuentes deja
+    // grises que el dithering de Sertag convierte en ruido, y eso es lo que
+    // hacía que el texto se viera "comido" en el dispositivo.
+    quantizeToScreenPalette(ctx);
+
+    // PNG y no JPEG: sin pérdidas, así los bordes del texto llegan limpios.
+    // (Ambos formatos funcionan siempre que imgsrc lleve el prefijo data URI.)
+    return canvas.toBuffer('image/png');
+}
+
+const SCREEN_PALETTE = [
+    [255, 255, 255], // blanco
+    [0, 0, 0],       // negro
+    [255, 0, 0]      // rojo
+];
+
+function quantizeToScreenPalette(ctx) {
+    const image = ctx.getImageData(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    const d = image.data;
+
+    for (let i = 0; i < d.length; i += 4) {
+        let best = 0;
+        let bestDist = Infinity;
+        for (let p = 0; p < SCREEN_PALETTE.length; p++) {
+            const [pr, pg, pb] = SCREEN_PALETTE[p];
+            const dist = (d[i] - pr) ** 2 + (d[i + 1] - pg) ** 2 + (d[i + 2] - pb) ** 2;
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = p;
+            }
+        }
+        d[i] = SCREEN_PALETTE[best][0];
+        d[i + 1] = SCREEN_PALETTE[best][1];
+        d[i + 2] = SCREEN_PALETTE[best][2];
+        d[i + 3] = 255;
+    }
+
+    ctx.putImageData(image, 0, 0);
 }
 
 // Envuelve texto respetando maxLines/maxY; trunca con "…" si no cabe.
@@ -797,11 +830,11 @@ async function sertagLogin() {
 }
 
 // imgsrc DEBE llevar el prefijo data URI. Comprobado contra el dispositivo
-// real: con base64 "a pelo" (como documenta el manual) la API responde 20000
-// pero descarta la imagen sin más; con una URL de descarga la guarda en
-// imageFile y nunca llega a bajarla. Solo con "data:image/jpeg;base64,..."
-// Sertag la decodifica y genera el thumb en su servidor, que es el mismo
-// estado que deja una subida manual desde el software oficial.
+// real: con base64 "a pelo" (que es como lo documenta el manual) la API
+// responde 20000 pero descarta la imagen sin más; con una URL de descarga la
+// guarda en imageFile y nunca llega a bajarla. Solo con "data:image/...;base64,"
+// la decodifica y genera el thumb en su servidor, que es el mismo estado que
+// deja una subida manual desde el software oficial. Sirve tanto PNG como JPEG.
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://buffet-allergen-system.vercel.app';
 
 function screenImageToken(mac) {
@@ -826,7 +859,7 @@ async function pushToScreen(mac, imageBuffer) {
             },
             body: JSON.stringify({
                 algorithm: process.env.SERTAG_DITHER_ALGORITHM || 'floyd-steinberg',
-                imgsrc: `data:image/jpeg;base64,${imageBuffer.toString('base64')}`
+                imgsrc: `data:image/png;base64,${imageBuffer.toString("base64")}`
             })
         }
     );
