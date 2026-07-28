@@ -954,209 +954,256 @@ function iconStroke(ctx, s) {
 
 const ALLERGEN_ICONS = {
     // Espiga de trigo
-    gluten(ctx, cx, cy, s) {
-        const h = s * 0.42;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy + h);
-        ctx.lineTo(cx, cy - h);
-        ctx.stroke();
+    gluten(ctx, cx, cy, s, detail) {
+        ctx.fillRect(cx - s * 0.04, cy - s * 0.34, s * 0.08, s * 0.78);
         for (let i = 0; i < 4; i++) {
-            const y = cy - h + s * 0.16 + i * s * 0.19;
-            const w = s * 0.3;
-            ctx.beginPath();
-            ctx.moveTo(cx, y + s * 0.1);
-            ctx.quadraticCurveTo(cx - w, y + s * 0.04, cx - w * 0.85, y - s * 0.1);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx, y + s * 0.1);
-            ctx.quadraticCurveTo(cx + w, y + s * 0.04, cx + w * 0.85, y - s * 0.1);
-            ctx.stroke();
+            const y = cy - s * 0.34 + i * s * 0.2;
+            for (const dir of [-1, 1]) {
+                ctx.beginPath();
+                ctx.ellipse(cx + dir * s * 0.19, y + s * 0.04, s * 0.17, s * 0.085,
+                    dir * -Math.PI * 0.28, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
-    },
-    // Gamba: cuerpo en coma con segmentos, cola en abanico y antenas
-    crustaceos(ctx, cx, cy, s) {
         ctx.beginPath();
-        ctx.moveTo(cx + s * 0.34, cy - s * 0.24);
-        ctx.quadraticCurveTo(cx - s * 0.22, cy - s * 0.34, cx - s * 0.3, cy + s * 0.06);
-        ctx.quadraticCurveTo(cx - s * 0.34, cy + s * 0.38, cx + s * 0.02, cy + s * 0.34);
-        ctx.stroke();
-
-        for (let i = 0; i < 3; i++) {
-            const t = 0.2 + i * 0.22;
-            ctx.beginPath();
-            ctx.moveTo(cx + s * (0.16 - t * 0.9), cy - s * (0.28 - t * 0.5));
-            ctx.lineTo(cx + s * (0.05 - t * 0.55), cy + s * (0.02 + t * 0.25));
-            ctx.stroke();
-        }
-
+        ctx.ellipse(cx, cy - s * 0.42, s * 0.09, s * 0.16, 0, 0, Math.PI * 2);
+        ctx.fill();
+    },
+    // Gamba
+    crustaceos(ctx, cx, cy, s, detail) {
+        ctx.beginPath();
+        ctx.moveTo(cx + s * 0.3, cy - s * 0.3);
+        ctx.quadraticCurveTo(cx - s * 0.3, cy - s * 0.34, cx - s * 0.32, cy + s * 0.06);
+        ctx.quadraticCurveTo(cx - s * 0.33, cy + s * 0.4, cx + s * 0.06, cy + s * 0.36);
+        ctx.quadraticCurveTo(cx - s * 0.12, cy + s * 0.18, cx - s * 0.1, cy + s * 0.02);
+        ctx.quadraticCurveTo(cx - s * 0.08, cy - s * 0.16, cx + s * 0.3, cy - s * 0.12);
+        ctx.closePath();
+        ctx.fill();
         // Cola en abanico
         ctx.beginPath();
-        ctx.moveTo(cx + s * 0.34, cy - s * 0.24);
-        ctx.lineTo(cx + s * 0.46, cy - s * 0.42);
-        ctx.moveTo(cx + s * 0.34, cy - s * 0.24);
-        ctx.lineTo(cx + s * 0.5, cy - s * 0.16);
-        ctx.stroke();
-
-        // Antenas
-        ctx.beginPath();
-        ctx.moveTo(cx + s * 0.02, cy + s * 0.34);
-        ctx.quadraticCurveTo(cx + s * 0.3, cy + s * 0.42, cx + s * 0.42, cy + s * 0.22);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(cx - s * 0.16, cy + s * 0.24, s * 0.05, 0, Math.PI * 2);
+        ctx.moveTo(cx + s * 0.26, cy - s * 0.32);
+        ctx.lineTo(cx + s * 0.48, cy - s * 0.44);
+        ctx.lineTo(cx + s * 0.46, cy - s * 0.06);
+        ctx.lineTo(cx + s * 0.26, cy - s * 0.1);
+        ctx.closePath();
         ctx.fill();
+        // Segmentos calados
+        ctx.save();
+        ctx.strokeStyle = detail;
+        ctx.lineWidth = Math.max(1.5, s * 0.07);
+        for (let i = 0; i < 3; i++) {
+            const t = -0.16 + i * 0.15;
+            ctx.beginPath();
+            ctx.moveTo(cx + s * t, cy - s * 0.26);
+            ctx.lineTo(cx + s * (t - 0.06), cy - s * 0.02);
+            ctx.stroke();
+        }
+        ctx.restore();
     },
-    // Huevo: ovoide, más estrecho arriba
-    huevos(ctx, cx, cy, s) {
+    // Huevo
+    huevos(ctx, cx, cy, s, detail) {
         ctx.beginPath();
-        ctx.moveTo(cx, cy - s * 0.44);
-        ctx.bezierCurveTo(cx + s * 0.3, cy - s * 0.36, cx + s * 0.38, cy + s * 0.1, cx, cy + s * 0.42);
-        ctx.bezierCurveTo(cx - s * 0.38, cy + s * 0.1, cx - s * 0.3, cy - s * 0.36, cx, cy - s * 0.44);
+        ctx.moveTo(cx, cy - s * 0.46);
+        ctx.bezierCurveTo(cx + s * 0.34, cy - s * 0.36, cx + s * 0.4, cy + s * 0.14, cx, cy + s * 0.44);
+        ctx.bezierCurveTo(cx - s * 0.4, cy + s * 0.14, cx - s * 0.34, cy - s * 0.36, cx, cy - s * 0.46);
+        ctx.closePath();
+        ctx.fill();
+        ctx.save();
+        ctx.strokeStyle = detail;
+        ctx.lineWidth = Math.max(1.5, s * 0.075);
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.26, cy + s * 0.04);
+        ctx.lineTo(cx - s * 0.06, cy - s * 0.06);
+        ctx.lineTo(cx + s * 0.06, cy + s * 0.08);
+        ctx.lineTo(cx + s * 0.26, cy - s * 0.04);
         ctx.stroke();
+        ctx.restore();
     },
     // Pez
-    pescado(ctx, cx, cy, s) {
+    pescado(ctx, cx, cy, s, detail) {
         ctx.beginPath();
-        ctx.moveTo(cx - s * 0.18, cy);
-        ctx.quadraticCurveTo(cx + s * 0.1, cy - s * 0.32, cx + s * 0.42, cy);
-        ctx.quadraticCurveTo(cx + s * 0.1, cy + s * 0.32, cx - s * 0.18, cy);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - s * 0.18, cy);
-        ctx.lineTo(cx - s * 0.44, cy - s * 0.22);
-        ctx.lineTo(cx - s * 0.44, cy + s * 0.22);
+        ctx.moveTo(cx - s * 0.12, cy);
+        ctx.quadraticCurveTo(cx + s * 0.12, cy - s * 0.34, cx + s * 0.46, cy);
+        ctx.quadraticCurveTo(cx + s * 0.12, cy + s * 0.34, cx - s * 0.12, cy);
         ctx.closePath();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cx + s * 0.24, cy - s * 0.05, s * 0.045, 0, Math.PI * 2);
         ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.08, cy);
+        ctx.lineTo(cx - s * 0.46, cy - s * 0.26);
+        ctx.lineTo(cx - s * 0.46, cy + s * 0.26);
+        ctx.closePath();
+        ctx.fill();
+        ctx.save();
+        ctx.fillStyle = detail;
+        ctx.beginPath();
+        ctx.arc(cx + s * 0.26, cy - s * 0.04, s * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
     },
     // Cacahuete
-    cacahuetes(ctx, cx, cy, s) {
+    cacahuetes(ctx, cx, cy, s, detail) {
         ctx.beginPath();
-        ctx.ellipse(cx, cy - s * 0.2, s * 0.24, s * 0.22, 0, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.ellipse(cx, cy + s * 0.18, s * 0.28, s * 0.26, 0, 0, Math.PI * 2);
-        ctx.stroke();
-    },
-    // Vaina de soja
-    soja(ctx, cx, cy, s) {
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, s * 0.45, s * 0.2, Math.PI * 0.15, 0, Math.PI * 2);
-        ctx.stroke();
-        for (let i = -1; i <= 1; i++) {
+        ctx.moveTo(cx, cy - s * 0.44);
+        ctx.bezierCurveTo(cx + s * 0.34, cy - s * 0.44, cx + s * 0.34, cy - s * 0.06, cx + s * 0.14, cy);
+        ctx.bezierCurveTo(cx + s * 0.4, cy + s * 0.08, cx + s * 0.36, cy + s * 0.46, cx, cy + s * 0.46);
+        ctx.bezierCurveTo(cx - s * 0.36, cy + s * 0.46, cx - s * 0.4, cy + s * 0.08, cx - s * 0.14, cy);
+        ctx.bezierCurveTo(cx - s * 0.34, cy - s * 0.06, cx - s * 0.34, cy - s * 0.44, cx, cy - s * 0.44);
+        ctx.closePath();
+        ctx.fill();
+        ctx.save();
+        ctx.fillStyle = detail;
+        for (const [dx, dy] of [[-0.1, -0.2], [0.1, -0.2], [-0.12, 0.26], [0.12, 0.26], [0, 0.12]]) {
             ctx.beginPath();
-            ctx.arc(cx + i * s * 0.22, cy - i * s * 0.06, s * 0.09, 0, Math.PI * 2);
+            ctx.arc(cx + dx * s, cy + dy * s, s * 0.045, 0, Math.PI * 2);
             ctx.fill();
         }
+        ctx.restore();
+    },
+    // Vaina de soja
+    soja(ctx, cx, cy, s, detail) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(-Math.PI * 0.2);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, s * 0.48, s * 0.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = detail;
+        for (let i = -1; i <= 1; i++) {
+            ctx.beginPath();
+            ctx.arc(i * s * 0.28, 0, s * 0.055, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
     },
     // Vaso de leche
-    lacteos(ctx, cx, cy, s) {
+    lacteos(ctx, cx, cy, s, detail) {
         ctx.beginPath();
-        ctx.moveTo(cx - s * 0.24, cy - s * 0.36);
-        ctx.lineTo(cx + s * 0.24, cy - s * 0.36);
-        ctx.lineTo(cx + s * 0.17, cy + s * 0.38);
-        ctx.lineTo(cx - s * 0.17, cy + s * 0.38);
+        ctx.moveTo(cx - s * 0.26, cy - s * 0.38);
+        ctx.lineTo(cx + s * 0.26, cy - s * 0.38);
+        ctx.lineTo(cx + s * 0.18, cy + s * 0.42);
+        ctx.lineTo(cx - s * 0.18, cy + s * 0.42);
         ctx.closePath();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - s * 0.21, cy - s * 0.1);
-        ctx.lineTo(cx + s * 0.21, cy - s * 0.1);
-        ctx.stroke();
+        ctx.fill();
+        ctx.save();
+        ctx.fillStyle = detail;
+        ctx.fillRect(cx - s * 0.24, cy - s * 0.24, s * 0.48, s * 0.09);
+        ctx.restore();
     },
-    // Fruto seco (avellana)
-    frutos_secos(ctx, cx, cy, s) {
+    // Fruto seco
+    frutos_secos(ctx, cx, cy, s, detail) {
         ctx.beginPath();
-        ctx.moveTo(cx, cy - s * 0.4);
-        ctx.quadraticCurveTo(cx + s * 0.42, cy - s * 0.05, cx, cy + s * 0.4);
-        ctx.quadraticCurveTo(cx - s * 0.42, cy - s * 0.05, cx, cy - s * 0.4);
-        ctx.stroke();
+        ctx.moveTo(cx, cy - s * 0.46);
+        ctx.quadraticCurveTo(cx + s * 0.44, cy - s * 0.02, cx, cy + s * 0.46);
+        ctx.quadraticCurveTo(cx - s * 0.44, cy - s * 0.02, cx, cy - s * 0.46);
+        ctx.closePath();
+        ctx.fill();
+        ctx.save();
+        ctx.strokeStyle = detail;
+        ctx.lineWidth = Math.max(1.5, s * 0.075);
         ctx.beginPath();
         ctx.moveTo(cx, cy - s * 0.3);
         ctx.lineTo(cx, cy + s * 0.3);
         ctx.stroke();
+        ctx.restore();
     },
     // Apio
-    apio(ctx, cx, cy, s) {
+    apio(ctx, cx, cy, s, detail) {
         for (let i = -1; i <= 1; i++) {
             ctx.beginPath();
-            ctx.moveTo(cx + i * s * 0.18, cy + s * 0.4);
-            ctx.quadraticCurveTo(cx + i * s * 0.26, cy, cx + i * s * 0.2, cy - s * 0.28);
-            ctx.stroke();
+            ctx.moveTo(cx + i * s * 0.24 - s * 0.07, cy + s * 0.44);
+            ctx.quadraticCurveTo(cx + i * s * 0.3, cy, cx + i * s * 0.24 - s * 0.05, cy - s * 0.3);
+            ctx.lineTo(cx + i * s * 0.24 + s * 0.09, cy - s * 0.3);
+            ctx.quadraticCurveTo(cx + i * s * 0.3 + s * 0.12, cy, cx + i * s * 0.24 + s * 0.07, cy + s * 0.44);
+            ctx.closePath();
+            ctx.fill();
         }
         ctx.beginPath();
-        ctx.arc(cx, cy - s * 0.3, s * 0.16, Math.PI, Math.PI * 2);
-        ctx.stroke();
+        ctx.ellipse(cx, cy - s * 0.36, s * 0.3, s * 0.12, 0, 0, Math.PI * 2);
+        ctx.fill();
     },
     // Bote de mostaza
-    mostaza(ctx, cx, cy, s) {
+    mostaza(ctx, cx, cy, s, detail) {
         ctx.beginPath();
-        ctx.moveTo(cx - s * 0.2, cy - s * 0.12);
-        ctx.lineTo(cx + s * 0.2, cy - s * 0.12);
-        ctx.lineTo(cx + s * 0.2, cy + s * 0.38);
-        ctx.lineTo(cx - s * 0.2, cy + s * 0.38);
+        ctx.moveTo(cx - s * 0.22, cy - s * 0.1);
+        ctx.quadraticCurveTo(cx - s * 0.22, cy - s * 0.2, cx - s * 0.11, cy - s * 0.24);
+        ctx.lineTo(cx + s * 0.11, cy - s * 0.24);
+        ctx.quadraticCurveTo(cx + s * 0.22, cy - s * 0.2, cx + s * 0.22, cy - s * 0.1);
+        ctx.lineTo(cx + s * 0.22, cy + s * 0.42);
+        ctx.lineTo(cx - s * 0.22, cy + s * 0.42);
         ctx.closePath();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - s * 0.1, cy - s * 0.12);
-        ctx.lineTo(cx - s * 0.1, cy - s * 0.34);
-        ctx.lineTo(cx + s * 0.1, cy - s * 0.34);
-        ctx.lineTo(cx + s * 0.1, cy - s * 0.12);
-        ctx.stroke();
+        ctx.fill();
+        ctx.fillRect(cx - s * 0.1, cy - s * 0.46, s * 0.2, s * 0.22);
+        ctx.save();
+        ctx.fillStyle = detail;
+        ctx.fillRect(cx - s * 0.14, cy + s * 0.02, s * 0.28, s * 0.16);
+        ctx.restore();
     },
-    // Semillas de sésamo
-    sesamo(ctx, cx, cy, s) {
-        const pts = [[-0.22, -0.18], [0.2, -0.22], [-0.02, 0.02], [-0.26, 0.24], [0.22, 0.2]];
+    // Sésamo
+    sesamo(ctx, cx, cy, s, detail) {
+        const pts = [[-0.24, -0.24], [0.16, -0.28], [-0.02, -0.02], [-0.3, 0.16], [0.26, 0.1], [0.02, 0.3]];
         for (const [dx, dy] of pts) {
             ctx.beginPath();
-            ctx.ellipse(cx + dx * s, cy + dy * s, s * 0.12, s * 0.07, Math.PI * 0.25, 0, Math.PI * 2);
+            ctx.ellipse(cx + dx * s, cy + dy * s, s * 0.15, s * 0.085, Math.PI * 0.28, 0, Math.PI * 2);
             ctx.fill();
         }
     },
-    // Copa de vino (sulfitos)
-    sulfitos(ctx, cx, cy, s) {
+    // Copa de vino
+    sulfitos(ctx, cx, cy, s, detail) {
         ctx.beginPath();
-        ctx.moveTo(cx - s * 0.24, cy - s * 0.36);
-        ctx.lineTo(cx + s * 0.24, cy - s * 0.36);
-        ctx.quadraticCurveTo(cx, cy + s * 0.12, cx, cy + s * 0.12);
+        ctx.moveTo(cx - s * 0.28, cy - s * 0.42);
+        ctx.lineTo(cx + s * 0.28, cy - s * 0.42);
+        ctx.quadraticCurveTo(cx + s * 0.24, cy + s * 0.1, cx, cy + s * 0.16);
+        ctx.quadraticCurveTo(cx - s * 0.24, cy + s * 0.1, cx - s * 0.28, cy - s * 0.42);
         ctx.closePath();
-        ctx.stroke();
+        ctx.fill();
+        ctx.fillRect(cx - s * 0.045, cy + s * 0.12, s * 0.09, s * 0.24);
         ctx.beginPath();
-        ctx.moveTo(cx, cy + s * 0.12);
-        ctx.lineTo(cx, cy + s * 0.34);
-        ctx.moveTo(cx - s * 0.18, cy + s * 0.38);
-        ctx.lineTo(cx + s * 0.18, cy + s * 0.38);
-        ctx.stroke();
+        ctx.ellipse(cx, cy + s * 0.4, s * 0.22, s * 0.07, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.save();
+        ctx.fillStyle = detail;
+        ctx.fillRect(cx - s * 0.26, cy - s * 0.36, s * 0.52, s * 0.1);
+        ctx.restore();
     },
     // Altramuces
-    altramuces(ctx, cx, cy, s) {
-        ctx.beginPath();
-        ctx.arc(cx, cy - s * 0.14, s * 0.17, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cx - s * 0.22, cy + s * 0.2, s * 0.17, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cx + s * 0.22, cy + s * 0.2, s * 0.17, 0, Math.PI * 2);
-        ctx.stroke();
-    },
-    // Concha (moluscos)
-    moluscos(ctx, cx, cy, s) {
-        ctx.beginPath();
-        ctx.arc(cx, cy + s * 0.22, s * 0.42, Math.PI, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - s * 0.42, cy + s * 0.22);
-        ctx.lineTo(cx + s * 0.42, cy + s * 0.22);
-        ctx.stroke();
-        for (let i = -1; i <= 1; i++) {
+    altramuces(ctx, cx, cy, s, detail) {
+        const beans = [[0, -0.2, 0.21], [-0.24, 0.18, 0.21], [0.24, 0.18, 0.21]];
+        for (const [dx, dy, r] of beans) {
             ctx.beginPath();
-            ctx.moveTo(cx + i * s * 0.02, cy + s * 0.22);
-            ctx.lineTo(cx + i * s * 0.3, cy - s * 0.14);
+            ctx.arc(cx + dx * s, cy + dy * s, r * s, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.save();
+        ctx.strokeStyle = detail;
+        ctx.lineWidth = Math.max(1.5, s * 0.07);
+        for (const [dx, dy] of beans) {
+            ctx.beginPath();
+            ctx.arc(cx + dx * s, cy + dy * s, s * 0.1, Math.PI * 0.7, Math.PI * 1.6);
             ctx.stroke();
         }
+        ctx.restore();
+    },
+    // Concha
+    moluscos(ctx, cx, cy, s, detail) {
+        ctx.beginPath();
+        ctx.moveTo(cx - s * 0.46, cy + s * 0.26);
+        ctx.quadraticCurveTo(cx - s * 0.4, cy - s * 0.42, cx, cy - s * 0.42);
+        ctx.quadraticCurveTo(cx + s * 0.4, cy - s * 0.42, cx + s * 0.46, cy + s * 0.26);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + s * 0.28, s * 0.14, s * 0.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.save();
+        ctx.strokeStyle = detail;
+        ctx.lineWidth = Math.max(1.5, s * 0.07);
+        for (let i = -2; i <= 2; i++) {
+            ctx.beginPath();
+            ctx.moveTo(cx + i * s * 0.03, cy + s * 0.2);
+            ctx.lineTo(cx + i * s * 0.19, cy - s * 0.32);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
 };
 
@@ -1183,7 +1230,9 @@ function drawAllergenIcon(ctx, code, cx, cy, size, color) {
     ctx.lineJoin = 'round';
 
     if (draw) {
-        draw(ctx, cx, cy, size * 0.7);
+        // Se le pasa el color del disco para poder calar detalles internos
+        // (segmentos, semillas, nervaduras) recortando sobre la silueta.
+        draw(ctx, cx, cy, size * 0.66, color);
     } else {
         ctx.font = `bold ${Math.round(size * 0.7)}px Roboto`;
         ctx.textAlign = 'center';
