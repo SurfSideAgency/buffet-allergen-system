@@ -2135,17 +2135,63 @@ app.post('/api/screens', checkLicenseWithDevice, async (req, res) => {
 // DEBUG: Consultar estado real del dispositivo en Sertag
 app.get('/api/screens/:mac/status', checkLicenseWithDevice, async (req, res) => {
     try {
+        const { data: screen } = await supabase
+            .from('esl_screens')
+            .select('mac')
+            .eq('mac', req.params.mac)
+            .eq('establishment_id', req.establishment.id)
+            .single();
+
+        if (!screen) {
+            return res.status(404).json({ success: false, error: 'Pantalla no encontrada' });
+        }
+
         const token = await sertagLogin();
         const response = await fetch(
             `${process.env.SERTAG_API_BASE}/user/api/rest/devices/mac/${req.params.mac}`,
             { headers: { Authorization: `Bearer ${token}` } }
         );
         const data = await response.json();
-        res.json({ success: true, deviceInfo: data });
+        const device = data?.data?.[0];
+
+        if (!device) {
+            return res.status(404).json({ success: false, error: 'Dispositivo no encontrado en Sertag' });
+        }
+
+        // Sertag devuelve el registro entero, que incluye la contraseña del
+        // WiFi del establecimiento, las credenciales del broker MQTT, la
+        // ApiKey y el usuario de la plataforma. Nada de eso puede salir de
+        // aquí: se devuelve sólo lo que sirve para diagnosticar la pantalla.
+        res.json({
+            success: true,
+            device: {
+                mac: device.mac,
+                online: device.status,
+                signal: device.station?.rssi,
+                voltage: device.voltage,
+                updatedAt: device.updatedAt,
+                lastImageAt: extractImageTimestamp(device.images?.imageFile),
+                screen: device.screentype
+                    ? {
+                        name: device.screentype.name,
+                        width: device.screentype.width,
+                        height: device.screentype.height
+                    }
+                    : null
+            }
+        });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+// El nombre del thumb acaba en la marca de tiempo de la última imagen que
+// Sertag generó. Es la única señal fiable de que un envío se procesó.
+function extractImageTimestamp(imageFile) {
+    if (!imageFile) return null;
+    const match = String(imageFile).match(/\.(\d{10,})\./);
+    return match ? new Date(Number(match[1])).toISOString() : null;
+}
 
 // DEBUG: Ver la imagen generada directamente, sin pasar por Sertag
 app.get('/api/screens/:mac/preview', checkLicenseWithDevice, async (req, res) => {
