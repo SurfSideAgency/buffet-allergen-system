@@ -20,6 +20,14 @@ de Sertag y otra en la aplicación. Hacen falta las dos.
 
 ## Paso 1 — Alta en la plataforma de Sertag
 
+**Plataforma:** http://192.144.234.153:8000/
+
+**Credenciales:** no se escriben aquí a propósito. Este documento se comparte
+con técnicos y proveedores, y una contraseña en un PDF no se puede revocar.
+Están en el gestor de contraseñas de la agencia, entrada «Sertag – plataforma».
+Pídelas a administración.
+
+
 Con el **software oficial de Sertag** (no con esta aplicación):
 
 1. Conectar la pantalla a la WiFi del establecimiento.

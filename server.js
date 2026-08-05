@@ -1263,6 +1263,34 @@ function drawAllergenIcon(ctx, code, cx, cy, size, color) {
     ctx.restore();
 }
 
+// Los mismos pictogramas, rasterizados para incrustarlos en el HTML de la
+// etiqueta impresa. Se usa el código de dibujo de la pantalla para que papel
+// y pantalla no se puedan desincronizar, y va como PNG embebido en el propio
+// documento: los emoji que había antes dependían de la fuente del dispositivo
+// y en muchas impresoras salen como un cuadro vacío, que en una etiqueta de
+// alérgenos es un fallo serio.
+// Escapado para los HTML generados en servidor (etiqueta y recetario), que
+// interpolan nombres escritos por el usuario.
+function escapeLabelHtml(value) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(value ?? '').replace(/[&<>"']/g, c => map[c]);
+}
+
+const iconDataUriCache = new Map();
+
+function allergenIconDataUri(code, size = 160, color = '#DC2626') {
+    const key = `${code}|${size}|${color}`;
+    if (iconDataUriCache.has(key)) return iconDataUriCache.get(key);
+
+    const canvas = createCanvas(size, size);
+    const ctx = canvas.getContext('2d');
+    drawAllergenIcon(ctx, code, size / 2, size / 2, size, color);
+
+    const uri = 'data:image/png;base64,' + canvas.toBuffer('image/png').toString('base64');
+    iconDataUriCache.set(key, uri);
+    return uri;
+}
+
 const SCREEN_PALETTE = [
     [255, 255, 255], // blanco
     [0, 0, 0],       // negro
@@ -1865,64 +1893,92 @@ app.post('/api/generate-label', checkLicenseWithDevice, async (req, res) => {
 
         const translations = await translateDishName(dish.name);
 
-        const allergensHTML = allergens && allergens.length > 0 
-            ? allergens.map(code => {
-                const a = ALLERGENS[code];
-                return a ? `<span class="allergen">${a.icon} ${a.name}</span>` : '';
-              }).join('')
-            : '<span class="no-allergens">✅ Sin Alérgenos</span>';
+        const presentes = (allergens || []).filter(c => ALLERGENS[c]);
+        const trazas = (dish.traces || []).filter(c => ALLERGENS[c]);
 
-        const tracesHTML = dish.traces && dish.traces.length > 0
-            ? `<div class="traces">
-                <strong>Puede contener trazas de:</strong><br>
-                ${dish.traces.map(code => {
-                    const a = ALLERGENS[code];
-                    return a ? `<span class="trace">${a.icon} ${a.name}</span>` : '';
-                }).join('')}
-               </div>`
+        const allergensHTML = presentes.length > 0
+            ? `<div class="grid">${presentes.map(code => `
+                <div class="item">
+                    <img class="ico" src="${allergenIconDataUri(code)}" alt="">
+                    <span class="nombre">${escapeLabelHtml(ALLERGENS[code].name)}</span>
+                </div>`).join('')}</div>`
+            : '<div class="sin">SIN ALÉRGENOS</div>';
+
+        const tracesHTML = trazas.length > 0
+            ? `<section class="bloque trazas">
+                <h2>Puede contener trazas de</h2>
+                <div class="grid">${trazas.map(code => `
+                    <div class="item">
+                        <img class="ico" src="${allergenIconDataUri(code, 160, '#B45309')}" alt="">
+                        <span class="nombre">${escapeLabelHtml(ALLERGENS[code].name)}</span>
+                    </div>`).join('')}</div>
+               </section>`
             : '';
 
-        const html = `
-<!DOCTYPE html>
+        const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Etiqueta - ${dish.name}</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
-        .label { border: 3px solid #000; padding: 30px; background: white; }
-        .dish-name { font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 10px; }
-        .translations { text-align: center; color: #666; font-size: 18px; margin-bottom: 30px; }
-        .allergens-title { font-size: 20px; font-weight: bold; margin: 20px 0 10px; color: #d32f2f; }
-        .allergen { display: inline-block; background: #ffebee; border: 2px solid #e57373; padding: 8px 12px; margin: 5px; border-radius: 8px; font-size: 16px; }
-        .no-allergens { display: inline-block; background: #e8f5e9; border: 2px solid #81c784; padding: 10px 20px; border-radius: 8px; font-size: 18px; }
-        .traces { margin-top: 20px; padding: 15px; background: #fff3e0; border: 2px solid #ffb74d; border-radius: 8px; }
-        .trace { display: inline-block; background: #ffe082; padding: 5px 10px; margin: 3px; border-radius: 5px; font-size: 14px; }
-        @media print { body { margin: 0; } .label { border: none; } }
-    </style>
+<meta charset="UTF-8">
+<title>Etiqueta - ${escapeLabelHtml(dish.name)}</title>
+<style>
+  /* Etiqueta A5 apaisada: entra en media hoja A4 y se lee de pie junto a la
+     bandeja. Los iconos van a 14 mm, muy por encima de los 6 mm que la guía
+     de la FSA fija como mínimo legible. */
+  @page { size: A5 landscape; margin: 8mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 10mm;
+         color: #111; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .etiqueta { border: 2.5mm solid #111; padding: 6mm 7mm; }
+
+  .plato { font-size: 30pt; font-weight: 800; line-height: 1.08; letter-spacing: -0.5pt; }
+  .traduccion { font-size: 12pt; color: #555; margin-top: 1.5mm; font-style: italic; }
+
+  .bloque { margin-top: 5mm; padding-top: 4mm; border-top: 1mm solid #111; }
+  .bloque h2 { margin: 0 0 3mm; font-size: 15pt; font-weight: 800; letter-spacing: 0.6pt;
+               text-transform: uppercase; }
+  .contiene h2 { color: #DC2626; }
+  .trazas { border-top-color: #B45309; }
+  .trazas h2 { color: #B45309; font-size: 12pt; }
+
+  .grid { display: flex; flex-wrap: wrap; gap: 3mm 5mm; }
+  .item { display: flex; align-items: center; gap: 2.5mm; }
+  .ico { width: 14mm; height: 14mm; }
+  .trazas .ico { width: 10mm; height: 10mm; }
+  .nombre { font-size: 14pt; font-weight: 700; }
+  .trazas .nombre { font-size: 11pt; font-weight: 600; }
+
+  .sin { display: inline-block; font-size: 22pt; font-weight: 800; color: #047857;
+         border: 1mm solid #047857; padding: 3mm 6mm; }
+
+  .pie { margin-top: 5mm; padding-top: 3mm; border-top: 0.4mm solid #bbb;
+         display: flex; justify-content: space-between; font-size: 8pt; color: #555; }
+
+  .imprimir { display: block; margin: 8mm auto 0; padding: 4mm 10mm; font-size: 12pt;
+              font-weight: 700; color: #fff; background: #003D82; border: 0;
+              border-radius: 2mm; cursor: pointer; }
+  @media print { body { padding: 0; } .imprimir { display: none; } }
+</style>
 </head>
 <body>
-    <div class="label">
-        <div class="dish-name">${dish.name}</div>
-        <div class="translations">
-            ${translations.english} | ${translations.french}
-        </div>
-        
-        <div class="allergens-title">⚠️ Alérgenos:</div>
-        <div>${allergensHTML}</div>
-        
-        ${tracesHTML}
-        
-        <div style="text-align: center; margin-top: 30px; color: #888; font-size: 12px;">
-            ${req.establishment.name} | ${new Date().toLocaleDateString('es-ES')}
-        </div>
-    </div>
-    
-    <div style="text-align: center; margin-top: 20px;">
-        <button onclick="window.print()" style="padding: 15px 30px; font-size: 16px; cursor: pointer; background: #2196F3; color: white; border: none; border-radius: 8px;">
-            🖨️ Imprimir Etiqueta
-        </button>
-    </div>
+<div class="etiqueta">
+  <div class="plato">${escapeLabelHtml(dish.name)}</div>
+  <div class="traduccion">${escapeLabelHtml(translations.english)} &middot; ${escapeLabelHtml(translations.french)}</div>
+
+  <section class="bloque contiene">
+    <h2>Contiene</h2>
+    ${allergensHTML}
+  </section>
+
+  ${tracesHTML}
+
+  <div class="pie">
+    <span>${escapeLabelHtml(req.establishment.name)}</span>
+    <span>Reglamento (UE) 1169/2011 &middot; RD 126/2015</span>
+    <span>${new Date().toLocaleDateString('es-ES')}</span>
+  </div>
+</div>
+
+<button class="imprimir" onclick="window.print()">Imprimir etiqueta</button>
 </body>
 </html>`;
 
@@ -1980,22 +2036,20 @@ app.post('/api/generate-recipe-document', checkLicenseWithDevice, async (req, re
             .rpc('get_dish_allergens', { dish_id_param: dishId });
 
         const ingredientsList = dish.dish_ingredients
-            .map(di => `<li>${di.ingredient.name} ${di.quantity ? '(' + di.quantity + ')' : ''}</li>`)
+            .map(di => `<li>${escapeLabelHtml(di.ingredient.name)} ${di.quantity ? '(' + escapeLabelHtml(di.quantity) + ')' : ''}</li>`)
             .join('');
 
-        const allergensHTML = allergens && allergens.length > 0 
-            ? allergens.map(code => {
-                const a = ALLERGENS[code];
-                return a ? `<li>${a.icon} ${a.name}</li>` : '';
-              }).join('')
-            : '<li>✅ Sin alérgenos</li>';
+        const iconLi = (code, color) => `<li style="display:flex;align-items:center;gap:8px;">` +
+            `<img src="${allergenIconDataUri(code, 120, color)}" alt="" style="width:22px;height:22px;">` +
+            `${escapeLabelHtml(ALLERGENS[code].name)}</li>`;
+
+        const allergensHTML = allergens && allergens.length > 0
+            ? allergens.filter(c => ALLERGENS[c]).map(c => iconLi(c, '#DC2626')).join('')
+            : '<li>Sin alérgenos</li>';
 
         const tracesHTML = dish.traces && dish.traces.length > 0
-            ? `<h3>⚡ Trazas (Puede Contener)</h3>
-               <ul>${dish.traces.map(code => {
-                   const a = ALLERGENS[code];
-                   return a ? `<li>${a.icon} ${a.name}</li>` : '';
-               }).join('')}</ul>`
+            ? `<h3>Trazas (puede contener)</h3>
+               <ul style="list-style:none;padding-left:0;">${dish.traces.filter(c => ALLERGENS[c]).map(c => iconLi(c, '#B45309')).join('')}</ul>`
             : '';
 
         const html = `
